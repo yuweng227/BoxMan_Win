@@ -1,0 +1,27 @@
+# Delphi local files (user-specific info)
+*.local
+*.identcache
+*.projdata
+*.tvsconfig
+*.dsk
+
+# Delphi history and backups
+__history/
+__recovery/
+*.~*
+
+# Castalia statistics file (since XE7 Castalia is distributed with Delphi)
+*.stat
+
+# Boss dependency manager vendor folder https://github.com/HashLoad/boss
+modules/
+/boxman.xsb
+/BoxMan.xsb.bak
+/Levels
+/temp
+/资料
+/11.txt
+/111.txt
+/BoxMan.db
+/BoxMan.ini
+/BoxMan.ini
