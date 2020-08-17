@@ -341,6 +341,7 @@ var
 
 begin
   StatusBar1.Panels[0].Text := '';
+  MemoAct.Lines.Clear;
   case LoadBox.ItemIndex of
     0:                              // ºÙ«–∞Â
       begin

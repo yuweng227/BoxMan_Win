@@ -1,9 +1,9 @@
 object main: Tmain
-  Left = 243
-  Top = 143
+  Left = 258
+  Top = 138
   Width = 664
   Height = 445
-  Caption = 'Sokoban'
+  Caption = 'BoxMan'
   Color = clBtnFace
   Font.Charset = ANSI_CHARSET
   Font.Color = clWindowText
@@ -312,8 +312,8 @@ object main: Tmain
       object map_Image: TImage
         Left = 0
         Top = 0
-        Width = 137
-        Height = 121
+        Width = 1
+        Height = 1
         OnMouseDown = map_ImageMouseDown
       end
     end
@@ -392,7 +392,7 @@ object main: Tmain
       Width = 19
       Height = 22
       Cursor = crHandPoint
-      Hint = #25764#38144': Z'#12289'BackSpace'
+      Hint = #25764#38144': Z'
       Glyph.Data = {
         F6000000424DF600000000000000760000002800000010000000100000000100
         04000000000080000000C40E0000C40E00001000000000000000000000000000
@@ -412,7 +412,7 @@ object main: Tmain
       Width = 23
       Height = 22
       Cursor = crHandPoint
-      Hint = #37325#20570': X'#12289'Space'
+      Hint = #37325#20570': X'
       Glyph.Data = {
         F6000000424DF600000000000000760000002800000010000000100000000100
         04000000000080000000C40E0000C40E00001000000000000000000000000000
@@ -505,7 +505,7 @@ object main: Tmain
       ShowHint = True
       OnClick = bt_ViewClick
     end
-    object bt_In: TSpeedButton
+    object bt_Act: TSpeedButton
       Left = 438
       Top = 4
       Width = 33
@@ -515,7 +515,7 @@ object main: Tmain
       Caption = #21160#20316
       ParentShowHint = False
       ShowHint = True
-      OnClick = bt_InClick
+      OnClick = bt_ActClick
     end
     object bt_Lately: TSpeedButton
       Left = 36
@@ -523,7 +523,7 @@ object main: Tmain
       Width = 15
       Height = 22
       Cursor = crHandPoint
-      Hint = #25171#24320#25991#26723': Ctrl + O'
+      Hint = #26368#36817#25171#24320#30340#25991#26723
       Glyph.Data = {
         C2000000424DC200000000000000360000002800000009000000050000000100
         1800000000008C000000120B0000120B00000000000000000000F0F0F0F0F0F0
@@ -537,12 +537,24 @@ object main: Tmain
       ShowHint = True
       OnClick = bt_LatelyClick
     end
+    object bt_Save: TSpeedButton
+      Left = 480
+      Top = 4
+      Width = 33
+      Height = 22
+      Cursor = crHandPoint
+      Hint = #20445#23384#29616#22330': Ctrl + S'
+      Caption = #23384#26723
+      ParentShowHint = False
+      ShowHint = True
+      OnClick = bt_SaveClick
+    end
     object pnl_Trun: TPanel
-      Left = 476
+      Left = 522
       Top = 4
       Width = 41
       Height = 23
-      Hint = #26059#36716#20851#21345': *'#12289'/'#12289#24038#21491#38190
+      Hint = #26059#36716#20851#21345': *'#12289'/'#12289#24038#21491#40736#26631#38190
       BevelInner = bvLowered
       Caption = '0'#36716
       Color = clActiveCaption
@@ -552,11 +564,11 @@ object main: Tmain
       OnMouseUp = pnl_TrunMouseUp
     end
     object pnl_Speed: TPanel
-      Left = 524
+      Left = 570
       Top = 4
       Width = 41
       Height = 23
-      Hint = #25913#21464#28216#25103#36895#24230':  +'#12289'-'#12289#24038#21491#38190
+      Hint = #25913#21464#28216#25103#36895#24230':  +'#12289'-'#12289#24038#21491#40736#26631#38190
       BevelInner = bvLowered
       Caption = #20013#36895
       Color = clActiveCaption

@@ -16,6 +16,7 @@ uses
   Actions in 'Actions.pas' {ActionForm},
   BrowseLevels in 'BrowseLevels.pas' {BrowseForm},
   inf in 'inf.pas' {InfForm};
+//  MyInf in 'MyInf.pas' {MyInfForm};
 
 {$R *.RES}
 
@@ -27,6 +28,7 @@ begin
   Application.CreateForm(TActionForm, ActionForm);
   Application.CreateForm(TBrowseForm, BrowseForm);
   Application.CreateForm(TInfForm, InfForm);
+//  Application.CreateForm(TMyInfForm, MyInfForm);
   Application.Run;
 
 end.

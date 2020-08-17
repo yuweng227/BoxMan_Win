@@ -336,6 +336,7 @@ begin
 
              is_XSB      := True;    // 开始关卡 XSB 块
              is_Comment  := False;
+             is_Solution := False;
              mapNode.Rows    := 0;
              mapNode.Cols    := 0;
              mapNode.Title   := '';
@@ -462,13 +463,12 @@ var
   is_XSB: Boolean;                 // 是否正在解析关卡XSB
   is_Solution: Boolean;            // 是否答案行
   is_Comment: Boolean;             // 是否正在解析关卡说明信息
-  num, l, n, k, i: Integer;        // XSB的解析控制
+  num, l, n, k: Integer;        // XSB的解析控制
   mapNode: PMapNode;               // 解析出的当前关卡节点指针
   mapSolution: TStringList;        // 关卡答案
   XSB_Text: string;
   data_Text: TStringList;
   tmpList: TList;
-  is_Solved: Boolean;              // 是否真答案
 
 begin
   Result := False;
@@ -516,6 +516,7 @@ begin
 
            is_XSB      := True;    // 开始关卡 XSB 块
            is_Comment  := False;
+           is_Solution := False;
            mapNode.Rows    := 0;
            mapNode.Cols    := 0;
            mapNode.Title   := '';

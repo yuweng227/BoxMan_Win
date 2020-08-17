@@ -90,12 +90,12 @@ const
 var
   isThroughable: boolean;                             // 是否允许穿越
 
-  TrunPath: array[1..MaxLenPath] of Char;             // 保存人移动时，穿越路径的临时数组
-
   tmpMap: array[0..99, 0..99] of Char;                // 计算穿越时，临时使用
   mapWidth, mapHeight: Integer;                       // 地图尺寸
   tmpBoxPos: Integer;                                 // 临时记录被点击箱子位置，计算割点 CutVertex() 时使用
   deep_Thur: Integer;                                 // 穿越前后的直推次数
+
+  TrunPath: array[1..MaxLenPath] of Char;             // 保存人移动时，穿越路径的临时数组
 
   mark: array[0..99, 0..99] of Boolean;               // 计算穿越时，临时使用
   pt, pt0, ptBlock: array[0..9999] of Integer;        // 开集；登记块时使用ptBlock，替代“队列”
