@@ -15,7 +15,9 @@ uses
   LurdAction in 'LurdAction.pas',
   Actions in 'Actions.pas' {ActionForm},
   BrowseLevels in 'BrowseLevels.pas' {BrowseForm},
-  inf in 'inf.pas' {InfForm};
+  inf in 'inf.pas' {InfForm},
+  Submit in 'Submit.pas' {MySubmit};
+
 //  MyInf in 'MyInf.pas' {MyInfForm};
 
 {$R *.RES}
@@ -28,7 +30,8 @@ begin
   Application.CreateForm(TActionForm, ActionForm);
   Application.CreateForm(TBrowseForm, BrowseForm);
   Application.CreateForm(TInfForm, InfForm);
-//  Application.CreateForm(TMyInfForm, MyInfForm);
+  Application.CreateForm(TMySubmit, MySubmit);
+  //  Application.CreateForm(TMyInfForm, MyInfForm);
   Application.Run;
 
 end.

@@ -67,6 +67,22 @@ const
   ManCell          = 6;
   ManGoalCell      = 7;
 
+function LastPos(const SubStr, Str: ansistring): Integer;
+var
+  Idx: Integer;
+
+begin
+  Result := 0;
+  Idx := StrUtils.PosEx(SubStr, Str);
+  if Idx = 0 then
+    Exit;
+  while Idx > 0 do
+  begin
+    Result := Idx;
+    Idx := StrUtils.PosEx(SubStr, Str, Idx + 1);
+  end;
+end;
+  
 // 判断是否为有效的 XSB 行
 function isXSB(str: String): boolean;
 var
@@ -221,7 +237,7 @@ end;
 // 检查是否为有解关卡
 procedure SetSolved(mapNode: PMapNode; var Solitions: TStringList);
 var
-  i, l: Integer;
+  i, l, solCRC: Integer;
   is_Solved: Boolean;
   
 begin
@@ -242,19 +258,31 @@ begin
               DataModule1.DataSource1.DataSet := DataModule1.ADOQuery1;
 
               with DataModule1.ADOQuery1 do begin
+                // 查重
+                solCRC := Calcu_CRC_32_2(PChar(Solitions[i]), Length(Solitions[i]));
+                First;
+                while not Eof do begin
+                   if (FieldByName('Sol_CRC32').AsInteger = solCRC) and
+                      (FieldByName('Moves').AsInteger = sMoves) and
+                      (FieldByName('Pushs').AsInteger = sPushs) then Break;
 
-                Append;    // 修改
+                   Next;
+                end;
 
-                FieldByName('XSB_CRC32').AsInteger := mapNode.CRC32;
-                FieldByName('XSB_CRC_TrunNum').AsInteger := mapNode.CRC_Num;
-                FieldByName('Goals').AsInteger := mapNode.Goals;
-                FieldByName('Sol_CRC32').AsInteger := Calcu_CRC_32_2(PChar(Solitions[i]), Length(Solitions[i]));
-                FieldByName('Moves').AsInteger := sMoves;
-                FieldByName('Pushs').AsInteger := sPushs;
-                FieldByName('Sol_Text').AsString := Solitions[i];
+                // 没有重复答案，则添加到答案库
+                if Eof then begin
+                    Append;    // 修改
 
-                Post;    // 提交
+                    FieldByName('XSB_CRC32').AsInteger := mapNode.CRC32;
+                    FieldByName('XSB_CRC_TrunNum').AsInteger := mapNode.CRC_Num;
+                    FieldByName('Goals').AsInteger := mapNode.Goals;
+                    FieldByName('Sol_CRC32').AsInteger := solCRC;
+                    FieldByName('Moves').AsInteger := sMoves;
+                    FieldByName('Pushs').AsInteger := sPushs;
+                    FieldByName('Sol_Text').AsString := Solitions[i];
 
+                    Post;    // 提交
+                end;
               end;
             except
             end;
@@ -290,7 +318,7 @@ var
   is_XSB: Boolean;                 // 是否正在解析关卡XSB
   is_Solution: Boolean;            // 是否答案行
   is_Comment: Boolean;             // 是否正在解析关卡说明信息
-  num, l, n: Integer;              // XSB的解析控制
+  num, n: Integer;              // XSB的解析控制
   mapNode: PMapNode;               // 解析出的当前关卡节点指针
   mapSolution: TStringList;        // 关卡答案
   tmpList: TList;
@@ -348,28 +376,25 @@ begin
 
        end else
        if (not is_Comment) and (AnsiStartsText('title', line2)) then begin   // 匹配 Title，标题
-          l := Length(line2);
           n := Pos(':', line2);
-          if n > 0 then mapNode.Title := trim(RightStr(line2, l-n))
-          else          mapNode.Title := trim(RightStr(line2, l-5));
+          if n > 0 then mapNode.Title := trim(Copy(line2, n+1, MaxInt))
+          else          mapNode.Title := trim(Copy(line2, 6, MaxInt));
         
           if is_XSB then is_XSB := false;      // 结束关卡SXB的解析
        end else
        if (not is_Comment) and (AnsiStartsText('author', line2)) then begin  // 匹配 Author，作者
-          l := Length(line2);
           n := Pos(':', line2);
-          if n > 0 then mapNode.Author := trim(RightStr(line2, l-n))
-          else          mapNode.Author := trim(RightStr(line2, l-6));
+          if n > 0 then mapNode.Author := trim(Copy(line2, n+1, MaxInt))
+          else          mapNode.Author := trim(Copy(line2, 7, MaxInt));
 
           if is_XSB then is_XSB := false;      // 结束关卡SXB的解析
        end else
        if (not is_Comment) and (AnsiStartsText('solution', line2)) then begin  // 匹配 Solution，答案
-          l := Length(line2);
-          n := Pos(':', line2);
+          n := LastPos(':', line2);
           if n = 0 then n := Pos(')', line2);
         
-          if n > 0 then line := trim(RightStr(line2, l-n))
-          else          line := trim(RightStr(line2, l-8));
+          if n > 0 then line := trim(Copy(line2, n+1, MaxInt))
+          else          line := trim(Copy(line2, 9, MaxInt));
 
           if Length(line) > 0 then mapSolution.Add(line)
           else                     mapSolution.Add('');
@@ -382,11 +407,10 @@ begin
        end else
        if (AnsiStartsText('comment', line2)) then begin  //匹配"注释"块开始
           if is_XSB then is_XSB := false;      // 结束关卡SXB的解析
-        
-          l := Length(line2);
+
           n := Pos(':', line2);
-          if n > 0 then line := trim(RightStr(line2, l-n))
-          else          line := trim(RightStr(line2, l-7));
+          if n > 0 then line := trim(Copy(line2, n+1, MaxInt))
+          else          line := trim(Copy(line2, 8, MaxInt));
 
           if Length(line) > 0 then mapNode.Comment := line     // 单行"注释"
           else is_Comment := True;;  // 结束"注释"块
@@ -463,7 +487,7 @@ var
   is_XSB: Boolean;                 // 是否正在解析关卡XSB
   is_Solution: Boolean;            // 是否答案行
   is_Comment: Boolean;             // 是否正在解析关卡说明信息
-  num, l, n, k: Integer;        // XSB的解析控制
+  num, n, k: Integer;        // XSB的解析控制
   mapNode: PMapNode;               // 解析出的当前关卡节点指针
   mapSolution: TStringList;        // 关卡答案
   XSB_Text: string;
@@ -528,28 +552,25 @@ begin
 
      end else
      if (not is_Comment) and (AnsiStartsText('title', line2)) then begin   // 匹配 Title，标题
-        l := Length(line2);
         n := Pos(':', line2);
-        if n > 0 then mapNode.Title := trim(RightStr(line2, l-n))
-        else          mapNode.Title := trim(RightStr(line2, l-5));
+        if n > 0 then mapNode.Title := trim(Copy(line2, n+1, MaxInt))
+        else          mapNode.Title := trim(Copy(line2, 6, MaxInt));
         
         if is_XSB then is_XSB := false;      // 结束关卡SXB的解析
      end else
      if (not is_Comment) and (AnsiStartsText('author', line2)) then begin  // 匹配 Author，作者
-        l := Length(line2);
         n := Pos(':', line2);
-        if n > 0 then mapNode.Author := trim(RightStr(line2, l-n))
-        else          mapNode.Author := trim(RightStr(line2, l-6));
+        if n > 0 then mapNode.Author := trim(Copy(line2, n+1, MaxInt))
+        else          mapNode.Author := trim(Copy(line2, 7, MaxInt));
 
         if is_XSB then is_XSB := false;      // 结束关卡SXB的解析
      end else
      if (not is_Comment) and (AnsiStartsText('solution', line2)) then begin  // 匹配 Solution，答案
-        l := Length(line2);
-        n := Pos(':', line2);
+        n := LastPos(':', line2);
         if n = 0 then n := Pos(')', line2);
         
-        if n > 0 then line := trim(RightStr(line2, l-n))
-        else          line := trim(RightStr(line2, l-8));
+        if n > 0 then line := trim(Copy(line2, n+1, MaxInt))
+        else          line := trim(Copy(line2, 9, MaxInt));
 
         if Length(line) > 0 then mapSolution.Add(line)
         else                     mapSolution.Add('');
@@ -563,10 +584,9 @@ begin
      if (AnsiStartsText('comment', line2)) then begin  //匹配"注释"块开始
         if is_XSB then is_XSB := false;      // 结束关卡SXB的解析
         
-        l := Length(line2);
         n := Pos(':', line2);
-        if n > 0 then line := trim(RightStr(line2, l-n))
-        else          line := trim(RightStr(line2, l-7));
+        if n > 0 then line := trim(Copy(line2, n+1, MaxInt))
+        else          line := trim(Copy(line2, 8, MaxInt));
 
         if Length(line) > 0 then mapNode.Comment := line     // 单行"注释"
         else is_Comment := True;;  // 结束"注释"块

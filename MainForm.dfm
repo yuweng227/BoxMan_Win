@@ -1,8 +1,8 @@
 object main: Tmain
-  Left = 258
-  Top = 138
+  Left = 280
+  Top = 129
   Width = 664
-  Height = 445
+  Height = 446
   Caption = 'BoxMan'
   Color = clBtnFace
   Font.Charset = ANSI_CHARSET
@@ -162,7 +162,7 @@ object main: Tmain
   TextHeight = 13
   object StatusBar1: TStatusBar
     Left = 0
-    Top = 388
+    Top = 389
     Width = 648
     Height = 19
     Panels = <
@@ -216,23 +216,23 @@ object main: Tmain
     Left = 0
     Top = 30
     Width = 648
-    Height = 358
+    Height = 359
     Align = alClient
     TabOrder = 1
     object pl_Side: TPanel
       Left = 1
       Top = 1
       Width = 172
-      Height = 356
+      Height = 357
       Align = alLeft
       BevelInner = bvLowered
       Color = clInactiveCaption
       TabOrder = 0
       object PageControl: TPageControl
         Left = 2
-        Top = 2
+        Top = 32
         Width = 168
-        Height = 352
+        Height = 323
         Cursor = crHandPoint
         ActivePage = Tab_Solution
         Align = alClient
@@ -244,7 +244,7 @@ object main: Tmain
             Left = 0
             Top = 0
             Width = 160
-            Height = 324
+            Height = 295
             Style = lbOwnerDrawVariable
             Align = alClient
             ItemHeight = 13
@@ -262,7 +262,7 @@ object main: Tmain
             Left = 0
             Top = 0
             Width = 160
-            Height = 324
+            Height = 295
             Style = lbOwnerDrawVariable
             Align = alClient
             ItemHeight = 13
@@ -280,7 +280,7 @@ object main: Tmain
             Left = 0
             Top = 0
             Width = 160
-            Height = 324
+            Height = 295
             TabStop = False
             Align = alClient
             Lines.Strings = (
@@ -291,12 +291,45 @@ object main: Tmain
           end
         end
       end
+      object Panel1: TPanel
+        Left = 2
+        Top = 2
+        Width = 168
+        Height = 30
+        Align = alTop
+        Color = clGradientActiveCaption
+        TabOrder = 1
+        object bt_Act: TSpeedButton
+          Left = 86
+          Top = 4
+          Width = 73
+          Height = 22
+          Cursor = crHandPoint
+          Hint = #21160#20316#32534#36753': F4'
+          Caption = #21160#20316#32534#36753
+          ParentShowHint = False
+          ShowHint = True
+          OnClick = bt_ActClick
+        end
+        object bt_Save: TSpeedButton
+          Left = 11
+          Top = 4
+          Width = 66
+          Height = 22
+          Cursor = crHandPoint
+          Hint = #20445#23384#29616#22330': Ctrl + S'
+          Caption = #29366#24577#23384#26723
+          ParentShowHint = False
+          ShowHint = True
+          OnClick = bt_SaveClick
+        end
+      end
     end
     object pl_Ground: TPanel
       Left = 173
       Top = 1
       Width = 474
-      Height = 356
+      Height = 357
       Align = alClient
       Alignment = taLeftJustify
       BevelOuter = bvNone
@@ -432,7 +465,7 @@ object main: Tmain
       Width = 36
       Height = 22
       Cursor = crHandPoint
-      Hint = #30636#31227': I'
+      Hint = #30636#31227#24320#20851': I'
       AllowAllUp = True
       GroupIndex = 2
       Caption = #30636#31227
@@ -460,7 +493,7 @@ object main: Tmain
       Width = 36
       Height = 22
       Cursor = crHandPoint
-      Hint = #22855#20598#26684': E'
+      Hint = #22855#20598#26684#20301': E'
       Caption = #22855#20598
       ParentShowHint = False
       ShowHint = True
@@ -474,7 +507,7 @@ object main: Tmain
       Height = 22
       Cursor = crHandPoint
       Hint = #26356#25442#30382#32932': F2'
-      Caption = #30382#32932
+      Caption = #25442#32932
       ParentShowHint = False
       ShowHint = True
       OnClick = bt_SkinClick
@@ -485,7 +518,7 @@ object main: Tmain
       Width = 36
       Height = 22
       Cursor = crHandPoint
-      Hint = #31359#36234': G'
+      Hint = #31359#36234#24320#20851': G'
       AllowAllUp = True
       GroupIndex = 1
       Caption = #31359#36234
@@ -499,23 +532,11 @@ object main: Tmain
       Width = 41
       Height = 22
       Cursor = crHandPoint
-      Hint = #27983#35272#20851#21345': F3'
-      Caption = #27983#35272
+      Hint = #36873#25321#20851#21345': F3'
+      Caption = #36873#20851
       ParentShowHint = False
       ShowHint = True
       OnClick = bt_ViewClick
-    end
-    object bt_Act: TSpeedButton
-      Left = 438
-      Top = 4
-      Width = 33
-      Height = 22
-      Cursor = crHandPoint
-      Hint = #21160#20316#32534#36753': F4'
-      Caption = #21160#20316
-      ParentShowHint = False
-      ShowHint = True
-      OnClick = bt_ActClick
     end
     object bt_Lately: TSpeedButton
       Left = 36
@@ -537,20 +558,8 @@ object main: Tmain
       ShowHint = True
       OnClick = bt_LatelyClick
     end
-    object bt_Save: TSpeedButton
-      Left = 480
-      Top = 4
-      Width = 33
-      Height = 22
-      Cursor = crHandPoint
-      Hint = #20445#23384#29616#22330': Ctrl + S'
-      Caption = #23384#26723
-      ParentShowHint = False
-      ShowHint = True
-      OnClick = bt_SaveClick
-    end
     object pnl_Trun: TPanel
-      Left = 522
+      Left = 442
       Top = 4
       Width = 41
       Height = 23
@@ -564,7 +573,7 @@ object main: Tmain
       OnMouseUp = pnl_TrunMouseUp
     end
     object pnl_Speed: TPanel
-      Left = 570
+      Left = 490
       Top = 4
       Width = 41
       Height = 23
@@ -580,7 +589,7 @@ object main: Tmain
   end
   object ImageList1: TImageList
     Left = 105
-    Top = 63
+    Top = 103
     Bitmap = {
       494C010107000A00040010001000FFFFFFFFFF10FFFFFFFFFFFFFFFF424D3600
       0000000000003600000028000000400000003000000001002000000000000030
@@ -989,8 +998,8 @@ object main: Tmain
     DefaultExt = 'gcl'
     Filter = #20851#21345#25991#26723'(*.xsb;*.txt)|*.xsb;*.txt|'#25152#26377#25991#26723'(*.*)|*.*'
     Title = #25171#24320
-    Left = 68
-    Top = 65
+    Left = 36
+    Top = 105
   end
   object dlgSave1: TSaveDialog
     Filter = #20851#21345#25991#26723'(*.xsb;*.txt)|*.xsb;*.txt'
@@ -1010,10 +1019,18 @@ object main: Tmain
       ShortCut = 16458
       OnClick = pmJijingClick
     end
+    object pm_Home: TMenuItem
+      Caption = #37325#26032#24320#22987'   Esc'
+      OnClick = pm_HomeClick
+    end
   end
   object pmSolution: TPopupMenu
     Left = 64
     Top = 153
+    object N1: TMenuItem
+      Caption = #25552#20132#27604#36187#31572#26696
+      OnClick = N1Click
+    end
     object so_Lurd: TMenuItem
       Caption = 'Lurd '#21040#21098#20999#26495
       OnClick = so_LurdClick
@@ -1072,7 +1089,7 @@ object main: Tmain
     end
   end
   object pm_Later: TPopupMenu
-    Left = 205
-    Top = 175
+    Left = 45
+    Top = 15
   end
 end

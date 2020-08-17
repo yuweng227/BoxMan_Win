@@ -1023,7 +1023,7 @@ var
   procedure AddNode2(bpos, mpos, H, G, T, k: Integer; var myList: TList);
   var
      x, y: ^BoxManNode2;
-     size: Integer;
+     i, size: Integer;
 
   begin
       New(x);
@@ -1036,25 +1036,25 @@ var
 
       size := myList.Count;
 
-      k := 0;
-      while k < size do begin
-          y := myList.items[k];
-          inc(k);
+      i := 0;
+      while i < size do begin
+          y := myList.items[i];
 
-          if x.T < y.T then begin             // 先比较转弯数
-             continue;
+          if x.T > y.T then begin             // 先比较转弯数
+             Break;
           end else begin
-             if x.H < y.H then begin          // 次比较评估值
-                continue;
+             if x.H > y.H then begin          // 再比较评估值
+                Break;
              end else begin
-                if x.G < y.G then begin       // 最后比较推动消耗（步数）
-                   continue;
+                if x.G > y.G then begin       // 最后比较推动消耗（步数）
+                   Break;
                 end;
              end;
           end;
+          inc(i);
       end;
 
-      if k+1 < size then myList.Insert(k+1, x)
+      if i < size then myList.Insert(i, x)
       else myList.Add(x);
   end;
 

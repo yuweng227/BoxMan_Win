@@ -2,7 +2,7 @@ object LoadSkinForm: TLoadSkinForm
   Left = 251
   Top = 187
   BorderStyle = bsDialog
-  Caption = #36873#25321#30382#32932
+  Caption = #26356#25442#30382#32932
   ClientHeight = 356
   ClientWidth = 617
   Color = clGradientActiveCaption

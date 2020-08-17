@@ -38,6 +38,7 @@ var
   // 现场皮肤
   WallPic, FloorPic, GoalPic, ManPic, ManGoalPic, BoxPic, BoxGoalPic: TBitmap;
   WallPic_lurd, WallPic_lr, WallPic_l, WallPic_r, WallPic_ud, WallPic_u, WallPic_d, WallPic_lu, WallPic_ld, WallPic_ru, WallPic_rd, WallPic_lur, WallPic_ldr, WallPic_uld, WallPic_urd, WallPic_top: TBitmap;        // 无缝墙壁
+  TmpPic, MaskPic: TBitmap;           // 画图书效果用的临时位图、遮罩位图
   SkinSize      : Integer;            // 皮肤元素尺寸
   LineColor     : TColor;             // 格线颜色
   isFloorLine   : Boolean;            // 地板是否画线
@@ -94,7 +95,7 @@ end;
 
 procedure TLoadSkinForm.FormCreate(Sender: TObject);
 begin
-  Caption := '选择皮肤';
+  Caption := '更换皮肤';
   Label1.Caption := '皮肤列表：';
   Label2.Caption := '预览：';
   Label3.Caption := '说明：皮肤包含8格元格，分上下两行，每行4格，分别为：地板、人、箱子、墙壁及目标点、人在目标点、箱子在目标点、墙壁扩展。其中墙壁扩展是为无缝墙壁准备的，否则，与上格相同即可。元格尺寸需在（20-200）像素之间。地板格左上角像素的颜色作为网格线的颜色。';
