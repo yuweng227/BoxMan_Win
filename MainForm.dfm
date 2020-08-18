@@ -1,6 +1,6 @@
 object main: Tmain
-  Left = 207
-  Top = 396
+  Left = 216
+  Top = 416
   Width = 769
   Height = 533
   Caption = 'BoxMan'
@@ -698,7 +698,7 @@ object main: Tmain
     Left = 583
     Top = 40
     object pmGoal: TMenuItem
-      Caption = #22266#23450#30340#30446#26631#20301
+      Caption = #23450#20301#21452#25512
       OnClick = pmGoalClick
     end
     object pmJijing: TMenuItem

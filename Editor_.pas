@@ -2354,6 +2354,7 @@ begin
 
   TrialForm.StatusBar1.Panels[5].Text := Format('%d', [ nBox ]);
 
+  PathFinder.isEditor := True;
   TrialForm.Show;
 end;
 

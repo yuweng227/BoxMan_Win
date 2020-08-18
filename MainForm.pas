@@ -367,7 +367,7 @@ const
   SpeedInf: array[0..4] of string = ('最快', '较快', '中速', '较慢', '最慢');
   
   AppName = 'BoxMan';
-  AppVer = ' V2.7';
+  AppVer = ' V2.8';
 
 var
   main: Tmain;
@@ -629,7 +629,7 @@ begin
     mySettings.isLurd_Saved := True;                                            // 推关卡的动作是否保存过了
     mySettings.isJijing := False;                                               // 互动双推
     mySettings.isOddEven := False;                                              // 奇偶格效果
-    pmGoal.Checked := mySettings.isSameGoal;                                    // 固定的目标位
+    pmGoal.Checked := mySettings.isSameGoal;                                    // 定位双推
     N29.Checked := mySettings.isNumber;                                         // 双击编号
 
     if (mySettings.myWidth < minWindowsWidth) then
@@ -1160,7 +1160,7 @@ begin
              if map_Board_BK[i] in [ BoxCell, BoxGoalCell ] then boxNum := boxNum+1;
              if map_Board[i] in [ BoxCell, BoxGoalCell ] then GoalNum := GoalNum+1;
              if (map_Board_BK[i] in [ BoxCell, BoxGoalCell ]) and (map_Board[i] in [ BoxCell, BoxGoalCell ]) then BoxGoalNum := BoxGoalNum+1;
-           end else if mySettings.isSameGoal then begin      // 固定目标点模式
+           end else if mySettings.isSameGoal then begin      // 定位双推模式
              if map_Board_BK[i] in [ BoxCell, BoxGoalCell ] then boxNum := boxNum+1;
              if map_Board[i] in [ GoalCell, ManGoalCell, BoxGoalCell ] then GoalNum := GoalNum+1;
              if (map_Board_BK[i] in [ BoxCell, BoxGoalCell ]) and (map_Board[i] in [ GoalCell, ManGoalCell, BoxGoalCell ]) then BoxGoalNum := BoxGoalNum+1;
@@ -1176,7 +1176,7 @@ begin
              if map_Board[i] in [ BoxCell, BoxGoalCell ] then boxNum := boxNum+1;
              if map_Board_BK[i] in [ BoxCell, BoxGoalCell ] then GoalNum := GoalNum+1;
              if (map_Board[i] in [ BoxCell, BoxGoalCell ]) and (map_Board_BK[i] in [ BoxCell, BoxGoalCell ]) then BoxGoalNum := BoxGoalNum+1;
-           end else begin                                    // 常规模式、固定目标点模式
+           end else begin                                    // 常规模式、定位双推模式
              if map_Board[i] in [ BoxCell, BoxGoalCell ] then boxNum := boxNum+1;
              if map_Board[i] in [ GoalCell, ManGoalCell, BoxGoalCell ] then GoalNum := GoalNum+1;
              if map_Board[i] = BoxGoalCell then BoxGoalNum := BoxGoalNum+1;
@@ -1322,7 +1322,7 @@ begin
           end;
         end
         else if mySettings.isSameGoal then
-        begin  // 固定的目标位
+        begin  // 定位双推
           case map_Board_OG[pos] of
             GoalCell, BoxGoalCell, ManGoalCell:
               case myCell of
@@ -1960,8 +1960,8 @@ begin
   pmState.Items[5].Caption := '删除';
   pmState.Items[6].Caption := '删除全部';
 
-  pmBoardBK.Items[0].Caption := '固定的目标位   【Ctrl + G】';
-  pmBoardBK.Items[1].Caption := '互动双推         【Ctrl + J】';
+  pmBoardBK.Items[0].Caption := '定位双推   【Ctrl + G】';
+  pmBoardBK.Items[1].Caption := '互动双推   【Ctrl + J】';
   pmBoardBK.Items[2].Caption := '-';
   pmBoardBK.Items[3].Caption := '双击编号   【Ctrl + N】';
   pmBoardBK.Items[4].Caption := '-';
@@ -2869,7 +2869,7 @@ begin
       if ssCtrl in Shift then begin
          Close();
       end;
-    71:                // Ctrl + G， 固定的目标位
+    71:                // Ctrl + G， 定位双推
       if ssCtrl in Shift then begin
          pmGoal.Click;
       end else begin
@@ -4231,7 +4231,7 @@ begin
             t         := sltb.FieldAsInteger(sltb.FieldIndex['XSB_CRC_TrunNum']);
             
             // 答案验证
-            getANS(t, curMapNode.CRC_Num, str);    // 答案按关卡旋转进行转换
+            getANS(t, mapNpde.CRC_Num, str);    // 答案按关卡旋转进行转换
             if isSolution(mapNpde, PChar(str)) then begin
                Result := Result + 'Solution (Moves: ' + inttostr(Sol_Moves) + ', Pushs: '+ inttostr(Sol_Pushs) + ', DateTime: ' + Sol_DateTime + '): ' + str + #10;
             end;
@@ -6549,11 +6549,12 @@ begin
 
         len0 := List_Solution.Count;
         for i := 0 to len0-1 do begin
+           s1 := '';
            if GetSolutionFromDB(i, s1) then begin
               len := Length(s1);
               if len > 0 then begin
                  solNode := SoltionList.items[i];
-                 Write(myXSBFile, 'Solution (Moves: ' + IntToStr(solNode.Moves) + ', Pushs: ' + IntToStr(solNode.Pushs) + '): ' + s1 + #10);
+                 Writeln(myXSBFile, 'Solution (Moves: ' + IntToStr(solNode.Moves) + ', Pushs: ' + IntToStr(solNode.Pushs) + '): ' + s1 + #10);
               end;
            end;
         end;
@@ -6606,6 +6607,7 @@ begin
             Write(myXSBFile, GetXSB(mapNode));
 
             str := GetSolution(mapNode);
+            str := StringReplace(str, #10, #13#10, [rfReplaceAll]);
             Write(myXSBFile, str);
         end;
 

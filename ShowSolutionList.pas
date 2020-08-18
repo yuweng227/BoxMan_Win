@@ -26,6 +26,9 @@ type
       Shift: TShiftState);
     procedure Edit1DblClick(Sender: TObject);
     procedure FormClose(Sender: TObject; var Action: TCloseAction);
+    procedure WebBrowser1NewWindow2(Sender: TObject; var ppDisp: IDispatch; var Cancel: WordBool);
+    procedure WebBrowser1StatusTextChange(Sender: TObject;
+      const Text: WideString);
   private
     { Private declarations }
   public
@@ -39,6 +42,11 @@ implementation
 
 {$R *.dfm}
 
+procedure TShowSolutuionList.WebBrowser1NewWindow2(Sender: TObject; var ppDisp: IDispatch; var Cancel: WordBool);
+begin 
+  Cancel := True; //禁止弹出窗口
+end;
+
 procedure TShowSolutuionList.FormCreate(Sender: TObject);
 begin
   Caption := '比赛答案提交列表';
@@ -47,6 +55,7 @@ end;
 procedure TShowSolutuionList.FormShow(Sender: TObject);
 begin
   try
+    Resize;
     WebBrowser1.Navigate('http://sokoban.cn/solution_table.php');
   except
   end;
@@ -113,6 +122,12 @@ begin
       SetProcessWorkingSetSize(GetCurrentProcess, $FFFFFFFF, $FFFFFFFF);  
       Application.ProcessMessages;  
    end;  
+end;
+
+procedure TShowSolutuionList.WebBrowser1StatusTextChange(Sender: TObject;
+  const Text: WideString);
+begin
+  Edit1.Text := WebBrowser1.LocationURL;
 end;
 
 end.

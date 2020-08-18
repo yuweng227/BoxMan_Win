@@ -20,6 +20,7 @@ const
 var
     ManPath: array[1..MaxLenPath] of Char;              // 保存人移动动作的临时数组
     BoxPath: array[1..MaxLenPath] of Char;              // 保存人推箱子动作的临时数组
+    isEditor: Boolean;                                  // 因为编辑器模块也用调用，而编辑器调用时，历史动作不需要保存到log文档，所以设置此变量以区别
 
 type                        // 单项链表
   PBoxManNode = ^BoxManNode;
@@ -67,7 +68,6 @@ const
 var
   isThroughable: boolean;                             // 是否允许穿越
 
-  isEditor: Boolean;                                                  // 因为编辑器模块也用调用，而编辑器调用时，历史动作不需要保存到log文档，所以设置此变量以区别
   manMark: array[0..99, 0..99] of Byte;               // 人的可达标志数组，正推：0x01 可达点；0x02 穿越可达点； 0x04 穿越点；逆推：0x10 可达点；0x20 穿越可达点； 0x40 穿越点
   boxMark: array[0..99, 0..99] of Byte;               // 箱子的可达标志数组，正推：0x01 可达点；0x04 穿越点；逆推：0x10 可达点；0x40 穿越点
 
