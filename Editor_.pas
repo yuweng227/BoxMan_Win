@@ -177,6 +177,8 @@ var
   isMoving: Boolean;                                         // 是否移动了鼠标
   isMouseRrghtDown: Boolean;                                 // 是否按下了鼠标右键
 
+  isMouseSheel: Boolean;                                     // 识别模块中，如何使用鼠标滑轮微调
+
 //  myLogFile: Textfile;
 
 implementation
@@ -313,6 +315,7 @@ begin
   with Sender as TDrawGrid do begin
     Canvas.CopyMode := SRCCOPY;
     R := Rect(MapBoard[ARow+1, ACol+1] * 60, 0, MapBoard[ARow+1, ACol+1] * 60 + 60, 60);
+
     // 画地板
     if MapBoard[ARow+1, ACol+1] = 0 then begin
        Canvas.CopyRect(Rt, RecogForm_.Image4.Canvas, R);
@@ -329,7 +332,7 @@ begin
     if (MapBoard[ARow+1, ACol+1] > 0) then begin
        Canvas.CopyRect(Rt, RecogForm_.Image4.Canvas, R);
     end;
-    
+
     // 小参考图
     if (RecogForm_.Tag = 1) and (N7.Checked) and (ARow <= PicRows) and (ACol <= PicCols) then begin
        if MapBoard[ARow+1, ACol+1] > 0 then begin
@@ -364,6 +367,8 @@ end;
 
 procedure TEditorForm_.FormCreate(Sender: TObject);
 begin
+  if paramcount = 1 then
+     isMouseSheel := AnsiSameText('/m', paramstr(1));
 
   Panel1.Color := $DBCDBF;
   Panel3.Color := $DBCDBF;
@@ -845,16 +850,16 @@ begin
   case n of
     0: begin
        DrawGrid1.Invalidate;
-       StatusBar1.Panels[8].Text := '标准化成功！';
+       MessageBox(Handle, '标准化成功！', '信息', MB_ICONINFORMATION + MB_OK);
     end;
     1: begin
-       StatusBar1.Panels[8].Text := '仓管员数不正确！';
+       MessageBox(Handle, '仓管员数不正确！', '错误', MB_ICONERROR + MB_OK)
     end;
     2: begin
-       StatusBar1.Panels[8].Text := '箱子数与目标数不符！';
+       MessageBox(Handle, '箱子数与目标数不符！', '错误', MB_ICONERROR + MB_OK)
     end;
     3: begin        
-       StatusBar1.Panels[8].Text := '尚未封闭的地图！';
+       MessageBox(Handle, '尚未封闭的地图！', '错误', MB_ICONERROR + MB_OK)
     end;
   end;
 end;
@@ -1940,35 +1945,8 @@ end;
 
 procedure TEditorForm_.bt_SkinClick(Sender: TObject);
 begin
-  if LoadSkinForm.ShowModal = mrOK then
-  begin
-    if not LoadSkinForm.LoadSkin(ExtractFilePath(Application.ExeName) + 'Skins\' +LoadSkinForm.SkinFileName) then
-    begin
-      LoadSkinForm.LoadDefaultSkin();         // 使用默认的简单皮肤
-    end;
-
-    RecogForm_.Image4.Canvas.CopyRect(Rect(0, 0, 60, 60), FloorPic.Canvas, Rect(0, 0, FloorPic.Width, FloorPic.Height));
-    RecogForm_.Image4.Canvas.CopyRect(Rect(60, 0, 120, 60), GoalPic.Canvas, Rect(0, 0, GoalPic.Width, GoalPic.Height));
-    RecogForm_.Image4.Canvas.CopyRect(Rect(120, 0, 180, 60), BoxPic.Canvas, Rect(0, 0, BoxPic.Width, BoxPic.Height));
-    RecogForm_.Image4.Canvas.CopyRect(Rect(180, 0, 240, 60), BoxGoalPic.Canvas, Rect(0, 0, BoxGoalPic.Width, BoxGoalPic.Height));
-    RecogForm_.Image4.Canvas.CopyRect(Rect(240, 0, 300, 60), ManPic.Canvas, Rect(0, 0, ManPic.Width, ManPic.Height));
-    RecogForm_.Image4.Canvas.CopyRect(Rect(300, 0, 360, 60), ManGoalPic.Canvas, Rect(0, 0, ManGoalPic.Width, ManGoalPic.Height));
-    RecogForm_.Image4.Canvas.CopyRect(Rect(360, 0, 420, 60), WallPic.Canvas, Rect(0, 0, WallPic.Width, WallPic.Height));
-
-    RecogForm_.img_Goal.Canvas.CopyRect(Rect(0, 0, 60, 60), GoalPic.Canvas, Rect(0, 0, GoalPic.Width, GoalPic.Height));
-    RecogForm_.img_Box.Canvas.CopyRect(Rect(0, 0, 60, 60), BoxPic.Canvas, Rect(0, 0, BoxPic.Width, BoxPic.Height));
-    RecogForm_.img_BoxGoal.Canvas.CopyRect(Rect(0, 0, 60, 60), BoxGoalPic.Canvas, Rect(0, 0, BoxGoalPic.Width, BoxGoalPic.Height));
-    RecogForm_.img_Player.Canvas.CopyRect(Rect(0, 0, 60, 60), ManPic.Canvas, Rect(0, 0, ManPic.Width, ManPic.Height));
-    RecogForm_.img_Wall.Canvas.CopyRect(Rect(0, 0, 60, 60), WallPic.Canvas, Rect(0, 0, WallPic.Width, WallPic.Height));
-
-    img_Floor.Canvas.CopyRect(Rect(0, 0, 60, 60), FloorPic.Canvas, Rect(0, 0, FloorPic.Width, FloorPic.Height));
-    img_Goal.Canvas.CopyRect(Rect(0, 0, 60, 60), GoalPic.Canvas, Rect(0, 0, GoalPic.Width, GoalPic.Height));
-    img_Box.Canvas.CopyRect(Rect(0, 0, 60, 60), BoxPic.Canvas, Rect(0, 0, BoxPic.Width, BoxPic.Height));
-    img_Player.Canvas.CopyRect(Rect(0, 0, 60, 60), ManPic.Canvas, Rect(0, 0, ManPic.Width, ManPic.Height));
-    img_Wall.Canvas.CopyRect(Rect(0, 0, 60, 60), WallPic.Canvas, Rect(0, 0, WallPic.Width, WallPic.Height));
-
-    DrawGrid1.Invalidate;
-  end;
+  Recog_.LoadSkin;
+  DrawGrid1.Invalidate;
 end;
 
 procedure TEditorForm_.img_WallMouseMove(Sender: TObject;

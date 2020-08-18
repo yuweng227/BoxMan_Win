@@ -53,7 +53,7 @@ var
 implementation
 
 uses
-  LoadSkin, inf, MainForm, DateModule;
+  LoadSkin, inf, MainForm;
 
 {$R *.dfm}
 

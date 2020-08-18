@@ -1,10 +1,9 @@
-unit LoadMapUnit;
-// 关卡文本解析单元
+unit LoadMapUnit;    // 关卡文本解析单元
 
 interface
 
 uses
-  windows, classes, StrUtils, SysUtils, Clipbrd, Graphics, Math, CRC_32;
+  windows, classes, StrUtils, SysUtils, Clipbrd, Graphics, Math, CRC_32, SQLiteTable3;
 
 type
   TLoadMapThread = class(TThread)         // 后台加载地图文档线程
@@ -17,7 +16,8 @@ type
 
 type                  // 关卡节点 -- 关卡集中的各个关卡
   TMapNode = record
-    Map: TStringList;    // 关卡 XSB
+    Map_Thin: string;           // 最简关卡 XSB
+    Map: TStringList;           // 关卡 XSB
     Rows, Cols: integer;        // 关卡尺寸
     Boxs: integer;        // 箱子数
     Goals: integer;        // 目标点数
@@ -42,7 +42,7 @@ procedure XSBToClipboard();                                    // XSB 送入剪切板
 
 procedure XSBToClipboard_2();                                  // 现场 XSB 送入剪切板
 
-function LoadMapsFromText(text: string): boolean;         // 加载关卡 -- 从剪切板或文本字符串
+function LoadMapsFromText(text: string): boolean;             // 加载关卡 -- 从剪切板或文本字符串
 
 function QuicklyLoadMap(FileName: string; number: Integer): PMapNode;  // 迅速的加载指定文档的第 number 号地图
 
@@ -53,7 +53,7 @@ function isSolution(mapNode: PMapNode; sol: PChar): Boolean;   // 答案验证
 var
   isStopThread: Boolean;                              // 是否终止后台线程
   LoadMapThread: TLoadMapThread;                     // 后台加载地图文档线程
-  ManPos_BK_0: integer;                     // 人的位置 -- 逆推，玩家已经指定的位置
+  ManPos_BK_0: integer;                       // 人的位置 -- 逆推，玩家已经指定的位置
   ManPos_BK_0_2: integer;                     // 人的位置 -- 逆推，解析出来的位置
 
   sMoves, sPushs: integer;                            // 验证答案时，记录移动数和推动数
@@ -84,7 +84,7 @@ implementation
 
 uses
   LogFile, OpenFile, BrowseLevels, //
-  LurdAction, DateModule, MainForm, LoadSkin;
+  LurdAction, MainForm, LoadSkin;
 
 const
   EmptyCell = 0;
@@ -290,6 +290,7 @@ var
 begin
   New(mapNode);
   mapNode.Map := TStringList.Create;
+  mapNode.Map_Thin := '';
   mapNode.Rows := 0;
   mapNode.Cols := 0;
   mapNode.Trun := 0;
@@ -304,170 +305,176 @@ begin
 
 end;
 
-// 检查是否为有解关卡 -- 剪切板导入时使用
+// 剪切板导入时，若发现答案，则导入答案库
 procedure SetSolved(mapNode: PMapNode; var Solitions: TStringList);
 var
+  sldb: TSQLiteDatabase;
+  sltb: TSQLIteTable;
+  sSQL: String;
   i, l, solCRC: Integer;
   is_Solved: Boolean;
 begin
   is_Solved := false;
   mapNode.Solved := false;
 
-  // 若解析到了答案，则验证答案并将答案入库
-  if Solitions.Count > 0 then
-  begin
-    l := Solitions.Count;
-    for i := l - 1 downto 0 do
-    begin
-      if isSolution(mapNode, PChar(Solitions[i])) then      // 对答案进行验证
-      begin    // 保存到数据库
-            // 保存答案到数据库
-        try
-          DataModule1.ADOQuery1.Close;
-          DataModule1.ADOQuery1.SQL.Clear;
-          DataModule1.ADOQuery1.SQL.Text := 'select * from Tab_Solution where XSB_CRC32 = ' + IntToStr(mapNode.CRC32) + ' and Goals = ' + IntToStr(mapNode.Goals);
-          DataModule1.ADOQuery1.Open;
-          DataModule1.DataSource1.DataSet := DataModule1.ADOQuery1;
+  sldb := TSQLiteDatabase.Create(AnsiToUtf8(BoxManDBpath));
 
-          with DataModule1.DataSource1.DataSet do
-          begin
-                // 查重
-            solCRC := Calcu_CRC_32_2(PChar(Solitions[i]), Length(Solitions[i]));
-            First;
-            while not Eof do
-            begin
-              if (FieldByName('Sol_CRC32').AsInteger = solCRC) and (FieldByName('Moves').AsInteger = sMoves) and (FieldByName('Pushs').AsInteger = sPushs) then
-                Break;
-
-              Next;
-            end;
-
-            // 没有重复答案，则添加到答案库
-            if Eof then
-            begin
-              Append;    // 修改
-
-              FieldByName('XSB_CRC32').AsInteger := mapNode.CRC32;
-              FieldByName('XSB_CRC_TrunNum').AsInteger := mapNode.CRC_Num;
-              FieldByName('Goals').AsInteger := mapNode.Goals;
-              FieldByName('Sol_CRC32').AsInteger := solCRC;
-              FieldByName('Moves').AsInteger := sMoves;
-              FieldByName('Pushs').AsInteger := sPushs;
-              FieldByName('Sol_Text').AsString := Solitions[i];
-
-              Post;    // 提交
-            end;
-          end;
-        except
-        end;
-      end
-      else
+  try
+    if sldb.TableExists('Tab_Solution') then begin
+      // 若解析到了答案，则验证答案并将答案入库
+      if Solitions.Count > 0 then
       begin
-        Solitions.Delete(i);
+        l := Solitions.Count;
+        for i := l - 1 downto 0 do
+        begin
+          if isSolution(mapNode, PChar(Solitions[i])) then      // 对答案进行验证
+          begin
+            // 保存答案到数据库
+            sSQL := 'select * from Tab_Solution where XSB_CRC32 = ' + IntToStr(mapNode.CRC32) + ' and Goals = ' + IntToStr(mapNode.Goals);
+            sltb := slDb.GetTable(sSQL);
+
+            try
+              solCRC := Calcu_CRC_32_2(PChar(Solitions[i]), Length(Solitions[i]));
+              sltb.MoveFirst;
+              while not sltb.EOF do begin
+                if (sltb.FieldAsInteger(sltb.FieldIndex['Sol_CRC32']) = solCRC) and (sltb.FieldAsInteger(sltb.FieldIndex['Moves']) = sMoves) and (sltb.FieldAsInteger(sltb.FieldIndex['Pushs']) = sPushs) then
+                  Break;
+                    
+                sltb.Next;
+              end;
+
+              // 没有重复答案，则添加到答案库
+              if sltb.EOF then begin
+                 sldb.BeginTransaction;
+
+                 sSQL := 'INSERT INTO Tab_Solution (XSB_CRC32, XSB_CRC_TrunNum, Goals, Sol_CRC32, Moves, Pushs, Sol_Text, XSB_Text, Sol_DateTime) ' +
+                         'VALUES (' +
+                         IntToStr(mapNode.CRC32) + ', ' +
+                         IntToStr(mapNode.CRC_Num) + ', ' +
+                         IntToStr(mapNode.Goals) + ', ' +
+                         IntToStr(solCRC) + ', ' +
+                         IntToStr(sMoves) + ', ' +
+                         IntToStr(sPushs) + ', ''' +
+                         Solitions[i] + ''', ''' +
+                         mapNode.Map_Thin + ''', ''' +
+                         FormatDateTime(' yyyy-mm-dd hh:nn', now) + ''');';
+
+                 sldb.ExecSQL(sSQL);
+
+                 sldb.Commit;
+              end;
+            finally
+              sltb.free;
+            end;
+          end else begin
+            Solitions.Delete(i);
+          end;
+        end;
+        is_Solved := True;
+        Solitions.Clear;
+      end;
+
+      if is_Solved then mapNode.Solved := is_Solved
+      else begin
+        // 数据库中是否有解
+        sSQL := 'select * from Tab_Solution where XSB_CRC32 = ' + IntToStr(mapNode.CRC32) + ' and Goals = ' + IntToStr(mapNode.Goals);
+        sltb := slDb.GetTable(sSQL);
+        try
+          mapNode.Solved := sltb.Count > 0;
+        finally
+          sltb.Free;
+        end;
       end;
     end;
-    is_Solved := True;
-    Solitions.Clear;
+  finally
+    sldb.free;
   end;
-
-  if is_Solved then
-    mapNode.Solved := is_Solved
-  else
-  begin
-    // 数据库中是否有解
-    try
-      DataModule1.ADOQuery1.Close;
-      DataModule1.ADOQuery1.SQL.Clear;
-      DataModule1.ADOQuery1.SQL.Text := 'select id from Tab_Solution where XSB_CRC32 = ' + IntToStr(mapNode.CRC32) + ' and Goals = ' + IntToStr(mapNode.Goals);
-      DataModule1.ADOQuery1.Open;
-      mapNode.Solved := (DataModule1.ADOQuery1.RecordCount > 0);
-    except
-    end;
-  end;
-  DataModule1.ADOQuery1.Close;
 end;
 
-// 检查是否为有解关卡 -- 后台线程使用
+// 后台线程加载关卡集文档时，若发现答案，则导入答案库
 procedure SetSolved_2(mapNode: PMapNode; var Solitions: TStringList);
 var
+  sldb: TSQLiteDatabase;
+  sltb: TSQLIteTable;
+  sSQL: String;
   i, l, solCRC: Integer;
   is_Solved: Boolean;
 begin
   is_Solved := false;
   mapNode.Solved := false;
 
-  // 若解析到了答案，则验证答案并将答案入库
-  if Solitions.Count > 0 then
-  begin
-    l := Solitions.Count;
-    for i := l - 1 downto 0 do
-    begin
-      if isSolution(mapNode, PChar(Solitions[i])) then      // 对答案进行验证
-      begin    // 保存到数据库
-            // 保存答案到数据库
-        try
-          DataModule1.ADOQuery2.Close;
-          DataModule1.ADOQuery2.SQL.Clear;
-          DataModule1.ADOQuery2.SQL.Text := 'select * from Tab_Solution where XSB_CRC32 = ' + IntToStr(mapNode.CRC32) + ' and Goals = ' + IntToStr(mapNode.Goals);
-          DataModule1.ADOQuery2.Open;
-          DataModule1.DataSource2.DataSet := DataModule1.ADOQuery2;
+  sldb := TSQLiteDatabase.Create(AnsiToUtf8(BoxManDBpath));
 
-          with DataModule1.DataSource2.DataSet do
-          begin
-                // 查重
-            solCRC := Calcu_CRC_32_2(PChar(Solitions[i]), Length(Solitions[i]));
-            First;
-            while not Eof do
-            begin
-              if (FieldByName('Sol_CRC32').AsInteger = solCRC) and (FieldByName('Moves').AsInteger = sMoves) and (FieldByName('Pushs').AsInteger = sPushs) then
-                Break;
-
-              Next;
-            end;
-
-            // 没有重复答案，则添加到答案库
-            if Eof then
-            begin
-              Append;    // 修改
-
-              FieldByName('XSB_CRC32').AsInteger := mapNode.CRC32;
-              FieldByName('XSB_CRC_TrunNum').AsInteger := mapNode.CRC_Num;
-              FieldByName('Goals').AsInteger := mapNode.Goals;
-              FieldByName('Sol_CRC32').AsInteger := solCRC;
-              FieldByName('Moves').AsInteger := sMoves;
-              FieldByName('Pushs').AsInteger := sPushs;
-              FieldByName('Sol_Text').AsString := Solitions[i];
-
-              Post;    // 提交
-            end;
-          end;
-        except
-        end;
-      end
-      else
+  try
+    if sldb.TableExists('Tab_Solution') then begin
+      // 若解析到了答案，则验证答案并将答案入库
+      if Solitions.Count > 0 then
       begin
-        Solitions.Delete(i);
+        l := Solitions.Count;
+        for i := l - 1 downto 0 do
+        begin
+          if isSolution(mapNode, PChar(Solitions[i])) then      // 对答案进行验证
+          begin   
+                // 保存答案到数据库
+            sSQL := 'select * from Tab_Solution where XSB_CRC32 = ' + IntToStr(mapNode.CRC32) + ' and Goals = ' + IntToStr(mapNode.Goals);
+            sltb := slDb.GetTable(sSQL);
+
+            try
+              solCRC := Calcu_CRC_32_2(PChar(Solitions[i]), Length(Solitions[i]));
+              sltb.MoveFirst;
+              while not sltb.EOF do begin
+                if (sltb.FieldAsInteger(sltb.FieldIndex['Sol_CRC32']) = solCRC) and (sltb.FieldAsInteger(sltb.FieldIndex['Moves']) = sMoves) and (sltb.FieldAsInteger(sltb.FieldIndex['Pushs']) = sPushs) then
+                  Break;
+                    
+                sltb.Next;
+              end;
+
+              // 没有重复答案，则添加到答案库
+              if sltb.EOF then begin
+                 sldb.BeginTransaction;
+
+                 sSQL := 'INSERT INTO Tab_Solution (XSB_CRC32, XSB_CRC_TrunNum, Goals, Sol_CRC32, Moves, Pushs, Sol_Text, XSB_Text, Sol_DateTime) ' +
+                         'VALUES (' +
+                         IntToStr(mapNode.CRC32) + ', ' +
+                         IntToStr(mapNode.CRC_Num) + ', ' +
+                         IntToStr(mapNode.Goals) + ', ' +
+                         IntToStr(solCRC) + ', ' +
+                         IntToStr(sMoves) + ', ' +
+                         IntToStr(sPushs) + ', ''' +
+                         Solitions[i] + ''', ''' +
+                         mapNode.Map_Thin + ''', ''' +
+                         FormatDateTime(' yyyy-mm-dd hh:nn', now) + ''');';
+
+                 sldb.ExecSQL(sSQL);
+
+                 sldb.Commit;
+              end;
+            finally
+              sltb.free;
+            end;
+          end else begin
+            Solitions.Delete(i);
+          end;
+        end;
+        is_Solved := True;
+        Solitions.Clear;
+      end;
+
+      if is_Solved then mapNode.Solved := is_Solved
+      else begin
+        // 数据库中是否有解
+        sSQL := 'select * from Tab_Solution where XSB_CRC32 = ' + IntToStr(mapNode.CRC32) + ' and Goals = ' + IntToStr(mapNode.Goals);
+        sltb := slDb.GetTable(sSQL);
+        try
+          mapNode.Solved := sltb.Count > 0;
+        finally
+          sltb.Free;
+        end;
       end;
     end;
-    is_Solved := True;
-    Solitions.Clear;
+  finally
+    sldb.free;
   end;
-
-  if is_Solved then
-    mapNode.Solved := is_Solved
-  else
-  begin
-    // 数据库中是否有解
-    try
-      DataModule1.ADOQuery2.Close;
-      DataModule1.ADOQuery2.SQL.Clear;
-      DataModule1.ADOQuery2.SQL.Text := 'select id from Tab_Solution where XSB_CRC32 = ' + IntToStr(mapNode.CRC32) + ' and Goals = ' + IntToStr(mapNode.Goals);
-      DataModule1.ADOQuery2.Open;
-      mapNode.Solved := (DataModule1.ADOQuery2.RecordCount > 0);
-    except
-    end;
-  end;
-  DataModule1.ADOQuery2.Close;
 end;
 
 
@@ -488,6 +495,7 @@ begin
 
     New(Result);
     Result.Map := TStringList.Create;
+    Result.Map_Thin := '';
     Result.Rows := 0;
     Result.Cols := 0;
     Result.Trun := 0;
@@ -685,7 +693,7 @@ begin
   is_XSB := False;
   is_Comment := False;
   is_Solution := False;
-  mapNode := tmpList.Items[0];    // 指向最新创建的节点
+  mapNode := tmpList.Items[0];        // 指向最新创建的节点
   mapNode.isEligible := True;         // 默认是合格的关卡XSB
   k := 0;
 
@@ -775,8 +783,7 @@ begin
     end
     else if (AnsiStartsText('comment-end', line2)) or (AnsiStartsText('comment_end', line2)) then
     begin  // 匹配"注释"块结束
-      is_Comment := False;
-      ;  // 结束"注释"块
+      is_Comment := False;   // 结束"注释"块
     end
     else if (AnsiStartsText('comment', line2)) then
     begin  //匹配"注释"块开始
@@ -792,8 +799,7 @@ begin
       if Length(line) > 0 then
         mapNode.Comment := line     // 单行"注释"
       else
-        is_Comment := True;
-      ;  // 结束"注释"块
+        is_Comment := True;         // 开始"注释"块
     end
     else if is_Comment then
     begin  // "说明"信息
@@ -1172,11 +1178,14 @@ begin
     end;
   end;
 
+  mapNode.Map_Thin := '';
+
   // 标准化后的八转：关卡先顺时针旋转（得到：0转、1转、2转、3转），4转为0转的左右镜像，4转再顺时针旋转（得到：4转、5转、6转、7转）
   for i := 0 to nRows - 1 do
   begin
     for j := 0 to nCols - 1 do
     begin
+      mapNode.Map_Thin := mapNode.Map_Thin + aMap0[i, j];
       aMap1[j, nRows - 1 - i] := aMap0[i, j];
       aMap2[nRows - 1 - i, nCols - 1 - j] := aMap0[i, j];
       aMap3[nCols - 1 - j, i] := aMap0[i, j];
@@ -1185,6 +1194,7 @@ begin
       aMap6[nRows - 1 - i, j] := aMap0[i, j];
       aMap7[j, i] := aMap0[i, j];
     end;
+    if i < nRows - 1 then mapNode.Map_Thin := mapNode.Map_Thin + #10;
   end;
 
   // 测试
@@ -1202,6 +1212,7 @@ begin
 //    end;
 //    Write(myLogFile, #10);
 //  end;
+
   // 第几转的 CRC 最小
   key8[1] := Calcu_CRC_32(@aMap1, nCols, nRows);
   key8[2] := Calcu_CRC_32(@aMap2, nRows, nCols);
@@ -1322,9 +1333,9 @@ begin
       end;
       Break;
   end;
+  main.LoadSolution;
   main.Caption := AppName + AppVer + ' - ' + ExtractFileName(ChangeFileExt(main.mySettings.MapFileName, EmptyStr)) + ' ~ [' + inttostr(main.curMap.CurrentLevel) + '/' + inttostr(MapList.Count) + ']';
   main.Caption := main.Caption + '，尺寸: ' + IntToStr(curMapNode.Cols) + '×' + IntToStr(curMapNode.Rows) + '，箱子: ' + IntToStr(curMapNode.Boxs) + '，目标: ' + IntToStr(curMapNode.Goals);
-
 end;
 
 // 在后台线程中加载地图文档
@@ -1345,6 +1356,7 @@ var
 //  MapIcon: TBitmap;                // 关卡图标
 
 begin
+
   isRunning := True;
   isStopThread := False;
 
@@ -1416,7 +1428,7 @@ begin
           mapNode.Map.Add(line);    // 各 XSB 行
 
         end
-        else if (not is_Comment) and (AnsiStartsText('title', line2)) then
+        else if (not is_Comment) and (AnsiStartsText('title', line2)) and (mapNode.Title = '') then
         begin   // 匹配 Title，标题
           n := Pos(':', line2);
           if n > 0 then
@@ -1427,7 +1439,7 @@ begin
           if is_XSB then
             is_XSB := false;      // 结束关卡SXB的解析
         end
-        else if (not is_Comment) and (AnsiStartsText('author', line2)) then
+        else if (not is_Comment) and (AnsiStartsText('author', line2)) and (mapNode.Author = '') then
         begin  // 匹配 Author，作者
           n := Pos(':', line2);
           if n > 0 then
@@ -1462,10 +1474,9 @@ begin
         end
         else if (AnsiStartsText('comment-end', line2)) or (AnsiStartsText('comment_end', line2)) then
         begin  // 匹配"注释"块结束
-          is_Comment := False;
-          ;  // 结束"注释"块
+          is_Comment := False; // 结束"注释"块
         end
-        else if (AnsiStartsText('comment', line2)) then
+        else if (AnsiStartsText('comment', line2) and (mapNode.Comment = '')) then
         begin  //匹配"注释"块开始
           if is_XSB then
             is_XSB := false;      // 结束关卡SXB的解析
@@ -1477,8 +1488,7 @@ begin
           if Length(line) > 0 then
             mapNode.Comment := line     // 单行"注释"
           else
-            is_Comment := True;
-          ;  // 结束"注释"块
+            is_Comment := True;     // 开始"注释"块
         end
         else if is_Comment then
         begin  // "说明"信息
@@ -1507,23 +1517,23 @@ begin
         end;
       end;
 
-        // 检查最后的节点，若没有 XSB 数据，则将其删除
+      // 检查最后的节点，若没有 XSB 数据，则将其删除
       num := tmpMapList.Count - 1;
       mapNode := tmpMapList.Items[num];
-      if mapNode.Map.Count < 3 then
-        tmpMapList.Delete(num)
-      else
+      if mapNode.Map.Count < 3 then begin
+       tmpMapList.Delete(num)
+      end else
       begin
         if MapNormalize(mapNode) then
         begin
           SetSolved_2(mapNode, mapSolution);
         end
-        else
+        else begin
           tmpMapList.Delete(num);
+        end;
       end;
 
     finally
-      DataModule1.ADOQuery2.Close;
       CloseFile(txtFile);                //关闭打开的文件
       FreeAndNil(mapSolution);
     end;
@@ -1531,7 +1541,7 @@ begin
     if (not isStopThread) and (tmpMapList.Count > 0) then
     begin         // 不是非正常结束
 
-         // 生成关卡列表项
+      // 生成关卡列表项
       BrowseForm.ImageList1.Clear;
       BrowseForm.ListView1.Items.Clear;
 
@@ -1580,6 +1590,7 @@ begin
 
   isRunning := False;
   isStopThread := True;
+
 end;
 
 end.

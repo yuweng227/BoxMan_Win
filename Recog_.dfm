@@ -1436,7 +1436,7 @@ object RecogForm_: TRecogForm_
       OnMouseMove = sb_OpenMouseMove
     end
     object Label1: TLabel
-      Left = 368
+      Left = 418
       Top = 12
       Width = 42
       Height = 19
@@ -1449,7 +1449,7 @@ object RecogForm_: TRecogForm_
       ParentFont = False
     end
     object SpeedButton3: TSpeedButton
-      Left = 471
+      Left = 519
       Top = 7
       Width = 21
       Height = 26
@@ -1467,7 +1467,7 @@ object RecogForm_: TRecogForm_
       OnMouseMove = SpeedButton3MouseMove
     end
     object Label2: TLabel
-      Left = 640
+      Left = 683
       Top = 12
       Width = 42
       Height = 19
@@ -1480,9 +1480,9 @@ object RecogForm_: TRecogForm_
       ParentFont = False
     end
     object SpeedButton1: TSpeedButton
-      Left = 743
+      Left = 783
       Top = 7
-      Width = 21
+      Width = 20
       Height = 26
       Hint = #20197#25130#22270#26368#21491#36793#20026#20851#21345#21491#36793#30028
       Caption = #8734
@@ -1498,7 +1498,7 @@ object RecogForm_: TRecogForm_
       OnMouseMove = SpeedButton1MouseMove
     end
     object Label3: TLabel
-      Left = 504
+      Left = 550
       Top = 12
       Width = 42
       Height = 19
@@ -1511,7 +1511,7 @@ object RecogForm_: TRecogForm_
       ParentFont = False
     end
     object SpeedButton4: TSpeedButton
-      Left = 607
+      Left = 651
       Top = 7
       Width = 21
       Height = 26
@@ -1529,7 +1529,7 @@ object RecogForm_: TRecogForm_
       OnMouseMove = SpeedButton4MouseMove
     end
     object Label4: TLabel
-      Left = 776
+      Left = 814
       Top = 12
       Width = 42
       Height = 19
@@ -1542,7 +1542,7 @@ object RecogForm_: TRecogForm_
       ParentFont = False
     end
     object SpeedButton2: TSpeedButton
-      Left = 879
+      Left = 915
       Top = 7
       Width = 21
       Height = 26
@@ -1560,7 +1560,7 @@ object RecogForm_: TRecogForm_
       OnMouseMove = SpeedButton2MouseMove
     end
     object Label5: TLabel
-      Left = 1010
+      Left = 1044
       Top = 12
       Width = 29
       Height = 19
@@ -1573,7 +1573,7 @@ object RecogForm_: TRecogForm_
       ParentFont = False
     end
     object Label8: TLabel
-      Left = 914
+      Left = 948
       Top = 12
       Width = 29
       Height = 19
@@ -1586,7 +1586,7 @@ object RecogForm_: TRecogForm_
       ParentFont = False
     end
     object sb_Copy: TSpeedButton
-      Left = 94
+      Left = 97
       Top = 5
       Width = 32
       Height = 32
@@ -1647,7 +1647,7 @@ object RecogForm_: TRecogForm_
       OnMouseMove = sb_CopyMouseMove
     end
     object sb_UnDo: TSpeedButton
-      Left = 184
+      Left = 189
       Top = 5
       Width = 32
       Height = 32
@@ -1684,7 +1684,7 @@ object RecogForm_: TRecogForm_
       OnMouseMove = sb_UnDoMouseMove
     end
     object sb_Clear: TSpeedButton
-      Left = 138
+      Left = 143
       Top = 5
       Width = 32
       Height = 32
@@ -1751,7 +1751,7 @@ object RecogForm_: TRecogForm_
       OnMouseMove = sb_ClearMouseMove
     end
     object sb_Return: TSpeedButton
-      Left = 326
+      Left = 373
       Top = 5
       Width = 32
       Height = 32
@@ -1809,7 +1809,7 @@ object RecogForm_: TRecogForm_
       OnMouseMove = sb_ReturnMouseMove
     end
     object sb_Screen: TSpeedButton
-      Left = 50
+      Left = 51
       Top = 5
       Width = 32
       Height = 32
@@ -1877,7 +1877,7 @@ object RecogForm_: TRecogForm_
       OnMouseMove = sb_ScreenMouseMove
     end
     object sb_Scale: TSpeedButton
-      Left = 278
+      Left = 281
       Top = 5
       Width = 32
       Height = 32
@@ -1957,7 +1957,7 @@ object RecogForm_: TRecogForm_
       OnMouseMove = sb_ScaleMouseMove
     end
     object sb_ReDo: TSpeedButton
-      Left = 230
+      Left = 235
       Top = 5
       Width = 32
       Height = 32
@@ -1993,8 +1993,83 @@ object RecogForm_: TRecogForm_
       OnClick = sb_ReDoClick
       OnMouseMove = sb_ReDoMouseMove
     end
+    object bt_Skin: TSpeedButton
+      Left = 327
+      Top = 5
+      Width = 32
+      Height = 32
+      Hint = #26356#25442#30382#32932
+      Font.Charset = DEFAULT_CHARSET
+      Font.Color = clWindowText
+      Font.Height = -12
+      Font.Name = #24494#36719#38597#40657
+      Font.Style = []
+      Glyph.Data = {
+        1A070000424D1A0700000000000036000000280000001C000000150000000100
+        180000000000E4060000120B0000120B00000000000000000000FEFEFEFEFEFE
+        FEFEFEFEFEFEFEFEFEFEFEFEFFFFFFFCFDFDF7FAFBF7FAFBF7FAFBF7FAFBF7FA
+        FBF7FAFBF7FAFBF7FAFBF7FAFBF7FAFBF7FAFBF7FAFBFBFDFDFFFFFFFEFEFEFE
+        FEFEFEFEFEFEFEFEFEFEFEFEFEFEFEFEFEFEFEFEFEFEFEFEFEFEFEFEFEFFFFFF
+        E8F3F56DB5C558AABD5BABBD5BABBD5BABBD5BABBD5CABBD5BABBD5BABBD5BAB
+        BD5BABBD5BABBD57A9BB73B9C9F3F9FAFFFFFFFEFEFEFEFEFEFEFEFEFEFEFEFE
+        FEFEFEFEFEFEFEFEFEFEFEFEFEFEFEFEFEFFFFFFD2E7EC3B9BB139BCD23BCAE1
+        3BC8E03BC8E03BC8E03BC8E03BC8E03BC8E03BC8E03BC8E03BC9E138BED541A0
+        B4E1F0F2FFFFFFFEFEFEFEFEFEFEFEFEFEFEFEFEFEFEFEFEFEFEFEFEFEFEFEFE
+        FEFEFEFEFEFFFFFFD4E8ED429EB23DCEE940E4FF40E0FF40E0FF40E0FF40E1FF
+        40E0FF40E0FF40E0FF40E0FF40E3FF3DD2EF46A2B5E1F0F3FFFFFFFEFEFEFEFE
+        FEFEFEFEFEFEFEFEFEFEFEFEFEFEFEFEFEFEFEFEFEFEFEFEFEFFFFFFD4E8ED41
+        9EB23DCCE63FE0FF3FDDFE3FDDFE3FDDFE3FDDFE3FDDFE3FDDFE3FDDFE3FDDFE
+        3FDFFF3CCFEC46A2B5E1F0F3FFFFFFFEFEFEFEFEFEFEFEFEFEFEFEFEFEFEFEFE
+        FEFEFEFEFEFEFEFEFEFEFEFEFEFFFFFFD4E8ED409EB23CCBE53EE0FF3EDDFE3E
+        DDFE3EDDFE3EDDFE3EDDFE3EDDFE3EDDFE3EDDFE3EDFFF3BCFEC45A2B5E1F0F3
+        FFFFFFFEFEFEFEFEFEFEFEFEFEFEFEFEFEFEFEFEFEFEFEFEFEFEFEFEFEFEFEFE
+        FEFFFFFFD4E8ED409DB139CBE63EE0FF3EDDFE3EDDFE3EDDFE3EDDFE3EDDFE3E
+        DDFE3EDDFE3EDDFE3EDFFF3BCFEC44A1B5E1F0F3FFFFFFFEFEFEFEFEFEFEFEFE
+        FEFEFEFEFEFEFEFEFEFEFEFEFEFEFEFEFEFEFEFEFEFFFFFFD3E8ED439EB143CD
+        E839DFFF3DDDFE3DDDFE3DDDFE3DDEFF3DE1FF3DE1FF3DE1FF3DE1FF3DE0FF3A
+        CFEC44A1B4E1F0F3FFFFFFFEFEFEFEFEFEFEFEFEFEFEFEFEFEFEFEFEFEFEFEFE
+        FEFEFEFFFFFFFFFFFFFFFFFFD2E8ED469EB291DAE945E1FF38DCFE3CDDFE3CDE
+        FF3CD5F33CC5DC3CC3DB3CC3DB3CC5DD3CD7F539D0EE43A1B4E1F0F2FFFFFFFF
+        FFFFFFFFFFFFFEFEFEFEFEFEFEFEFEFEFEFFFFFEFFFFFFD2E8EDC9E4E9FFFFFF
+        D3E8ED3D9DB2CCE3E8A1F1FF33DBFE3BDDFE3CE1FF3CB7CF3B9AAE3BA9BF3BA9
+        BF3B99AE3BB6CE39D2EF42A0B5E1F0F2FFFFFFDCEDF1CCE5EBFFFFFFFFFFFFFE
+        FEFEFEFEFEFFFFFFD4E9EE3C9EB43199B0C0E1E7DEEDF13C9CB2C6E2E8FFFFFF
+        6CE4FE2DDAFE3AE1FF3BB3CA3BA6BC3BE1FE3BE0FC3BA7BC3BB3CB38D1EE42A0
+        B4E9F3F6EBF5F751A6B93195ABA8D2DCFFFFFFFFFFFEFFFFFFD6EAEF43A1B681
+        C0CE93CAD642A1B695CBD6429FB4C1E1E7FFFFFFE6FAFE76E6FE2EDFFF38B3CA
+        3BA5BB3BDCFA3BDCF93BA6BC3BB3CB37D0EE46A2B6CFE7EC63AFC032ADC535B5
+        CC3B99AEB3D7E0FFFFFFD7EBEF48A3B87CBDCCF9FBFC84C1CF2D96AE2D96AE37
+        9AB0D3E8EDFFFFFFFFFFFEF8FDFE93F0FF36B4CD2C92A8379DB23A9DB33A94A8
+        3AB3CC39D4F23E9BB04BA1B43494AA3AACC33AE0FC35BFD93999AFB7D9E286C2
+        CF2A95ADDBEDF188C3D02F97ADAED7E09FCDD9ABD5DDFDFEFEFFFFFFFEFEFEFF
+        FFFEFFFFFFC6EBF28BCEDC42BED631BBD739C2DD39D3F239DEFE38BBD535AEC7
+        39C4DD399CB139B4CD3ADBF72BA0B86BB3C3E3F1F45BADBF43A2B648A3B7B7DA
+        E2FFFFFFFFFFFFFFFFFFFFFFFEFEFEFEFEFEFEFEFEFEFFFEFEFFFFFFFFFFFFC5
+        F9FF50E4FF2EDEFF36DDFF38DCFE38DFFF38DEFF38E2FF38CCE8399DB3339FB5
+        3FA1B6C2E0E7FFFFFFE4F1F43D9FB461B1C2F9FCFCFFFFFFFEFEFEFEFEFEFEFE
+        FEFEFEFEFFFEFEFFFEFEFFFFFEFFFFFFFFFFFFFFFFFFECFCFF78E7FE39DCFE31
+        DAFE2DDBFE2CDAFE2FDBFF38E2FF33AEC52F92A9B3D9E1FFFFFFFFFEFEFFFFFF
+        D1E8ED3F9FB460B0C1F2F9FAFFFFFFFFFFFEFFFFFFFFFFFFFFFFFFFFFFFFFFFF
+        FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFE6FDFFBAF4FF9DEEFF92ECFFA1F0FF53
+        BCD03399B0A9D4DEFFFFFFFFFFFFFEFEFEFFFEFEFFFFFFD3E9EE48A4B85FAFC0
+        F7FAFBFFFFFFE1F0F3AED7DF8BC5D37FBECC75B8C86FB6C66FB6C572B7C77CBC
+        CB8AC4D2A8D2DBDDEBEEFFFFFFFFFFFF97C7D23899AEBDDFE6FFFFFFFFFFFEFE
+        FEFEFEFEFEFEFEFEFEFEFEFFFFFFD4EAEE3B9DB368B4C573B9C93A9DB3389BB1
+        47A2B752A9BB5DAFC063B1C364B1C260B0C256ABBE49A4B83C9DB3359AB065B2
+        C38BC5D23199AFA7D3DDFFFFFFFFFEFEFEFEFEFEFEFEFEFEFEFEFEFEFEFEFEFE
+        FEFEFFFFFFCFE6EC4FA7BB6DB5C6ACD6DFE4F2F4F7FBFCFAFCFCFDFEFEFFFEFE
+        FEFFFFFDFEFEFBFDFDF8FBFCEDF6F8BDDFE672B8C8389CB2A1D1DBFFFFFFFFFF
+        FEFEFEFEFEFEFEFEFEFEFEFEFEFEFEFEFEFEFEFEFEFEFEFEFEFFFFFFF8FBFCFF
+        FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF
+        FFFFFFFFFFFFFFFFFFF4F8FAFFFFFFFFFEFEFEFEFEFEFEFEFEFEFEFEFEFE}
+      ParentFont = False
+      ParentShowHint = False
+      ShowHint = True
+      OnClick = bt_SkinClick
+      OnMouseMove = bt_SkinMouseMove
+    end
     object Map_Left: TSpinEdit
-      Left = 413
+      Left = 462
       Top = 6
       Width = 56
       Height = 29
@@ -2013,7 +2088,7 @@ object RecogForm_: TRecogForm_
       OnMouseMove = Map_LeftMouseMove
     end
     object Map_Right: TSpinEdit
-      Left = 685
+      Left = 726
       Top = 6
       Width = 56
       Height = 29
@@ -2032,7 +2107,7 @@ object RecogForm_: TRecogForm_
       OnMouseMove = Map_RightMouseMove
     end
     object Map_Top: TSpinEdit
-      Left = 549
+      Left = 594
       Top = 6
       Width = 56
       Height = 29
@@ -2051,7 +2126,7 @@ object RecogForm_: TRecogForm_
       OnMouseMove = Map_TopMouseMove
     end
     object Map_Bottom: TSpinEdit
-      Left = 821
+      Left = 858
       Top = 6
       Width = 56
       Height = 29
@@ -2070,7 +2145,7 @@ object RecogForm_: TRecogForm_
       OnMouseMove = Map_BottomMouseMove
     end
     object Map_RowHeight: TSpinEdit
-      Left = 1043
+      Left = 1076
       Top = 6
       Width = 56
       Height = 29
@@ -2089,7 +2164,7 @@ object RecogForm_: TRecogForm_
       OnMouseMove = Map_RowHeightMouseMove
     end
     object Map_ColWidth: TSpinEdit
-      Left = 947
+      Left = 980
       Top = 6
       Width = 56
       Height = 29
@@ -2108,7 +2183,7 @@ object RecogForm_: TRecogForm_
       OnMouseMove = Map_ColWidthMouseMove
     end
     object Panel5: TPanel
-      Left = 1117
+      Left = 1146
       Top = 3
       Width = 66
       Height = 34
@@ -2169,6 +2244,8 @@ object RecogForm_: TRecogForm_
       ShowHint = False
       TabOrder = 0
       OnMouseMove = ScrollBox1MouseMove
+      OnMouseWheelDown = ScrollBox1MouseWheelDown
+      OnMouseWheelUp = ScrollBox1MouseWheelUp
       object Image1: TImage
         Left = 0
         Top = 0
@@ -7167,7 +7244,7 @@ object RecogForm_: TRecogForm_
       Height = 28
       Cursor = crHSplit
       Max = 99
-      Min = 50
+      Min = 30
       Position = 60
       TabOrder = 9
       OnChange = TrackBar2Change

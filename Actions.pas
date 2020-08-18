@@ -59,6 +59,8 @@ type
 var
   ActionForm: TActionForm;
 
+  Act_ManPos_BK: TPoint;   // 逆推人的坐标
+
 implementation
 
 uses
@@ -381,10 +383,10 @@ begin
         end;
       end;
     1:                              // 已做动作
-      begin
-        if isBK and (UnDoPos_BK < MaxLenPath) then begin
+     begin
+        if isBK and (UnDoPos_BK < MaxLenPath) and (Act_ManPos_BK.X > 0) and (Act_ManPos_BK.Y > 0) then begin
            UndoList_BK[UnDoPos_BK+1] := #0;
-           str  := PChar(@UndoList_BK);
+           str  := '[' + IntToStr(Act_ManPos_BK.X) + ', ' + IntToStr(Act_ManPos_BK.Y) + ']' + PChar(@UndoList_BK);
         end else if (not isBK) and (UnDoPos < MaxLenPath) then begin
            UndoList[UnDoPos+1] := #0;
            str  := PChar(@UndoList);

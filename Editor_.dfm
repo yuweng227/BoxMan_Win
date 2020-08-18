@@ -397,7 +397,7 @@ object EditorForm_: TEditorForm_
     ParentFont = False
     TabOrder = 0
     object sb_Load: TSpeedButton
-      Left = 94
+      Left = 100
       Top = 5
       Width = 35
       Height = 26
@@ -464,7 +464,7 @@ object EditorForm_: TEditorForm_
       OnMouseMove = sb_LoadMouseMove
     end
     object sb_Save: TSpeedButton
-      Left = 54
+      Left = 53
       Top = 5
       Width = 35
       Height = 26
@@ -531,7 +531,7 @@ object EditorForm_: TEditorForm_
       OnMouseMove = sb_SaveMouseMove
     end
     object sb_Xsb_OK: TSpeedButton
-      Left = 320
+      Left = 335
       Top = 5
       Width = 33
       Height = 26
@@ -579,7 +579,7 @@ object EditorForm_: TEditorForm_
       OnMouseMove = sb_Xsb_OKMouseMove
     end
     object sb_Inf: TSpeedButton
-      Left = 273
+      Left = 288
       Top = 5
       Width = 35
       Height = 26
@@ -646,7 +646,7 @@ object EditorForm_: TEditorForm_
       OnMouseMove = sb_InfMouseMove
     end
     object sb_Clear: TSpeedButton
-      Left = 227
+      Left = 241
       Top = 5
       Width = 35
       Height = 26
@@ -713,7 +713,7 @@ object EditorForm_: TEditorForm_
       OnMouseMove = sb_ClearMouseMove
     end
     object sb_UnDo: TSpeedButton
-      Left = 142
+      Left = 147
       Top = 5
       Width = 35
       Height = 26
@@ -750,7 +750,7 @@ object EditorForm_: TEditorForm_
       OnMouseMove = sb_UnDoMouseMove
     end
     object sb_Help: TSpeedButton
-      Left = 369
+      Left = 477
       Top = 5
       Width = 35
       Height = 26
@@ -781,7 +781,7 @@ object EditorForm_: TEditorForm_
       OnMouseMove = sb_HelpMouseMove
     end
     object sb_ReDo: TSpeedButton
-      Left = 182
+      Left = 194
       Top = 5
       Width = 35
       Height = 26
@@ -885,7 +885,7 @@ object EditorForm_: TEditorForm_
       OnMouseMove = sb_SaveToFileMouseMove
     end
     object sb_LoadPic: TSpeedButton
-      Left = 421
+      Left = 429
       Top = 5
       Width = 35
       Height = 26
@@ -941,7 +941,7 @@ object EditorForm_: TEditorForm_
       OnMouseMove = sb_LoadPicMouseMove
     end
     object bt_Skin: TSpeedButton
-      Left = 477
+      Left = 382
       Top = 5
       Width = 35
       Height = 26

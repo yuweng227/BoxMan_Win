@@ -15,15 +15,14 @@ __recovery/
 
 # Boss dependency manager vendor folder https://github.com/HashLoad/boss
 modules/
-/boxman.xsb
-/BoxMan.xsb.bak
 /Levels_Test
 /temp
 /资料
+/BoxMan.dat
+/BoxMan.ldb
 /BoxMan.db
 /BoxMan.ini
-/BoxMan.log
-/BoxMan.dat
-/BoxMan.cfg
+/boxman.xsb
+/BoxMan.xsb.bak
 /*.dcu
-/BoxMan.ldb
+/*.log

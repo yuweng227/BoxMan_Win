@@ -1,5 +1,7 @@
 unit PathFinder;
 
+{$DEFINE LASTACT}
+
 interface
 
 uses
@@ -65,8 +67,8 @@ type
 
 implementation
 
-//uses
-//  LogFile;
+uses
+  LogFile, LoadMapUnit;
 
 const
   lurdChar : array[0..7] of Char = (  'l', 'r', 'u', 'd', 'L', 'R', 'U', 'D' );
@@ -992,6 +994,10 @@ var
   tmpMap2: array[0..1] of Integer;
   ch: Char;
 
+{$IFDEF LASTACT}
+  act: string;
+{$ENDIF}
+
   // 以此模拟优先队列
   procedure AddNode2(bpos, mpos, H, G, T, k: Integer; var myList: TObjectList);
   var
@@ -1035,6 +1041,27 @@ begin
     Result := 0;
 
     if (boxPos = toPos) then Exit;
+
+// 调试功能，当程序崩溃时，BoxMan.log 文档中，会记录之前的动作，避免造成太大的损失    
+{$IFDEF LASTACT}
+//   ReWrite(myLogFile_);
+   Writeln(myLogFile_, '');
+   Writeln(myLogFile_, DateTimeToStr(Now));
+   if UnDoPos > 0 then begin
+      if UnDoPos < MaxLenPath then UndoList[UnDoPos+1] := #0;
+      act := PChar(@UndoList);
+      Writeln(myLogFile_, act);
+      Flush(myLogFile_);
+   end;
+   if UnDoPos_BK > 0 then begin
+      man_R := ManPos_BK_0 div mapWidth+1;
+      man_C := ManPos_BK_0 mod mapWidth+1;
+      if UnDoPos_BK < MaxLenPath then UndoList_BK[UnDoPos_BK+1] := #0;
+      act := '[' + inttostr(man_R) + ', ' + inttostr(man_C) + ']' + PChar(@UndoList_BK);
+      Writeln(myLogFile_, act);
+      Flush(myLogFile_);
+   end;
+{$ENDIF}
 
     for i := 0 to mapHeight-1 do begin
         for j := 0 to mapWidth-1 do begin

@@ -1,18 +1,20 @@
 unit MainForm;
 
-{$DEFINE TEST}
+{$DEFINE LASTACT}
 
-//  {$IFDEF TEST}
-//     Writeln(myLogFile, '');
-//     Flush(myLogFile);
-//  {$ENDIF}
+//{$DEFINE DEBUG}
+
+//{$IFDEF DEBUG}
+//   Writeln(myLogFile, '');
+//   Flush(myLogFile);
+//{$ENDIF}
 
 interface
 
 uses
   Windows, Messages, SysUtils, Classes, Graphics, Forms, Inifiles, Controls,
   Contnrs, Registry, ComCtrls, ExtCtrls, ImgList, StdCtrls, Buttons, Dialogs,
-  ShellAPI, Menus, Clipbrd, Math, AppEvnts, StrUtils, LoadMapUnit;
+  ShellAPI, Menus, Clipbrd, Math, AppEvnts, StrUtils, LoadMapUnit, SQLiteTable3;
 
 type
   TSetting = record     // 程序设置项目
@@ -115,7 +117,6 @@ type
     N2: TMenuItem;
     XSB1: TMenuItem;
     XSB2: TMenuItem;
-    XSB3: TMenuItem;
     N3: TMenuItem;
     N4: TMenuItem;
     N5: TMenuItem;
@@ -155,6 +156,10 @@ type
     sa_ClraeAll: TMenuItem;
     so_XSBAll_LurdAll1_File: TMenuItem;
     sb_Help: TSpeedButton;
+    SpeedButton1: TSpeedButton;
+    N26: TMenuItem;
+    N27: TMenuItem;
+    N28: TMenuItem;
 
     procedure FormCreate(Sender: TObject);
     procedure FormResize(Sender: TObject);
@@ -225,7 +230,6 @@ type
     procedure map_ImageMouseUp(Sender: TObject; Button: TMouseButton;
       Shift: TShiftState; X, Y: Integer);
     procedure map_ImageDblClick(Sender: TObject);
-    procedure XSB3Click(Sender: TObject);
     procedure XSB2Click(Sender: TObject);
     procedure XSB1Click(Sender: TObject);
     procedure ApplicationEvents1Minimize(Sender: TObject);
@@ -256,6 +260,9 @@ type
     procedure sb_HelpClick(Sender: TObject);
     procedure List_SolutionMouseDown(Sender: TObject; Button: TMouseButton;
       Shift: TShiftState; X, Y: Integer);
+    procedure SpeedButton1Click(Sender: TObject);
+    procedure N27Click(Sender: TObject);
+    procedure N28Click(Sender: TObject);
 
   private
     // 当前地图参数
@@ -313,7 +320,6 @@ type
     function SaveSolution(n: Integer): Boolean;       // 新增答案
     function SaveState(): Boolean;                    // 保存状态
     function LoadState(): Boolean;                    // 加载状态
-    function LoadSolution(): Boolean;                 // 加载答案
     function GetSolution(mapNpde: PMapNode): string;  // 加载指定关卡的所有答案
     function GetStateFromDB(index: Integer; var x: Integer; var y: Integer; var str1: string; var str2: string): Boolean;    // 从答案库加载一条状态
     function GetSolutionFromDB(index: Integer; var str: string): Boolean;                                                    // 从答案库加载一条答案
@@ -327,6 +333,8 @@ type
     map_Board_BK: array[0..9999] of integer;          // 逆推地图
     map_Board: array[0..9999] of integer;             // 正推地图
     
+    function LoadSolution(): Boolean;                 // 加载答案
+
   end;
 
 const
@@ -339,10 +347,13 @@ const
   SpeedInf: array[0..4] of string = ('最快', '较快', '中速', '较慢', '最慢');
   
   AppName = 'BoxMan';
-  AppVer = ' V1.6';
+  AppVer = ' V1.7';
 
 var
   main: Tmain;
+  
+  BoxManDBpath: string;                             // 答案库路径文档名
+
   tmpTrun: integer;
   SoltionList: Tlist;     // 答案列表项
   StateList: Tlist;       // 状态列表项
@@ -378,7 +389,7 @@ implementation
 
 uses
   DateUtils, LogFile, MyInf, Submit, IDHttp, superobject, ShowSolutionList, OpenFile,
-  LoadSkin, PathFinder, LurdAction, BrowseLevels, DateModule, CRC_32, Actions;
+  LoadSkin, PathFinder, LurdAction, BrowseLevels, CRC_32, Actions, myTest;
 
 var
   myPathFinder: TPathFinder;
@@ -392,6 +403,8 @@ var
   isSelecting: Boolean;                                   // 是否正处于选择模式 -- Ctrl + 左键拖动
 
   DoubleClickPos: TPoint;                                 // 当前双击的位置
+
+  isCommandLine: Boolean;                                 // 是否有启动参数，有启动参数时，关卡文档名不记录到 ini
 
 {$R *.DFM}
 
@@ -501,12 +514,14 @@ begin
     IniFile.WriteBool('Settings', '正推目标位', mySettings.isSameGoal);         // 逆推时，使用正推目标位
     IniFile.WriteBool('Settings', '左侧边栏', mySettings.isLeftBar);            // 是否开启左侧边栏
     IniFile.WriteString('Settings', '皮肤', mySettings.SkinFileName);           // 当前皮肤文档名
-    IniFile.WriteString('Settings', '关卡文档', mySettings.MapFileName);        // 当前关卡文档名 -- 适应关卡文档与程序在同一目录下的情况
-    IniFile.WriteInteger('Settings', '关卡序号', curMap.CurrentLevel);          // 当前关卡序号
-    if curMapNode = nil then
-      IniFile.WriteInteger('Settings', '关卡旋转', 0)                           // 当前关卡旋转
-    else
-      IniFile.WriteInteger('Settings', '关卡旋转', curMapNode.Trun);
+    if not isCommandLine then begin
+        IniFile.WriteString('Settings', '关卡文档', mySettings.MapFileName);        // 当前关卡文档名 -- 适应关卡文档与程序在同一目录下的情况
+        IniFile.WriteInteger('Settings', '关卡序号', curMap.CurrentLevel);          // 当前关卡序号
+        if curMapNode = nil then
+          IniFile.WriteInteger('Settings', '关卡旋转', 0)                           // 当前关卡旋转
+        else
+          IniFile.WriteInteger('Settings', '关卡旋转', curMapNode.Trun);
+    end;
 
     n := mySettings.LaterList.Count;
     for i := 0 to n-1 do begin
@@ -615,7 +630,7 @@ begin
   ed_sel_Map.Text := IntToStr(curMap.CurrentLevel);
 end;
 
-// 读取关文档，并加载指定序号的地图
+// 读取关卡文档，并加载指定序号的地图
 function Tmain.LoadMap(MapIndex: integer): boolean;
 var
   i, j, CurCell, Rows, Cols, len: integer;
@@ -857,7 +872,7 @@ begin
   LoadSolution();  // 加载答案
   curMapNode.Solved := (SoltionList.Count > 0);
 
-  // 若关卡已经解开，则自动加载答案，否则，并且有状态保存，则直接打开最新的状态
+  // 若关卡已经解开，则自动加载答案，否则，有状态保存，则直接打开最新的状态
   if curMapNode.Solved then begin
     if GetSolutionFromDB(0, s1) then begin
 
@@ -904,7 +919,7 @@ begin
               else map_Board_BK[ManPos_BK] := GoalCell;
            end;
 
-           ManPos_BK := y * curMapNode.Cols + x;
+           ManPos_BK := (y-1) * curMapNode.Cols + x-1;
 
            if map_Board_BK[ManPos_BK] = FloorCell then map_Board_BK[ManPos_BK] := ManCell
            else if map_Board_BK[ManPos_BK] = GoalCell then map_Board_BK[ManPos_BK] := ManGoalCell
@@ -969,7 +984,7 @@ begin
     result := result or 16;  // 需要画墙顶
 end;
 
-// 数选区内的箱子数等
+// 统计选区内的箱子数等
 function Tmain.GetCountBox(): string;
 var
   i, boxNum, GoalNum, BoxGoalNum: Integer;
@@ -1033,7 +1048,7 @@ end;
 // 重画地图
 procedure Tmain.DrawMap();
 var
-  i, j, k, dx, dy, myCell, x1, y1, x2, y2, x3, y3, x4, y4, pos, t1, t2, i2, j2: integer;
+  i, j, k, dx, dy, myCell, x1, y1, x2, y2, x3, y3, x4, y4, pos, t1, t2, i2, j2, man_Pos_: integer;
   R, R2: TRect;
     
 begin
@@ -1319,8 +1334,11 @@ begin
             map_Image.Canvas.TextOut(R.Left + curMap.CellSize div 3, R.Top + curMap.CellSize div 5, chr(PosNum_Board_BK[pos]+64));
         end;
 
-        // 逆推中，显示人在正推中的初始位置，正逆相合后，人需要回到此位置，所以，提示出来以便参考
-        if (curMap.ManPosition = i * curMapNode.Cols + j) then
+        // 逆推中，显示人在正推中的位置，正逆相合后，人需要回到此位置，所以，提示出来以便参考
+        if mySettings.isJijing then man_Pos_ := ManPos
+        else man_Pos_ := curMap.ManPosition;
+
+        if (man_Pos_ = i * curMapNode.Cols + j) then
         begin
           map_Image.Canvas.Brush.Color := clRed;  // clFuchsia
 
@@ -1331,11 +1349,12 @@ begin
             R2 := Rect(x1 + dx * k, y1 + dx * k, x1 + curMap.CellSize - dx * k, y1 + curMap.CellSize - dx * k);
             map_Image.Canvas.DrawFocusRect(R2);
           end;
-
         end;
+
         if IsManAccessibleTips_BK then
         begin   // 显示人的可达提示
           t1 := curMap.CellSize div 6;
+          if t1 < 4 then t1 := 4;
           t2 := t1 - 1;
           if myPathFinder.isManReachableByThrough_BK(pos) then
           begin
@@ -1362,6 +1381,7 @@ begin
         if IsBoxAccessibleTips_BK then
         begin   // 显示箱子的可达提示
           t1 := curMap.CellSize div 6;
+          if t1 < 4 then t1 := 4;
           t2 := t1 - 1;
           if myPathFinder.isBoxReachable_BK(pos) then
           begin
@@ -1409,9 +1429,25 @@ begin
             map_Image.Canvas.TextOut(R.Left + curMap.CellSize div 3, R.Top + curMap.CellSize div 5, chr(PosNum_Board[pos]+64));
         end;
 
+        if mySettings.isJijing then begin
+          if (ManPos_BK = i * curMapNode.Cols + j) then
+          begin
+            map_Image.Canvas.Brush.Color := clRed;  // clFuchsia
+
+            dx := curMap.CellSize div 5;
+
+            for k := 1 to 2 do
+            begin
+              R2 := Rect(x1 + dx * k, y1 + dx * k, x1 + curMap.CellSize - dx * k, y1 + curMap.CellSize - dx * k);
+              map_Image.Canvas.DrawFocusRect(R2);
+            end;
+          end;
+        end;
+
         if IsManAccessibleTips then
         begin   // 显示人的可达提示
           t1 := curMap.CellSize div 6;
+          if t1 < 4 then t1 := 4;
           t2 := t1 - 1;
           if myPathFinder.isManReachableByThrough(pos) then
           begin
@@ -1438,6 +1474,7 @@ begin
         if IsBoxAccessibleTips then
         begin   // 显示箱子的可达提示
           t1 := curMap.CellSize div 6;
+          if t1 < 4 then t1 := 4;
           t2 := t1 - 1;
           if myPathFinder.isBoxReachable(pos) then
           begin
@@ -1658,13 +1695,21 @@ end;
 
 procedure Tmain.FormCreate(Sender: TObject);
 var
-  res: TResourceStream;
+  sldb: TSQLiteDatabase;
+  sSQL: String;
   
 begin
-  {$IFDEF TEST}
-     LogFileInit('');
-  {$ENDIF}
-  
+
+{$IFDEF DEBUG}
+   LogFileInit('BoxMan.log');
+   Writeln(myLogFile, 'Enter FormCreate...');
+   Flush(myLogFile);
+{$ENDIF}
+
+{$IFDEF LASTACT}
+   LogFileInit_('Motions.log');
+{$ENDIF}
+
   bt_LeftBar.Hint      := '显示或隐藏左侧边栏: 【H】';
 
   bt_GoThrough.Caption := '穿越';
@@ -1673,7 +1718,7 @@ begin
   bt_OddEven.Caption   := '奇偶';
   bt_Skin.Caption      := '换肤';
   bt_Act.Caption       := '动作编辑';
-  bt_Save.Caption      := '状态存档';
+  bt_Save.Caption      := '保存现场';
   pnl_Trun.Caption     := '0转';
 
   bt_Open.Hint         := '打开文档: 【Ctrl + O】';
@@ -1689,7 +1734,7 @@ begin
   bt_OddEven.Hint      := '奇偶格位: 【E】';
   bt_Skin.Hint         := '更换皮肤: 【F2】';
   bt_Act.Hint          := '动作编辑: 【F4】';
-  bt_Save.Hint         := '保存现场: 【Ctrl + S】';
+  bt_Save.Hint         := '保存现场（关卡未存档时，同时保存关卡）: 【Ctrl + S】';
   pnl_Trun.Hint        := '旋转关卡: 【*、/、左右鼠标键】';
   pnl_Speed.Hint       := '改变游戏速度: 【+、-、左右鼠标键】';
   sb_Help.Hint         := '帮助：【F1】';
@@ -1713,6 +1758,9 @@ begin
   pmSolution.Items[9].Caption := '-';
   pmSolution.Items[10].Caption := '删除';
   pmSolution.Items[11].Caption := '删除全部';
+  pmSolution.Items[12].Caption := '-';
+  pmSolution.Items[13].Caption := '导出答案库 → 文档';
+  pmSolution.Items[14].Caption := '导入答案 ← 文档';
 
   pmState.Items[0].Caption := '正推 Lurd 到剪切板';
   pmState.Items[1].Caption := '逆推 Lurd 到剪切板';
@@ -1725,22 +1773,21 @@ begin
   pmBoardBK.Items[0].Caption := '固定的目标位';
   pmBoardBK.Items[1].Caption := '即景目标位';
   pmBoardBK.Items[2].Caption := '-';
-  pmBoardBK.Items[3].Caption := '导入关卡XSB - 剪切板';
-  pmBoardBK.Items[4].Caption := '导出关卡XSB - 剪切板';
-  pmBoardBK.Items[5].Caption := '导出现场XSB - 剪切板';
-  pmBoardBK.Items[6].Caption := '导出关卡XSB - 文档';
-  pmBoardBK.Items[7].Caption := '送入关卡周转库(BoxMan.xsb)';
-  pmBoardBK.Items[8].Caption := '-';
-  pmBoardBK.Items[9].Caption := '导入动作Lurd - 剪切板 - 正逆推';
-  pmBoardBK.Items[10].Caption := '导出已做动作Lurd - 剪切板 - 正逆推';
-  pmBoardBK.Items[11].Caption := '导出后续动作Lurd - 剪切板';
-  pmBoardBK.Items[12].Caption := '-';
-  pmBoardBK.Items[13].Caption  := '重新开始   【Esc】';
-  pmBoardBK.Items[14].Caption  := '-';
-  pmBoardBK.Items[15].Caption  := '录制动作   【F9】';
-  pmBoardBK.Items[16].Caption := '-';
-  pmBoardBK.Items[17].Caption := '反向演示   【退格键】';
-  pmBoardBK.Items[18].Caption := '正向演示   【空格键】';
+  pmBoardBK.Items[3].Caption := '导入关卡（XSB） ← 剪切板';
+  pmBoardBK.Items[4].Caption := '导出关卡和已做动作（XSB + Lurd） → 剪切板';
+  pmBoardBK.Items[5].Caption := '导出现场（XSB） → 剪切板';
+  pmBoardBK.Items[6].Caption := '存入周转库 →（BoxMan.xsb）';
+  pmBoardBK.Items[7].Caption := '-';
+  pmBoardBK.Items[8].Caption := '导入动作（Lurd） ← 剪切板 - 正逆推';
+  pmBoardBK.Items[9].Caption := '导出已做动作（Lurd） → 剪切板 - 正逆推';
+  pmBoardBK.Items[10].Caption := '导出后续动作（Lurd） → 剪切板';
+  pmBoardBK.Items[11].Caption := '-';
+  pmBoardBK.Items[12].Caption  := '重新开始   【Esc】';
+  pmBoardBK.Items[13].Caption  := '-';
+  pmBoardBK.Items[14].Caption  := '录制动作   【F9】';
+  pmBoardBK.Items[15].Caption := '-';
+  pmBoardBK.Items[16].Caption := '反向演示   【退格键】';
+  pmBoardBK.Items[17].Caption := '正向演示   【空格键】';
 
   pm_Up_Bt.Items[0].Caption := '上一关              【PgUp】';
   pm_Up_Bt.Items[1].Caption := '第一关              【Ctrl + PgUp】';
@@ -1780,29 +1827,105 @@ begin
   DoubleClickPos.Y := -1;
 
   AppPath := ExtractFilePath(Application.ExeName);      //GetCurrentDir + '\';   //
+  BoxManDBpath := AppPath + 'BoxMan.db';
 
-  // 连接答案数据库
+{$IFDEF DEBUG}
+   Writeln(myLogFile, 'Step 0');
+   Flush(myLogFile);
+{$ENDIF}
+
+  sldb := TSQLiteDatabase.Create(AnsiToUtf8(BoxManDBpath));
+
+{$IFDEF DEBUG}
+   Writeln(myLogFile, 'Step 1');
+   Flush(myLogFile);
+{$ENDIF}
+
+  // 检查答案库和状态库是否存在，不存在则创建之
   try
-    // 检查答案库文件是否存在，若不存在，则从资源流中导出生成
-    if not FileExists(AppPath + '\BoxMan.dat') then begin
-       res := TResourceStream.Create(HInstance, 'DATA', 'MDB');
-       res.SaveToFile(AppPath + '\BoxMan.dat');
-       res.Free;
+    try
+      if not sldb.TableExists('Tab_Solution') then begin
+        sSQL := 'CREATE TABLE Tab_Solution ( ' +
+                '[ID] INTEGER PRIMARY KEY AUTOINCREMENT, ' +
+                '[XSB_CRC32] INTEGER NOT NULL DEFAULT 0, ' +
+                '[XSB_CRC_TrunNum] INTEGER NOT NULL DEFAULT 0, ' +
+                '[Goals] INTEGER NOT NULL DEFAULT 0, ' +
+                '[Sol_CRC32] INTEGER NOT NULL DEFAULT 0, ' +
+                '[Moves] INTEGER NOT NULL DEFAULT 0, ' +
+                '[Pushs] INTEGER NOT NULL DEFAULT 0, ' +
+                '[Sol_Text] TEXT NOT NULL DEFAULT "", ' +
+                '[XSB_Text] TEXT NOT NULL DEFAULT "", ' +
+                '[Sol_DateTime] TEXT NOT NULL DEFAULT "" )';
+
+        sldb.execsql(sSQL);
+
+        sldb.execsql('CREATE INDEX sol_Index ON [Tab_Solution]([XSB_CRC_TrunNum]);');
+      end;
+
+{$IFDEF DEBUG}
+   Writeln(myLogFile, 'Step 2');
+   Flush(myLogFile);
+{$ENDIF}
+
+    except
+
+{$IFDEF DEBUG}
+   Writeln(myLogFile, 'Step 3');
+   Flush(myLogFile);
+{$ENDIF}
+
     end;
-    DataModule1.ADOConnection1.Close;
-    DataModule1.ADOConnection1.ConnectionString := 'Provider=Microsoft.Jet.OLEDB.4.0;User ID=Admin;Data Source=BoxMan.dat;Persist Security Info=False;Jet OLEDB:Database Password=boxman2019;';
-    DataModule1.ADOConnection1.LoginPrompt := False;
-    DataModule1.ADOConnection1.Open;
-    DataModule1.ADOConnection2.Close;
-    DataModule1.ADOConnection2.ConnectionString := 'Provider=Microsoft.Jet.OLEDB.4.0;User ID=Admin;Data Source=BoxMan.dat;Persist Security Info=False;Jet OLEDB:Database Password=boxman2019;';
-    DataModule1.ADOConnection2.LoginPrompt := False;
-    DataModule1.ADOConnection2.Open;
-  except
-    DataModule1.ADOConnection1.Close;
-    DataModule1.ADOConnection2.Close;
-    MessageBox(handle, '答案库文档错误，' + #10 + '程序将不能保存答案和状态！', '错误', MB_ICONERROR or MB_OK);
-//      application.Terminate;
+
+{$IFDEF DEBUG}
+   Writeln(myLogFile, 'Step 4');
+   Flush(myLogFile);
+{$ENDIF}
+
+    try
+      if not sldb.TableExists('Tab_State') then begin
+        sSQL := 'CREATE TABLE Tab_State ( ' +
+                '[ID] INTEGER PRIMARY KEY AUTOINCREMENT, ' +
+                '[XSB_CRC32] INTEGER NOT NULL DEFAULT 0, ' +
+                '[XSB_CRC_TrunNum] INTEGER NOT NULL DEFAULT 0, ' +
+                '[Goals] INTEGER NOT NULL DEFAULT 0, ' +
+                '[Act_CRC32] INTEGER NOT NULL DEFAULT 0, ' +
+                '[Act_CRC32_BK] INTEGER NOT NULL DEFAULT 0, ' +
+                '[Moves] INTEGER NOT NULL DEFAULT 0, ' +
+                '[Pushs] INTEGER NOT NULL DEFAULT 0, ' +
+                '[Moves_BK] INTEGER NOT NULL DEFAULT 0, ' +
+                '[Pushs_BK] INTEGER NOT NULL DEFAULT 0, ' +
+                '[Man_X] INTEGER NOT NULL DEFAULT 0, ' +
+                '[Man_Y] INTEGER NOT NULL DEFAULT 0, ' +
+                '[Act_Text] TEXT NOT NULL DEFAULT "", ' +
+                '[Act_Text_BK] TEXT NOT NULL DEFAULT "", ' +
+                '[Act_DateTime] TEXT NOT NULL DEFAULT "" )';
+
+        sldb.execsql(sSQL);
+
+        sldb.execsql('CREATE INDEX act_Index ON [Tab_State]([XSB_CRC_TrunNum]);');
+      end;
+
+{$IFDEF DEBUG}
+   Writeln(myLogFile, 'Step 5');
+   Flush(myLogFile);
+{$ENDIF}
+
+    except
+
+{$IFDEF DEBUG}
+   Writeln(myLogFile, 'Step 6');
+   Flush(myLogFile);
+{$ENDIF}
+
+    end;
+  finally
+    sldb.Free;
   end;
+
+{$IFDEF DEBUG}
+   Writeln(myLogFile, 'Step 7');
+   Flush(myLogFile);
+{$ENDIF}
 
   // 程序窗口最小尺寸限制
   Constraints.MinHeight := minWindowsHeight;
@@ -1816,6 +1939,21 @@ begin
 
   LoadSttings();    // 加载设置项
   isOnlyXSB := True;          // LoadMap 中的变量，控制在加载文档关卡时，是否同时导入答案
+
+  // 接收启动参数
+  isCommandLine := false;
+  if paramcount >= 1 then begin
+     isCommandLine := True;
+     try
+       mySettings.MapFileName := paramstr(1);             // 关卡文档名
+       if paramcount > 1 then
+          curMap.CurrentLevel := StrToInt(paramstr(2))    // 关卡序号
+       else
+          curMap.CurrentLevel := 1;
+     except
+       curMap.CurrentLevel := 1;
+     end;
+  end;
 
   Caption := AppName + AppVer;
 
@@ -1837,30 +1975,59 @@ begin
 
   curMapNode := nil;
 
-  
   // 创建后台线程，加载地图
   LoadMapThread := TLoadMapThread.Create(true);
   LoadMapThread.isRunning := False;
 
+{$IFDEF DEBUG}
+   Writeln(myLogFile, 'Step 8');
+   Flush(myLogFile);
+{$ENDIF}
+
   // 先用比较轻便的方式，打开上次的关卡
   if FileExists(mySettings.MapFileName) then begin
      curMapNode := QuicklyLoadMap(mySettings.MapFileName, curMap.CurrentLevel);
+
+{$IFDEF DEBUG}
+   Writeln(myLogFile, 'Step 9');
+   Flush(myLogFile);
+{$ENDIF}
+
      if curMapNode.Map.Count > 2 then begin
 
         mySettings.isXSB_Saved := True;
         ReadQuicklyMap();
+        curMapNode.Trun := tmpTrun;
+        pnl_Trun.Caption := MapTrun[curMapNode.Trun];
 
         ResetSolvedLevel();
+
+{$IFDEF DEBUG}
+   Writeln(myLogFile, 'Step 10');
+   Flush(myLogFile);
+{$ENDIF}
+
         // 运行后台线程，加载地图
         LoadMapThread.Resume;
 
      end else StatusBar1.Panels[7].Text := '加载上次的 ' + IntToStr(curMap.CurrentLevel) + ' 号关卡时，遇到错误 - ' + mySettings.MapFileName;
   end;                          
 
+
+{$IFDEF DEBUG}
+   Writeln(myLogFile, 'Step 11');
+   Flush(myLogFile);
+{$ENDIF}
+
   SetButton();             // 设置按钮状态
   pnl_Speed.Caption := SpeedInf[mySettings.mySpeed];
 
   KeyPreview := true;
+
+{$IFDEF DEBUG}
+   Writeln(myLogFile, 'Exit FormCreate...');
+   Flush(myLogFile);
+{$ENDIF}
 
 end;
 
@@ -1929,9 +2096,14 @@ begin
 
   application.terminate;
 
-  {$IFDEF TEST}
-     LogFileClose();       
-  {$ENDIF}
+{$IFDEF LASTACT}
+   LogFileClose_();
+{$ENDIF}
+
+{$IFDEF DEBUG}
+   LogFileClose();
+{$ENDIF}
+
 end;
 
 // 是否过关 -- 正推
@@ -1982,20 +2154,31 @@ var
 
 begin
   Result := False;
+  flg := True;
 
-  if (MoveTimes_BK < 1) or (ch in [ 'l', 'r', 'u', 'd' ]) then
-    Exit;        // 没有逆推动作时，不做此项检查
+  if (MoveTimes < 1) or (MoveTimes_BK < 1) or (ch in [ 'l', 'r', 'u', 'd' ]) then
+    Exit;        // 没有正推或逆推动作时，不做此项检查
 
   len := curMap.MapSize;
   for i := 0 to len-1 do
   begin
     if ((map_Board[i] = BoxCell) or (map_Board[i] = BoxGoalCell)) and (map_Board_BK[i] <> BoxCell) and (map_Board_BK[i] <> BoxGoalCell) then
     begin
-      Exit;
+      flg := False;
+      Break;
     end;
   end;
 
-  flg := True;
+  // 检查是否即景相合
+  if not flg then begin
+    if mySettings.isJijing and (ManPos_BK >= 0) then begin
+      for i := 0 to len-1 do
+      begin
+         if (map_Board[i] in [ BoxCell, BoxGoalCell ]) and (map_Board_BK[i] in [ BoxCell, BoxGoalCell ]) then Exit;
+      end;
+    end else Exit;
+  end;
+
   if (ManPos <> ManPos_BK) then
   begin
     flg := myPathFinder.manTo2(false, -1, -1, ManPos div curMapNode.Cols, ManPos mod curMapNode.Cols, ManPos_BK div curMapNode.Cols, ManPos_BK mod curMapNode.Cols);
@@ -2070,6 +2253,12 @@ end;
 // 取得录制的动作
 function GetRecording(isBK: Boolean; pos: Integer): string;
 begin
+
+{$IFDEF DEBUG}
+   Writeln(myLogFile, 'Enter GetRecording...');
+   Flush(myLogFile);
+{$ENDIF}
+
    Result := '';
 
    if isBK then begin
@@ -2083,6 +2272,12 @@ begin
          Result := Copy(StrPas(@UndoList), Pos, UnDoPos-pos+1);
       end else main.StatusBar1.Panels[7].Text := '仅支持录制“开始点”后面的动作！';
    end;
+
+{$IFDEF DEBUG}
+   Writeln(myLogFile, 'Exit GetRecording...');
+   Flush(myLogFile);
+{$ENDIF}
+
 end;
 
 // 自动执行“寄存器”动作
@@ -2096,11 +2291,16 @@ var
   ch: Char;
 
 begin
+
+{$IFDEF DEBUG}
+   Writeln(myLogFile, 'Enter DoAct...');
+   Flush(myLogFile);
+{$ENDIF}
+
   if isMoving then IsStop := True
   else IsStop := False;
 
   if (curMapNode = nil) or (curMapNode.Map.Count = 0) then Exit;
-
   err := True;
   ActionForm.MemoAct.Lines.Clear;
   case n of
@@ -2176,6 +2376,11 @@ begin
      end;
   end;
 
+{$IFDEF DEBUG}
+   Writeln(myLogFile, 'Step 1');
+   Flush(myLogFile);
+{$ENDIF}
+
   // 加载到了动作
   if not err then begin
       len := ActionForm.MemoAct.Lines.Count;
@@ -2192,6 +2397,11 @@ begin
           Act := Act + str;
       end;
 
+{$IFDEF DEBUG}
+   Writeln(myLogFile, 'Step 2');
+   Flush(myLogFile);
+{$ENDIF}
+
       // 解析动作字符串
       M_X := -1;
       M_Y := -1;
@@ -2206,8 +2416,8 @@ begin
 
              if p.Count = 2 then begin
                 try
-                  M_X := strToInt(p[0]);
-                  M_Y := strToInt(p[1]);
+                  M_X := strToInt(p[0])-1;
+                  M_Y := strToInt(p[1])-1;
                 except
                   M_X := -1;
                   M_Y := -1;
@@ -2226,6 +2436,11 @@ begin
           if i > 0 then Act := copy(Act, 1, i-1);
       end;
 
+{$IFDEF DEBUG}
+   Writeln(myLogFile, 'Step 3');
+   Flush(myLogFile);
+{$ENDIF}
+
       // 执行动作 - 按现场旋转，当前点，执行一次
       // 若为逆推模式，先检查一下人的位置情况
       if mySettings.isBK then begin
@@ -2236,6 +2451,12 @@ begin
                Exit;
             end;
 
+            // 先去掉老位置上的人
+            for i := 0 to 9999 do begin
+               if map_Board_BK[i] = ManCell then map_Board_BK[i] := FloorCell
+               else if map_Board_BK[i] = ManGoalCell then map_Board_BK[i] := GoalCell;
+            end;
+
             // 新位置放上人 
             ManPos_BK := M_Y * curMapNode.Cols + M_X;
             ManPos_BK_0 := ManPos_BK;
@@ -2244,8 +2465,18 @@ begin
          end;
       end;
 
+{$IFDEF DEBUG}
+   Writeln(myLogFile, 'Step 4');
+   Flush(myLogFile);
+{$ENDIF}
+
       // 将解析到的动作送人redo队列中
       GetLurd(Act, mySettings.isBK);
+
+{$IFDEF DEBUG}
+   Writeln(myLogFile, 'Step 5');
+   Flush(myLogFile);
+{$ENDIF}
 
       // 按现场旋转转换 redo 中的动作
       if mySettings.isBK then begin
@@ -2280,6 +2511,11 @@ begin
          end;
       end;
 
+{$IFDEF DEBUG}
+   Writeln(myLogFile, 'Step 6');
+   Flush(myLogFile);
+{$ENDIF}
+
       // 执行一次
       if mySettings.isBK then begin
          ReDo_BK(ReDoPos_BK);
@@ -2287,12 +2523,24 @@ begin
          ReDo(ReDoPos);
       end;
 
-   end;
+  end;
+
+{$IFDEF DEBUG}
+   Writeln(myLogFile, 'Exit DoAct...');
+   Flush(myLogFile);
+{$ENDIF}
+
 end;
 
 // 键盘按下
 procedure Tmain.FormKeyDown(Sender: TObject; var Key: Word; Shift: TShiftState);
 begin
+
+{$IFDEF DEBUG}
+   Writeln(myLogFile, 'Enter FormKeyDown...' + inttostr(Key));
+   Flush(myLogFile);
+{$ENDIF}
+
   case Key of
     VK_LEFT:
       begin
@@ -2404,11 +2652,23 @@ begin
       if not mySettings.isOddEven then
          bt_OddEvenMouseDown(Self, mbLeft, [], -1, -1);
   end;
+
+{$IFDEF DEBUG}
+   Writeln(myLogFile, 'Exit FormKeyDown...');
+   Flush(myLogFile);
+{$ENDIF}
+
 end;
 
 // 键盘抬起
 procedure Tmain.FormKeyUp(Sender: TObject; var Key: Word; Shift: TShiftState);
 begin
+
+{$IFDEF DEBUG}
+   Writeln(myLogFile, 'Enter FormKeyUp...' + inttostr(Key));
+   Flush(myLogFile);
+{$ENDIF}
+
   case Key of
     69:
       bt_OddEvenMouseUp(Self, mbLeft, [], -1, -1);       // E， 奇偶格效果
@@ -2460,7 +2720,7 @@ begin
       end;
     83:                // Ctrl + S
       if ssCtrl in Shift then begin
-        XSB3.Click;
+        bt_Save.Click;
       end else begin
         if isMoving then IsStop := True
         else begin    // S，重做一步
@@ -2596,6 +2856,12 @@ begin
         end;
       end;
   end;
+
+{$IFDEF DEBUG}
+   Writeln(myLogFile, 'Exit FormKeyUp...');
+   Flush(myLogFile);
+{$ENDIF}
+
 //  StatusBar1.Panels[7].Text := IntToStr(ord(Key));
 end;
 
@@ -2799,19 +3065,20 @@ begin
   end;
 end;
 
-
 // 地图上单击
 procedure Tmain.map_ImageMouseDown(Sender: TObject; Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
 var
   MapClickPos: TPoint;
   myCell, pos, x2, y2, k: Integer;
-
-{$IFDEF TEST}
-  act, s: string;
-{$ENDIF}
 begin
-  if curMap.CellSize = 0 then Exit;
 
+{$IFDEF DEBUG}
+   Writeln(myLogFile, 'Enter map_ImageMouseDown...');
+   Flush(myLogFile);
+{$ENDIF}
+
+  if curMap.CellSize = 0 then Exit;
+  
   IsStop := true;
 
   x2 := X div curMap.CellSize;
@@ -2887,6 +3154,11 @@ begin
     myCell := map_Board_BK[pos]
   else
     myCell := map_Board[pos];
+
+{$IFDEF DEBUG}
+   Writeln(myLogFile, 'Step 1...');
+   Flush(myLogFile);
+{$ENDIF}
 
   case Button of
     mbleft:             // 单击 -- 指左键
@@ -2995,24 +3267,7 @@ begin
                   begin
                     IsBoxAccessibleTips := False;
 
-{$IFDEF TEST}
-   if mySettings.isBK then begin
-     s := '[BK]';
-     if UnDoPos_BK < MaxLenPath then UndoList_BK[UnDoPos_BK+1] := #0;
-     act := PChar(@UndoList_BK);
-   end else begin
-     s := '';
-     if UnDoPos < MaxLenPath then UndoList[UnDoPos+1] := #0;
-     act := PChar(@UndoList);
-   end;
-   Writeln(myLogFile, '');
-   Writeln(myLogFile, s + 'Click the Pass at ' + DateTimeToStr(Now));
-   Writeln(myLogFile, '    ' + act);
-   Flush(myLogFile);
-{$ENDIF}
-
                     ReDoPos := myPathFinder.boxTo(mySettings.isBK, OldBoxPos, pos, ManPos);
-
                     if ReDoPos > 0 then
                     begin
                       for k := 1 to ReDoPos do
@@ -3074,24 +3329,7 @@ begin
                 begin   // 有箱子可达提示时
                   IsBoxAccessibleTips := False;
 
-{$IFDEF TEST}
-   if mySettings.isBK then begin
-     s := '[BK]';
-     if UnDoPos_BK < MaxLenPath then UndoList_BK[UnDoPos_BK+1] := #0;
-     act := PChar(@UndoList_BK);
-   end else begin
-     s := '';
-     if UnDoPos < MaxLenPath then UndoList[UnDoPos+1] := #0;
-     act := PChar(@UndoList);
-   end;
-   Writeln(myLogFile, '');
-   Writeln(myLogFile, s + 'Click the Player at ' + DateTimeToStr(Now));
-   Writeln(myLogFile, '    ' + act);
-   Flush(myLogFile);
-{$ENDIF}
-
                   ReDoPos := myPathFinder.boxTo(mySettings.isBK, OldBoxPos, pos, ManPos);
-
                   if ReDoPos > 0 then
                   begin
                     for k := 1 to ReDoPos do
@@ -3172,7 +3410,18 @@ begin
       end;
   end;
 
+{$IFDEF DEBUG}
+   Writeln(myLogFile, 'Step 2...');
+   Flush(myLogFile);
+{$ENDIF}
+
   DrawMap();
+
+{$IFDEF DEBUG}
+   Writeln(myLogFile, 'Exit map_ImageMouseDown...');
+   Flush(myLogFile);
+{$ENDIF}
+
 end;
 
 procedure Tmain.map_ImageMouseMove(Sender: TObject; Shift: TShiftState; X,
@@ -3181,12 +3430,21 @@ var
   x2, y2: Integer;
 
 begin
+
+{$IFDEF DEBUG}
+   Writeln(myLogFile, 'Enter map_ImageMouseMove...');
+   Flush(myLogFile);
+{$ENDIF}
+
   if curMap.CellSize = 0 then Exit;
 
-  if isSelecting then begin
+  x2 := X div curMap.CellSize;
+  y2 := Y div curMap.CellSize;
+  
+  if curMapNode.Cols > 0 then
+    StatusBar1.Panels[5].Text := ' ' + GetCur(x2, y2) + ' - [ ' + IntToStr(x2 + 1) + ', ' + IntToStr(y2 + 1) + ' ]';       // 标尺
 
-      x2 := X div curMap.CellSize;
-      y2 := Y div curMap.CellSize;
+  if isSelecting then begin
 
       if curMapNode.Trun mod 2 = 0 then begin
          RightBottomXY.X := Min(Max(x2, 0), curMapNode.Cols - 1);
@@ -3199,6 +3457,11 @@ begin
       DrawMap();
   end;
 
+{$IFDEF DEBUG}
+   Writeln(myLogFile, 'Exit map_ImageMouseMove...');
+   Flush(myLogFile);
+{$ENDIF}
+
 end;
 
 procedure Tmain.map_ImageMouseUp(Sender: TObject; Button: TMouseButton;
@@ -3208,8 +3471,13 @@ var
   x2, y2, i, j, i1, j1, i2, j2: Integer;
 
 begin
-  if curMap.CellSize = 0 then Exit;
 
+{$IFDEF DEBUG}
+   Writeln(myLogFile, 'Enter map_ImageMouseUp...');
+   Flush(myLogFile);
+{$ENDIF}
+
+  if curMap.CellSize = 0 then Exit;
 
   if isDelSelect then begin
      if not (ssAlt in Shift) then begin
@@ -3279,6 +3547,11 @@ begin
       RightBottomPos.X := MapClickPos.x;
       RightBottomPos.Y := MapClickPos.y;
 
+{$IFDEF DEBUG}
+   Writeln(myLogFile, 'Step 1...');
+   Flush(myLogFile);
+{$ENDIF}
+
       j1 := Max(0, Min(LeftTopPos.X, RightBottomPos.X));
       i1 := Max(0, Min(LeftTopPos.Y, RightBottomPos.Y));
       j2 := Min(curMapNode.Cols-1, Max(LeftTopPos.X, RightBottomPos.X));
@@ -3297,10 +3570,21 @@ begin
           end;
       end;
 
+{$IFDEF DEBUG}
+   Writeln(myLogFile, 'Step 2...');
+   Flush(myLogFile);
+{$ENDIF}
+
       DrawMap();
 
 //      Caption := '[' + IntToStr(LeftTopPos.X) + ', ' + IntToStr(LeftTopPos.Y) + '] -- [' + IntToStr(RightBottomPos.X) + ', ' + IntToStr(RightBottomPos.Y) + ']';
   end;
+
+{$IFDEF DEBUG}
+   Writeln(myLogFile, 'Exit map_ImageMouseUp...');
+   Flush(myLogFile);
+{$ENDIF}
+
 end;
 
 // 游戏延时
@@ -3353,15 +3637,25 @@ end;
 // 保存状态
 function Tmain.SaveState(): Boolean;
 var
+  sldb: TSQLiteDatabase;
+  sltb: TSQLIteTable;
+  sSQL: String;
   i, ActCRC, ActCRC_BK, x, y, size: Integer;
   actNode: ^TStateNode;
   act, act_BK: string;
 begin
+
+{$IFDEF DEBUG}
+   Writeln(myLogFile, 'Enter SaveState...');
+   Flush(myLogFile);
+{$ENDIF}
+
   Result := False;
 
   if (PushTimes = 0) and (PushTimes_BK = 0) then
-    Exit;     // 没有推动动作时，不做保存处理
+    Exit;
 
+  // 没有推动动作时，不做保存处理
   if MoveTimes > 0 then
     ActCRC := Calcu_CRC_32_2(@UndoList, MoveTimes)
   else
@@ -3383,7 +3677,7 @@ begin
     y := ManPos_BK_0 div curMapNode.Cols;
   end;
 
-   // 查重
+  // 查重
   i := 0;
   size := StateList.Count;
   while i < size do
@@ -3394,6 +3688,11 @@ begin
     inc(i);
   end;
   actNode := nil;
+
+{$IFDEF DEBUG}
+   Writeln(myLogFile, 'Step 1...');
+   Flush(myLogFile);
+{$ENDIF}
 
   if i = size then
   begin           // 无重复
@@ -3414,173 +3713,233 @@ begin
     actNode.Moves_BK := MoveTimes_BK;
     actNode.Pushs_BK := PushTimes_BK;
     actNode.CRC32_BK := ActCRC_BK;
-    actNode.Man_X := x;
-    actNode.Man_Y := y;
 
-      // 保存状态到数据库
+    if (x < 0) or (y < 0) then begin
+      actNode.Man_X := -1;
+      actNode.Man_Y := -1;
+    end else begin
+      actNode.Man_X := x+1;
+      actNode.Man_Y := y+1;
+    end;
+
+{$IFDEF DEBUG}
+   Writeln(myLogFile, 'Step 2...');
+   Flush(myLogFile);
+{$ENDIF}
+
+    sldb := TSQLiteDatabase.Create(AnsiToUtf8(BoxManDBpath));
+
     try
       try
-        DataModule1.ADOQuery1.Close;
-        DataModule1.ADOQuery1.SQL.Clear;
-        DataModule1.ADOQuery1.SQL.Text := 'select * from Tab_State';
-        DataModule1.ADOQuery1.Open;
-        DataModule1.DataSource1.DataSet := DataModule1.ADOQuery1;
+        if sldb.TableExists('Tab_State') then begin
+           sldb.BeginTransaction;
 
-        // 追加状态
-        with DataModule1.DataSource1.DataSet do
-        begin
+           sSQL := 'INSERT INTO Tab_State (XSB_CRC32, XSB_CRC_TrunNum, Goals, Act_CRC32, Act_CRC32_BK, Moves, Pushs, Moves_BK, Pushs_BK, Man_X, Man_Y, Act_Text, Act_Text_BK, Act_DateTime) ' +
+                   'VALUES (' +
+                   IntToStr(curMapNode.CRC32) + ',' +
+                   IntToStr(curMapNode.CRC_Num) + ',' +
+                   IntToStr(curMapNode.Goals) + ',' +
+                   IntToStr(actNode.CRC32) + ',' +
+                   IntToStr(actNode.CRC32_BK) + ',' +
+                   IntToStr(actNode.Moves) + ',' +
+                   IntToStr(actNode.Pushs) + ',' +
+                   IntToStr(actNode.Moves_BK) + ',' +
+                   IntToStr(actNode.Pushs_BK) + ',' +
+                   IntToStr(actNode.Man_X) + ',' +
+                   IntToStr(actNode.Man_Y) + ', ''' +
+                   act + ''', ''' +
+                   act_BK + ''', ''' +
+                   FormatDateTime(' yyyy-mm-dd hh:nn', actNode.DateTime) + ''' );';
 
-          Append;   // 添加
+           sldb.ExecSQL(sSQL);
 
-          FieldByName('XSB_CRC32').AsInteger := curMapNode.CRC32;
-          FieldByName('XSB_CRC_TrunNum').AsInteger := curMapNode.CRC_Num;
-          FieldByName('Goals').AsInteger := curMapNode.Goals;
-          FieldByName('Act_CRC32').AsInteger := actNode.CRC32;
-          FieldByName('Act_CRC32_BK').AsInteger := actNode.CRC32_BK;
-          FieldByName('Moves').AsInteger := actNode.Moves;
-          FieldByName('Pushs').AsInteger := actNode.Pushs;
-          FieldByName('Moves_BK').AsInteger := actNode.Moves_BK;
-          FieldByName('Pushs_BK').AsInteger := actNode.Pushs_BK;
-          FieldByName('Man_X').AsInteger := actNode.Man_X;
-          FieldByName('Man_Y').AsInteger := actNode.Man_Y;
-          FieldByName('Act_Text').AsString := act;
-          FieldByName('Act_Text_BK').AsString := act_BK;
-          FieldByName('Act_DateTime').AsDateTime := actNode.DateTime;
+           sldb.Commit;
 
-          Post;    // 提交
+{$IFDEF DEBUG}
+   Writeln(myLogFile, 'Step 3...');
+   Flush(myLogFile);
+{$ENDIF}
 
+           sltb := slDb.GetTable('SELECT ID FROM Tab_State ORDER BY Act_DateTime');
+
+           try
+             if sltb.Count > 0 then begin
+                sltb.MoveLast;
+                actNode.id := sltb.FieldAsInteger(sltb.FieldIndex['ID']);
+
+                StateList.Insert(0, actNode);
+
+                // 当前状态插入到列表的最前面
+                List_State.Items.Insert(0, IntToStr(actNode.Pushs) + '/' + IntToStr(actNode.Moves) + #10 + ' [' + IntToStr(actNode.Man_X) + ',' + IntToStr(actNode.Man_Y) + ']' + IntToStr(actNode.Pushs_BK) + '/' + IntToStr(actNode.Moves_BK) + #10 + FormatDateTime(' yyyy-mm-dd hh:nn', actNode.DateTime));
+
+                StatusBar1.Panels[7].Text := '状态已保存！';
+             end;
+           finally
+             sltb.Free;
+           end;
         end;
-
-        actNode.id := DataModule1.ADOQuery1.FieldByName('ID').AsInteger;
-
-        StateList.Insert(0, actNode);
-
-        // 当前状态插入到列表的最前面
-        List_State.Items.Insert(0, IntToStr(actNode.Pushs) + '/' + IntToStr(actNode.Moves) + #10 + ' [' + IntToStr(actNode.Man_X) + ',' + IntToStr(actNode.Man_Y) + ']' + IntToStr(actNode.Pushs_BK) + '/' + IntToStr(actNode.Moves_BK) + #10 + FormatDateTime(' yyyy-mm-dd hh:nn', actNode.DateTime));
-
-        StatusBar1.Panels[7].Text := '状态已保存！';
-      Finally
-        DataModule1.ADOQuery1.Close;
+      finally
+        sldb.free;
+        actNode := nil;
       end;
     except
-      FreeAndNil(actNode);
-      MessageBox(handle, '答案库出错，' + #10 + '状态未能保存！', '错误', MB_ICONERROR or MB_OK);
-      Exit;
+        MessageBox(handle, '状态库出错，' + #10 + '状态未能保存！', '错误', MB_ICONERROR or MB_OK);
+        Exit;
     end;
+
   end else begin        // 有重复
-    try
+
+    // 调整状态列表条目的次序 -- 当前状态提到最前面
+    if i > 0 then begin
+      actNode := StateList.Items[i];
+      actNode.DateTime := Now;
+      StateList.Move(i, 0);
+      List_State.Items.Move(i, 0);
+      List_State.Items[0] := IntToStr(actNode.Pushs) + '/' + IntToStr(actNode.Moves) + #10 + ' [' + IntToStr(actNode.Man_X) + ',' + IntToStr(actNode.Man_Y) + ']' + IntToStr(actNode.Pushs_BK) + '/' + IntToStr(actNode.Moves_BK) + #10 + FormatDateTime(' yyyy-mm-dd hh:nn', actNode.DateTime);
+
+      sldb := TSQLiteDatabase.Create(AnsiToUtf8(BoxManDBpath));
+
       try
-        DataModule1.ADOQuery1.Close;
-        DataModule1.ADOQuery1.SQL.Clear;
-        DataModule1.ADOQuery1.SQL.Text := 'select * from Tab_State';
-        DataModule1.ADOQuery1.Open;
-        DataModule1.DataSource1.DataSet := DataModule1.ADOQuery1;
+        try
+          if sldb.TableExists('Tab_State') then begin
+            sldb.BeginTransaction;
+            sldb.ExecSQL('UPDATE Tab_State set Act_DateTime = ''' + FormatDateTime(' yyyy-mm-dd hh:nn', actNode.DateTime) + ''' WHERE ID = ' + inttostr(actNode.id));
+            sldb.Commit;
+ 
+{$IFDEF DEBUG}
+   Writeln(myLogFile, 'Step 4...');
+   Flush(myLogFile);
+{$ENDIF}
 
-        with DataModule1.DataSource1.DataSet do begin
-
-          Edit;    // 修改
-
-          FieldByName('Act_DateTime').AsDateTime := actNode.DateTime;
-
-          Post;    // 提交
-
+          end;
+          StatusBar1.Panels[7].Text := '状态有重复，已调整存储次序！';
+        Finally
+          sldb.free;
+          actNode := nil;
         end;
-
-        // 调整状态列表条目的次序 -- 当前状态提到最前面
-        if i > 0 then begin
-          actNode := StateList.Items[i];
-          actNode.DateTime := Now;
-          StateList.Move(i, 0);
-          List_State.Items.Move(i, 0);
-          List_State.Items[0] := IntToStr(actNode.Pushs) + '/' + IntToStr(actNode.Moves) + #10 + ' [' + IntToStr(actNode.Man_X) + ',' + IntToStr(actNode.Man_Y) + ']' + IntToStr(actNode.Pushs_BK) + '/' + IntToStr(actNode.Moves_BK) + #10 + FormatDateTime(' yyyy-mm-dd hh:nn', actNode.DateTime);
-        end;
-
-        StatusBar1.Panels[7].Text := '状态有重复，已调整存储次序！';
-      Finally
-        DataModule1.ADOQuery1.Close;
+      except
+        MessageBox(handle, '状态库出错，' + #10 + '未能正确调整状态的存储次序！', '错误', MB_ICONERROR or MB_OK);
+        Exit;
       end;
-    except
-      MessageBox(handle, '答案库出错，' + #10 + '未能正确调整状态的存储次序！', '错误', MB_ICONERROR or MB_OK);
-      Exit;
-    end;
+    end else StatusBar1.Panels[7].Text := '状态已有保存！';;
   end;
 
-  actNode := nil;
   PageControl.ActivePageIndex := 1;
   List_State.Selected[0] := True;
   if pl_Side.Visible then List_State.SetFocus;
   mySettings.isLurd_Saved := True;
   Result := True;
+
+{$IFDEF DEBUG}
+   Writeln(myLogFile, 'Exit SaveState...');
+   Flush(myLogFile);
+{$ENDIF}
+
 end;
 
 // 加载状态
 function Tmain.LoadState(): Boolean;
 var
+  sldb: TSQLiteDatabase;
+  sltb: TSQLIteTable;
+  sSQL: String;
   actNode: ^TStateNode;
+  myDateTime: string;
+  SysFrset: TFormatSettings;
+  fs: string;
 begin
+
+{$IFDEF DEBUG}
+   Writeln(myLogFile, 'Enter LoadState...');
+   Flush(myLogFile);
+{$ENDIF}
+
   Result := False;
 
   StateList.Clear;
   List_State.Clear;
 
-  // 保存状态到数据库
   try
+    sldb := TSQLiteDatabase.Create(AnsiToUtf8(BoxManDBpath));
     try
-      DataModule1.ADOQuery1.Close;
-      DataModule1.ADOQuery1.SQL.Clear;
-      DataModule1.ADOQuery1.SQL.Text := 'select * from Tab_State where XSB_CRC32 = ' + IntToStr(curMapNode.CRC32) + ' and XSB_CRC_TrunNum = ' + IntToStr(curMapNode.CRC_Num) + ' and Goals = ' + IntToStr(curMapNode.Goals) + ' order by Act_DateTime desc';
-      DataModule1.ADOQuery1.Open;
-      DataModule1.DataSource1.DataSet := DataModule1.ADOQuery1;
 
-       // 加载状态
-      with DataModule1.DataSource1.DataSet do
-      begin
-        First;
+      sSQL := 'select * from Tab_State where XSB_CRC32 = ' + IntToStr(curMapNode.CRC32) + ' and XSB_CRC_TrunNum = ' + IntToStr(curMapNode.CRC_Num) + ' and Goals = ' + IntToStr(curMapNode.Goals) + ' order by Act_DateTime desc';
 
-        while not Eof do
-        begin
-          New(actNode);
-          actNode.id := FieldByName('ID').AsInteger;
-          actNode.DateTime := FieldByName('Act_DateTime').AsDateTime;
-          actNode.Moves := FieldByName('Moves').AsInteger;
-          actNode.Pushs := FieldByName('Pushs').AsInteger;
-          actNode.CRC32 := FieldByName('Act_CRC32').AsInteger;
-          actNode.Moves_BK := FieldByName('Moves_BK').AsInteger;
-          actNode.Pushs_BK := FieldByName('Pushs_BK').AsInteger;
-          actNode.CRC32_BK := FieldByName('Act_CRC32_BK').AsInteger;
-          actNode.Man_X := FieldByName('Man_X').AsInteger;
-          actNode.Man_Y := FieldByName('Man_Y').AsInteger;
+      sltb := slDb.GetTable(sSQL);
 
-          StateList.Add(actNode);
-          List_State.Items.Add(IntToStr(actNode.Pushs) + '/' + IntToStr(actNode.Moves) + #10 + ' [' + IntToStr(actNode.Man_X) + ',' + IntToStr(actNode.Man_Y) + ']' + IntToStr(actNode.Pushs_BK) + '/' + IntToStr(actNode.Moves_BK) + #10 + FormatDateTime(' yyyy-mm-dd hh:nn', actNode.DateTime));
+      // 检查当前系统的日期分隔符
+      GetLocaleFormatSettings(GetUserDefaultLCID, SysFrset);
+      fs := SysFrset.DateSeparator;
 
-          Next;
+      try
+         // 加载状态
+        if sltb.Count > 0 then begin
+          sltb.MoveFirst;
+          while not sltb.EOF do begin
+            New(actNode);
+            actNode.id := sltb.FieldAsInteger(sltb.FieldIndex['ID']);
+            myDateTime := sltb.FieldAsString(sltb.FieldIndex['Act_DateTime']);
+            if fs = '/' then actNode.DateTime := StrToDateTime(StringReplace(myDateTime, '-', '/', [rfReplaceAll]))
+            else actNode.DateTime := StrToDateTime(myDateTime);
+            actNode.Moves := sltb.FieldAsInteger(sltb.FieldIndex['Moves']);
+            actNode.Pushs := sltb.FieldAsInteger(sltb.FieldIndex['Pushs']);
+            actNode.CRC32 := sltb.FieldAsInteger(sltb.FieldIndex['Act_CRC32']);
+            actNode.Moves_BK := sltb.FieldAsInteger(sltb.FieldIndex['Moves_BK']);
+            actNode.Pushs_BK := sltb.FieldAsInteger(sltb.FieldIndex['Pushs_BK']);
+            actNode.CRC32_BK := sltb.FieldAsInteger(sltb.FieldIndex['Act_CRC32_BK']);
+            actNode.Man_X := sltb.FieldAsInteger(sltb.FieldIndex['Man_X']);
+            actNode.Man_Y := sltb.FieldAsInteger(sltb.FieldIndex['Man_Y']);
+
+            StateList.Add(actNode);
+            List_State.Items.Add(IntToStr(actNode.Pushs) + '/' + IntToStr(actNode.Moves) + #10 + ' [' + IntToStr(actNode.Man_X) + ',' + IntToStr(actNode.Man_Y) + ']' + IntToStr(actNode.Pushs_BK) + '/' + IntToStr(actNode.Moves_BK) + #10 + FormatDateTime(' yyyy-mm-dd hh:nn', actNode.DateTime));
+
+            sltb.Next;
+          end;
         end;
-
+      finally
+        sltb.Free;
       end;
+{$IFDEF DEBUG}
+   Writeln(myLogFile, 'Step 1...');
+   Flush(myLogFile);
+{$ENDIF}
+
     Finally
-      DataModule1.ADOQuery1.Close;
+      actNode := nil;
+      sldb.free;
     end;
   except
-    FreeAndNil(actNode);
-    StatusBar1.Panels[7].Text := '答案库出错，关卡的状态未能正确加载！';
+    StatusBar1.Panels[7].Text := '状态库出错，关卡的状态未能正确加载！';
     Exit;
   end;
 
-  actNode := nil;
   Result := True;
+
+{$IFDEF DEBUG}
+   Writeln(myLogFile, 'Exit LoadState...');
+   Flush(myLogFile);
+{$ENDIF}
+
 end;
 
 // 新增答案 - n=1，正推过关；n=2，正逆相合或逆推过关
 function Tmain.SaveSolution(n: Integer): Boolean;
 var
+  sldb: TSQLiteDatabase;
+  sltb: TSQLIteTable;
+  sSQL: String;
   sol: string;
   i, size, solCRC, k, m, p: Integer;
   solNode: ^TSoltionNode;
   
 begin
-  Result := False;
 
+{$IFDEF DEBUG}
+   Writeln(myLogFile, 'Enter SaveSolution...');
+   Flush(myLogFile);
+{$ENDIF}
+
+  Result := False;
   curMapNode.Solved := True;
 
   if MapList.Count = 0 then begin
@@ -3591,6 +3950,11 @@ begin
         end;
      end;
   end;
+
+{$IFDEF DEBUG}
+   Writeln(myLogFile, 'Step 1...');
+   Flush(myLogFile);
+{$ENDIF}
 
   // 计算答案 CRC
   if n = 1 then begin      // 正推过关
@@ -3617,6 +3981,11 @@ begin
      end;
   end;
 
+{$IFDEF DEBUG}
+   Writeln(myLogFile, 'Step 2...');
+   Flush(myLogFile);
+{$ENDIF}
+
   // 查重
   i := 0;
   size := SoltionList.Count;
@@ -3628,6 +3997,11 @@ begin
     inc(i);
   end;
   solNode := nil;
+
+{$IFDEF DEBUG}
+   Writeln(myLogFile, 'Step 3...');
+   Flush(myLogFile);
+{$ENDIF}
 
   // 无重复，存入答案库
   if i = size then
@@ -3645,44 +4019,53 @@ begin
     solNode.Pushs := p;
     solNode.CRC32 := solCRC;
 
+    sldb := TSQLiteDatabase.Create(AnsiToUtf8(BoxManDBpath));
+
     // 保存到数据库
     try
-      DataModule1.ADOQuery1.Close;
-      DataModule1.ADOQuery1.SQL.Clear;
-      DataModule1.ADOQuery1.SQL.Text := 'select * from Tab_Solution';
-
       try
-        DataModule1.ADOQuery1.Open;
-        DataModule1.DataSource1.DataSet := DataModule1.ADOQuery1;
+        if sldb.TableExists('Tab_Solution') then begin
+           sldb.BeginTransaction;
 
-        with DataModule1.DataSource1.DataSet do
-        begin
+           sSQL := 'INSERT INTO Tab_Solution (XSB_CRC32, XSB_CRC_TrunNum, Goals, Sol_CRC32, Moves, Pushs, Sol_Text, XSB_Text, Sol_DateTime) ' +
+                   'VALUES (' +
+                   IntToStr(curMapNode.CRC32) + ', ' +
+                   IntToStr(curMapNode.CRC_Num) + ', ' +
+                   IntToStr(curMapNode.Goals) + ', ' +
+                   IntToStr(solNode.CRC32) + ', ' +
+                   IntToStr(solNode.Moves) + ', ' +
+                   IntToStr(solNode.Pushs) + ', ''' +
+                   sol + ''', ''' +
+                   curMapNode.Map_Thin + ''', ''' +
+                   FormatDateTime(' yyyy-mm-dd hh:nn', solNode.DateTime) + ''');';
+                   
+           sldb.ExecSQL(sSQL);
 
-          Append;    // 修改
+           sldb.Commit;
 
-          FieldByName('XSB_CRC32').AsInteger := curMapNode.CRC32;
-          FieldByName('XSB_CRC_TrunNum').AsInteger := curMapNode.CRC_Num;
-          FieldByName('Goals').AsInteger := curMapNode.Goals;
-          FieldByName('Sol_CRC32').AsInteger := solNode.CRC32;
-          FieldByName('Moves').AsInteger := solNode.Moves;
-          FieldByName('Pushs').AsInteger := solNode.Pushs;
-          FieldByName('Sol_Text').AsString := sol;
-          FieldByName('Sol_DateTime').AsDateTime := solNode.DateTime;
+           sltb := slDb.GetTable('SELECT ID FROM Tab_Solution ORDER BY Sol_DateTime');
 
-          Post;    // 提交
+           try
+             if sltb.Count > 0 then begin
+                sltb.MoveLast;
+                solNode.id := sltb.FieldAsInteger(sltb.FieldIndex['ID']);
 
+                SoltionList.Add(solNode);
+                List_Solution.Items.Add(IntToStr(p) + '/' + IntToStr(m) + #10 + FormatDateTime(' yyyy-mm-dd hh:nn', solNode.DateTime));
+             end;
+           finally
+             sltb.Free;
+           end;
+{$IFDEF DEBUG}
+   Writeln(myLogFile, 'Step 4...');
+   Flush(myLogFile);
+{$ENDIF}
         end;
-
-        solNode.id := DataModule1.DataSource1.DataSet.FieldByName('ID').AsInteger;
-
-        SoltionList.Add(solNode);
-        List_Solution.Items.Add(IntToStr(p) + '/' + IntToStr(m) + #10 + FormatDateTime(' yyyy-mm-dd hh:nn', solNode.DateTime));
-
       Finally
-        DataModule1.ADOQuery1.Close;
+        sldb.Free;
+        solNode := nil;
       end;
     except
-      FreeAndNil(solNode);
       MessageBox(handle, '答案库出错，' + #10 + '答案未能保存！', '错误', MB_ICONERROR or MB_OK);
       exit;
     end;
@@ -3695,53 +4078,89 @@ begin
   if i < size then List_Solution.Selected[i] := True
   else List_Solution.Selected[List_Solution.Count - 1] := True;
   if pl_Side.Visible then List_Solution.SetFocus;
-  solNode := nil;
+
+{$IFDEF DEBUG}
+   Writeln(myLogFile, 'Exit SaveSolution...');
+   Flush(myLogFile);
+{$ENDIF}
+
 end;
 
 // 加载答案
 function Tmain.LoadSolution(): Boolean;
 var
+  sldb: TSQLiteDatabase;
+  sltb: TSQLIteTable;
+  sSQL: String;
   solNode: ^TSoltionNode;
-  str: string;
-
+  str, xsbStr, myDateTime: string;
+  SysFrset: TFormatSettings;
+  fs: string;
 begin
-  Result := False;
 
+{$IFDEF DEBUG}
+   Writeln(myLogFile, 'Enter LoadSolution...');
+   Flush(myLogFile);
+{$ENDIF}
+
+  Result := False;
   SoltionList.Clear;
   List_Solution.Clear;
 
-  // 保存答案到数据库
+  sldb := TSQLiteDatabase.Create(AnsiToUtf8(BoxManDBpath));
+
+  // 加载答案
   try
-    DataModule1.ADOQuery1.Close;
-    DataModule1.ADOQuery1.SQL.Clear;
-    DataModule1.ADOQuery1.SQL.Text := 'select * from Tab_Solution where XSB_CRC32 = ' + IntToStr(curMapNode.CRC32) + ' and Goals = ' + IntToStr(curMapNode.Goals) + ' order by Moves, Pushs';
-    DataModule1.ADOQuery1.Open;
-    DataModule1.DataSource1.DataSet := DataModule1.ADOQuery1;
+    // 检查当前系统的日期分隔符
+    GetLocaleFormatSettings(GetUserDefaultLCID, SysFrset);
+    fs := SysFrset.DateSeparator;
+    try
+      sSQL := 'select * from Tab_Solution where XSB_CRC32 = ' + IntToStr(curMapNode.CRC32) + ' and Goals = ' + IntToStr(curMapNode.Goals) + ' order by Moves, Pushs';
 
-     // 读取答案
-    with DataModule1.DataSource1.DataSet do
-    begin
-      First;
+      sltb := slDb.GetTable(sSQL);
 
-      while not Eof do begin
-        New(solNode);
-        solNode.id := FieldByName('ID').AsInteger;
-        solNode.DateTime := FieldByName('Sol_DateTime').AsDateTime;
-        solNode.Moves := FieldByName('Moves').AsInteger;
-        solNode.Pushs := FieldByName('Pushs').AsInteger;
-        solNode.CRC32 := FieldByName('Sol_CRC32').AsInteger;
-        str           := FieldByName('Sol_Text').AsString;
+      try
+        if sltb.Count > 0 then begin
+           // 读取答案
+          sltb.MoveFirst;
+          while not sltb.EOF do begin
+            New(solNode);
+            solNode.id := sltb.FieldAsInteger(sltb.FieldIndex['ID']);
+            myDateTime := sltb.FieldAsString(sltb.FieldIndex['Sol_DateTime']);
+            if fs = '/' then solNode.DateTime := StrToDateTime(StringReplace(myDateTime, '-', '/', [rfReplaceAll]))
+            else solNode.DateTime := StrToDateTime(myDateTime);
+            solNode.Moves := sltb.FieldAsInteger(sltb.FieldIndex['Moves']);
+            solNode.Pushs := sltb.FieldAsInteger(sltb.FieldIndex['Pushs']);
+            solNode.CRC32 := sltb.FieldAsInteger(sltb.FieldIndex['Sol_CRC32']);
+            str           := sltb.FieldAsString(sltb.FieldIndex['Sol_Text']);
+            xsbStr        := sltb.FieldAsString(sltb.FieldIndex['XSB_Text']);
 
-        // 答案验证
-        if isSolution(curMapNode, PChar(str)) then begin
-           SoltionList.Add(solNode);
-           List_Solution.Items.Add(IntToStr(solNode.Pushs) + '/' + IntToStr(solNode.Moves) + #10 + FormatDateTime(' yyyy-mm-dd hh:nn', solNode.DateTime));
+            // 答案验证
+            if isSolution(curMapNode, PChar(str)) then begin
+               SoltionList.Add(solNode);
+               List_Solution.Items.Add(IntToStr(solNode.Pushs) + '/' + IntToStr(solNode.Moves) + #10 + FormatDateTime(' yyyy-mm-dd hh:nn', solNode.DateTime));
+               if xsbStr = '' then begin        // 为旧版答案补上 XSB_Text
+                  sldb.BeginTransaction;
+                  sldb.ExecSQL('UPDATE Tab_Solution set XSB_Text = ''' + curMapNode.Map_Thin + ''' WHERE ID = ' + inttostr(solNode.id));
+                  sldb.Commit;
+               end;
+            end;
+
+            sltb.Next;
+          end;
         end;
-
-        Next;
+      finally
+        sltb.Free;
       end;
-
+    finally
+      sldb.Free;
+      solNode := nil;
     end;
+
+{$IFDEF DEBUG}
+   Writeln(myLogFile, 'Step 1...');
+   Flush(myLogFile);
+{$ENDIF}
 
   except
     FreeAndNil(solNode);
@@ -3749,55 +4168,81 @@ begin
     Exit;
   end;
 
-  DataModule1.ADOQuery1.Close;
-  solNode := nil;
   Result := True;
+
+{$IFDEF DEBUG}
+   Writeln(myLogFile, 'Exit LoadSolution...');
+   Flush(myLogFile);
+{$ENDIF}
+
 end;
 
 // 加载指定关卡的所有答案
 function Tmain.GetSolution(mapNpde: PMapNode): string;
 var
-  str: string;
-  Sol_DateTime: TDateTime;
+  sldb: TSQLiteDatabase;
+  sltb: TSQLIteTable;
+  sSQL: String;
+  str, Sol_DateTime: string;
   Sol_Moves, Sol_Pushs: Integer;
 
 begin
+
+{$IFDEF DEBUG}
+   Writeln(myLogFile, 'Enter GetSolution...');
+   Flush(myLogFile);
+{$ENDIF}
+
   Result := '';
 
+  sldb := TSQLiteDatabase.Create(AnsiToUtf8(BoxManDBpath));
+  
   try
-    DataModule1.ADOQuery1.Close;
-    DataModule1.ADOQuery1.SQL.Clear;
-    DataModule1.ADOQuery1.SQL.Text := 'select * from Tab_Solution where XSB_CRC32 = ' + IntToStr(mapNpde.CRC32) + ' and Goals = ' + IntToStr(mapNpde.Goals);
-    DataModule1.ADOQuery1.Open;
-    DataModule1.DataSource1.DataSet := DataModule1.ADOQuery1;
+    try
+      sSQL := 'select * from Tab_Solution where XSB_CRC32 = ' + IntToStr(curMapNode.CRC32) + ' and Goals = ' + IntToStr(curMapNode.Goals);
 
-     // 读取答案
-    with DataModule1.DataSource1.DataSet do
-    begin
-      First;
+      sltb := slDb.GetTable(sSQL);
 
-      while not Eof do begin
-        Sol_Moves     := FieldByName('Moves').AsInteger;
-        Sol_Pushs     := FieldByName('Pushs').AsInteger;
-        Sol_DateTime  := FieldByName('Sol_DateTime').AsDateTime;
-        str           := FieldByName('Sol_Text').AsString;
+      try
+        if sltb.Count > 0 then begin
+           // 读取答案
+          sltb.MoveFirst;
+          while not sltb.EOF do begin
+            Sol_DateTime := sltb.FieldAsString(sltb.FieldIndex['Sol_DateTime']);
+            Sol_Moves := sltb.FieldAsInteger(sltb.FieldIndex['Moves']);
+            Sol_Pushs := sltb.FieldAsInteger(sltb.FieldIndex['Pushs']);
+            str           := sltb.FieldAsString(sltb.FieldIndex['Sol_Text']);
 
-        // 答案验证
-        if isSolution(mapNpde, PChar(str)) then begin
-           Result := Result + 'Solution (Moves: ' + inttostr(Sol_Moves) + ', Pushs: '+ inttostr(Sol_Pushs) + ', DateTime: ' + DateTimeToStr(Sol_DateTime) + '): ' + str + #10;
+            // 答案验证
+            if isSolution(mapNpde, PChar(str)) then begin
+               Result := Result + 'Solution (Moves: ' + inttostr(Sol_Moves) + ', Pushs: '+ inttostr(Sol_Pushs) + ', DateTime: ' + Sol_DateTime + '): ' + str + #10;
+            end;
+
+            sltb.Next;
+          end;
         end;
-
-        Next;
+      finally
+        sltb.Free;
       end;
-
+    finally
+      sldb.Free;
     end;
+
+{$IFDEF DEBUG}
+   Writeln(myLogFile, 'Step 1...');
+   Flush(myLogFile);
+{$ENDIF}
 
   except
     StatusBar1.Panels[7].Text := '答案库出错，关卡的答案不能正确加载！';
     Exit;
   end;
 
-  DataModule1.ADOQuery1.Close;
+{$IFDEF DEBUG}
+   Writeln(myLogFile, 'Exit GetSolution...');
+   Flush(myLogFile);
+{$ENDIF}
+
 end;
 
 // 重做一步 -- 正推
@@ -3808,6 +4253,12 @@ var
   isMeet, IsCompleted: Boolean;
 
 begin
+
+{$IFDEF DEBUG}
+   Writeln(myLogFile, 'Enter ReDo...');
+   Flush(myLogFile);
+{$ENDIF}
+
   StatusBar1.Panels[7].Text := '';
 
   isSelectMod := False;
@@ -3963,6 +4414,12 @@ begin
   isNoDelay := false;                                                           // 是否为无延时动作 -- 至首、至尾功能用
   isKeyPush := false;                                                           // 是否正在演示中 -- 空格键和退格键控制的
   isMoving  := False;
+
+{$IFDEF DEBUG}
+   Writeln(myLogFile, 'Exit ReDo...');
+   Flush(myLogFile);
+{$ENDIF}
+
 end;
 
 // 撤销一步 -- 正推
@@ -3971,6 +4428,12 @@ var
   ch: Char;
   pos1, pos2: Integer;
 begin
+
+{$IFDEF DEBUG}
+   Writeln(myLogFile, 'Enter UnDo...');
+   Flush(myLogFile);
+{$ENDIF}
+
   StatusBar1.Panels[7].Text := '';
 
   isSelectMod := False;
@@ -4094,6 +4557,12 @@ begin
   isNoDelay := false;                                                           // 是否为无延时动作 -- 至首、至尾功能用
   isKeyPush := false;                                                           // 是否正在演示中 -- 空格键和退格键控制的
   isMoving  := False;
+
+{$IFDEF DEBUG}
+   Writeln(myLogFile, 'Exit UnDo...');
+   Flush(myLogFile);
+{$ENDIF}
+
 end;
 
 // 重做一步 -- 逆推
@@ -4104,6 +4573,12 @@ var
   isOK, isMeet, IsCompleted: Boolean;
   
 begin
+
+{$IFDEF DEBUG}
+   Writeln(myLogFile, 'Enter ReDo_BK...');
+   Flush(myLogFile);
+{$ENDIF}
+
   StatusBar1.Panels[7].Text := '';
   
   isSelectMod := False;
@@ -4279,7 +4754,7 @@ begin
         end
       end;
       // 补足人的“相合”动作
-      for i := len downto 1 do begin
+      for i := 1 to len do begin
           Inc(ReDoPos);
           RedoList[ReDoPos] := ManPath[i];
       end;
@@ -4302,6 +4777,12 @@ begin
   isNoDelay := false;                                                           // 是否为无延时动作 -- 至首、至尾功能用
   isKeyPush := false;                                                           // 是否正在演示中 -- 空格键和退格键控制的
   isMoving  := False;
+
+{$IFDEF DEBUG}
+   Writeln(myLogFile, 'Exit ReDo_BK...');
+   Flush(myLogFile);
+{$ENDIF}
+
 end;
 
 // 撤销一步 -- 逆推
@@ -4311,6 +4792,12 @@ var
   pos1, pos2: Integer;
 
 begin
+
+{$IFDEF DEBUG}
+   Writeln(myLogFile, 'Enter UnDo_BK...');
+   Flush(myLogFile);
+{$ENDIF}
+
   StatusBar1.Panels[7].Text := '';
 
   isSelectMod := False;
@@ -4422,6 +4909,12 @@ begin
   isNoDelay := false;                                                           // 是否为无延时动作 -- 至首、至尾功能用
   isKeyPush := false;                                                           // 是否正在演示中 -- 空格键和退格键控制的
   isMoving  := False;
+
+{$IFDEF DEBUG}
+   Writeln(myLogFile, 'Exit UnDo_BK...');
+   Flush(myLogFile);
+{$ENDIF}
+
 end;
 
 // 上一关
@@ -4689,7 +5182,7 @@ begin
           end;
 
           StatusBar1.Panels[7].Text := '';
-       end else StatusBar1.Panels[7].Text := '无效的关卡文档 - ' + mySettings.MapFileName;
+       end else StatusBar1.Panels[7].Text := '无效的关卡文档 - ' + MyOpenFile.FileListBox1.FileName;
     end;
   end;
 end;
@@ -4746,6 +5239,12 @@ var
   boxRC: array[0..1] of Integer;
   flg: Boolean;
 begin
+
+{$IFDEF DEBUG}
+   Writeln(myLogFile, 'Enter GetStep...');
+   Flush(myLogFile);
+{$ENDIF}
+
   if is_BK then
     len := UnDoPos_BK
   else
@@ -4853,6 +5352,12 @@ begin
     result := len - n  // 最后一个动作不是推，但前面有推的动作时
   else
     result := len;  // 剩余的全部动作
+
+{$IFDEF DEBUG}
+   Writeln(myLogFile, 'Exit GetStep...');
+   Flush(myLogFile);
+{$ENDIF}
+
 end;
 
 // 解析正推 unDo 动作节点 -- 每推一个箱子为一个动作
@@ -4863,6 +5368,12 @@ var
   boxRC: array[0..1] of Integer;
   flg: Boolean;
 begin
+
+{$IFDEF DEBUG}
+   Writeln(myLogFile, 'Enter GetStep2...');
+   Flush(myLogFile);
+{$ENDIF}
+
   if is_BK then
     len := ReDoPos_BK
   else
@@ -4962,6 +5473,12 @@ begin
     result := len - n  // 最后一个动作不是推，但前面有推的动作时
   else
     result := len;
+
+{$IFDEF DEBUG}
+   Writeln(myLogFile, 'Exit GetStep2...');
+   Flush(myLogFile);
+{$ENDIF}
+
 end;
 
 procedure Tmain.pnl_TrunMouseUp(Sender: TObject; Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
@@ -5150,6 +5667,13 @@ begin
     ActionForm.MyPath := AppPath;
     
   ActionForm.ExePath := AppPath;
+  if ManPos_BK_0 < 0 then begin
+    Act_ManPos_BK.X := -1;
+    Act_ManPos_BK.Y := -1;
+  end else begin
+    Act_ManPos_BK.X := (ManPos_BK_0 mod curMapNode.Cols)+1;
+    Act_ManPos_BK.Y := (ManPos_BK_0 div curMapNode.Cols)+1;
+  end;
 
   ActionForm.ShowModal;
 
@@ -5267,6 +5791,12 @@ procedure Tmain.FormCloseQuery(Sender: TObject; var CanClose: Boolean);
 var
   bt: LongWord;
 begin
+
+{$IFDEF DEBUG}
+   Writeln(myLogFile, 'Enter FormCloseQuery...');
+   Flush(myLogFile);
+{$ENDIF}
+
   if isMoving then begin
      IsStop := True;
      CanClose := False;
@@ -5305,6 +5835,11 @@ begin
     else
       CanClose := False;
   end;
+
+{$IFDEF DEBUG}
+   Writeln(myLogFile, 'Exit FormCloseQuery...');
+   Flush(myLogFile);
+{$ENDIF}
 
 end;
 
@@ -5474,18 +6009,25 @@ begin
        len := Length(s2);
 
        // 状态送入 RedoList_BK
-       if (len > 0) and (x > 0) and (y > 0) then begin
+       if (len > 0) and (x > 0) and (y > 0) and (x <= curMapNode.Cols) and ( y <= curMapNode.Rows) then begin
 
            if ManPos_BK >= 0 then begin
               if map_Board_BK[ManPos_BK] = ManCell then map_Board_BK[ManPos_BK] := FloorCell
-              else map_Board_BK[ManPos_BK] := GoalCell;
+              else if map_Board_BK[ManPos_BK] = ManGoalCell then map_Board_BK[ManPos_BK] := GoalCell
+              else begin
+                StatusBar1.Panels[7].Text := '关卡现场数据遇到错误！';
+                Exit;
+              end;
            end;
 
-           ManPos_BK := y * curMapNode.Cols + x;
+           ManPos_BK := (y-1) * curMapNode.Cols + x-1;
 
            if map_Board_BK[ManPos_BK] = FloorCell then map_Board_BK[ManPos_BK] := ManCell
            else if map_Board_BK[ManPos_BK] = GoalCell then map_Board_BK[ManPos_BK] := ManGoalCell
-           else Exit;
+           else begin
+             StatusBar1.Panels[7].Text := '状态数据不正确！';
+             Exit;
+           end;
 
            ManPos_BK_0 := ManPos_BK;
                
@@ -5506,80 +6048,115 @@ begin
     end;
 end;
 
-// 从答案库加载一条状态
+// 加载一条状态
 function Tmain.GetStateFromDB(index: Integer; var x: Integer; var y: Integer; var str1: string; var str2: string): Boolean;
 var
+  sldb: TSQLiteDatabase;
+  sltb: TSQLIteTable;
+  sSQL: String;
   actNode: ^TStateNode;
   
 begin
+
+{$IFDEF DEBUG}
+   Writeln(myLogFile, 'Enter GetStateFromDB...');
+   Flush(myLogFile);
+{$ENDIF}
 
   Result := False;
 
   if index < 0 then Exit;
 
+  actNode := StateList[index];
+
+  sldb := TSQLiteDatabase.Create(AnsiToUtf8(BoxManDBpath));
+
   try
-  
-    actNode := StateList[index];
+    sSQL := 'select Act_Text, Act_Text_BK, Man_X, Man_Y from Tab_State where id = ' + IntToStr(actNode.id);
+    sltb := slDb.GetTable(sSQL);
 
-    DataModule1.ADOQuery1.Close;
-    DataModule1.ADOQuery1.SQL.Text := 'select Act_Text, Act_Text_BK, Man_X, Man_Y from Tab_State where id = ' + IntToStr(actNode.id);
-    DataModule1.ADOQuery1.Open;
-    DataModule1.DataSource1.DataSet := DataModule1.ADOQuery1;                           
+    try
+      if sltb.Count > 0 then begin
+        sltb.MoveFirst;
+        while not sltb.EOF do begin
+           str1 := sltb.FieldAsString(sltb.FieldIndex['Act_Text']);      // 读取状态
+           str2 := sltb.FieldAsString(sltb.FieldIndex['Act_Text_BK']);
+           x    := sltb.FieldAsInteger(sltb.FieldIndex['Man_X']);
+           y    := sltb.FieldAsInteger(sltb.FieldIndex['Man_Y']);
 
-    actNode := nil;
-
-    with DataModule1.DataSource1.DataSet do begin
-        First;
-
-        if not Eof then begin
-           str1 := FieldByName('Act_Text').AsString;     // 读取状态
-           str2 := FieldByName('Act_Text_BK').AsString;
-           x    := FieldByName('Man_X').AsInteger;
-           y    := FieldByName('Man_Y').AsInteger;
+           sltb.Next;
         end;
+      end;
+    finally
+      sltb.Free;
+      sldb.Free;
+      actNode := nil;
     end;
   except
-    StatusBar1.Panels[7].Text := '答案库出错，状态未能正确加载！';
+    StatusBar1.Panels[7].Text := '状态库出错，状态未能正确加载！';
   end;
 
-  DataModule1.ADOQuery1.Close;
   Result := True;
+
+{$IFDEF DEBUG}
+   Writeln(myLogFile, 'Exit GetStateFromDB...');
+   Flush(myLogFile);
+{$ENDIF}
+
 end;
 
 // 从答案库加载一条答案
 function Tmain.GetSolutionFromDB(index: Integer; var str: string): Boolean;
 var
+  sldb: TSQLiteDatabase;
+  sltb: TSQLIteTable;
+  sSQL: String;
   solNode: ^TSoltionNode;
 
 begin
+
+{$IFDEF DEBUG}
+   Writeln(myLogFile, 'Enter GetSolutionFromDB...');
+   Flush(myLogFile);
+{$ENDIF}
+
     Result := False;
 
     if index < 0 then Exit;
 
-    try       // 加载答案
-    
-      solNode := SoltionList[index];
+    sldb := TSQLiteDatabase.Create(AnsiToUtf8(BoxManDBpath));
 
-      DataModule1.ADOQuery1.Close;
-      DataModule1.ADOQuery1.SQL.Text := 'select Sol_Text from Tab_Solution where id = ' + IntToStr(solNode.id);
-      DataModule1.ADOQuery1.Open;
-      DataModule1.DataSource1.DataSet := DataModule1.ADOQuery1;
+    try
+      try
+        solNode := SoltionList[index];
 
-      solNode := nil;
+        sSQL := 'select Sol_Text from Tab_Solution where id = ' + IntToStr(solNode.id);
 
-      with DataModule1.DataSource1.DataSet do begin
-          First;
-
-          if not Eof then begin
-             str := FieldByName('Sol_Text').AsString;     // 读取答案
-          end;
+        sltb := slDb.GetTable(sSQL);
+        
+        try
+           if sltb.Count > 0 then begin
+             sltb.MoveFirst;
+             str := sltb.FieldAsString(sltb.FieldIndex['Sol_Text']);     // 读取答案
+           end;
+        Finally
+           sltb.Free;
+        end;
+      finally
+        sldb.Free;
+        solNode := nil;
       end;
-    Finally
+    except
       StatusBar1.Panels[7].Text := '答案库出错，答案未能正确加载！';
-      DataModule1.ADOQuery1.Close;
     end;
 
     Result := True;
+
+{$IFDEF DEBUG}
+   Writeln(myLogFile, 'Exit GetSolutionFromDB...');
+   Flush(myLogFile);
+{$ENDIF}
+
 end;
 
 // 状态 -- 正推 Lurd 到剪切板
@@ -5681,6 +6258,8 @@ end;
 // 状态 -- 删除一条
 procedure Tmain.sa_DeleteClick(Sender: TObject);
 var
+  sldb: TSQLiteDatabase;
+  sSQL: String;
   actNode: ^TStateNode;
 
 begin
@@ -5688,27 +6267,35 @@ begin
 
   if MessageBox(Handle, '删除选中的状态，确定吗？', '警告', MB_ICONWARNING + MB_OKCANCEL) <> idOK then Exit;
 
+  sldb := TSQLiteDatabase.Create(AnsiToUtf8(BoxManDBpath));
+
   try
   
     actNode := StateList[List_State.ItemIndex];
 
-    DataModule1.ADOQuery1.Close;
-    DataModule1.ADOQuery1.SQL.Clear;
-    DataModule1.ADOQuery1.SQL.Text := 'delete from Tab_State where id = ' + IntToStr(actNode.id);
-    DataModule1.ADOQuery1.ExecSQL;
+    sSQL := 'delete from Tab_State where id = ' + IntToStr(actNode.id);
 
-    actNode := nil;
+    try
+      sldb.BeginTransaction;
+      sldb.ExecSQL(sSQL);
+      sldb.Commit;
 
-    StateList.Delete(List_State.ItemIndex);
-    List_State.Items.Delete(List_State.ItemIndex);
+      StateList.Delete(List_State.ItemIndex);
+      List_State.Items.Delete(List_State.ItemIndex);
+    finally
+      sldb.Free;
+      actNode := nil;
+    end;
   except
-    MessageBox(handle, '答案库出错，' + #10 + '未能正确删除状态！', '错误', MB_ICONERROR or MB_OK);
+    MessageBox(handle, '状态库出错，' + #10 + '未能正确删除状态！', '错误', MB_ICONERROR or MB_OK);
   end;
 end;
 
 // 状态 -- 删除全部
 procedure Tmain.sa_DeleteAllClick(Sender: TObject);
 var
+  sldb: TSQLiteDatabase;
+  sSQL: String;
   i, len: Integer;
   actNode: ^TStateNode;
   s: string;
@@ -5718,29 +6305,38 @@ begin
 
   len := List_State.Count;
 
+  sldb := TSQLiteDatabase.Create(AnsiToUtf8(BoxManDBpath));
+
   try
     for i := 0 to len-1 do begin
         actNode := StateList[i];
         if i = 0 then s := IntToStr(actNode.id)
         else s := s + ', ' + IntToStr(actNode.id);
     end;
-    actNode := nil;
     
-    DataModule1.ADOQuery1.Close;
-    DataModule1.ADOQuery1.SQL.Clear;
-    DataModule1.ADOQuery1.SQL.Text := 'delete from Tab_State where id in (' + s + ')';
-    DataModule1.ADOQuery1.ExecSQL;
+    sSQL := 'delete from Tab_State where id in (' + s + ')';
 
-    StateList.Clear;
-    List_State.Clear;
+    try
+      sldb.BeginTransaction;
+      sldb.ExecSQL(sSQL);
+      sldb.Commit;
+
+      StateList.Clear;
+      List_State.Clear;
+    finally
+      sldb.Free;
+      actNode := nil;
+    end;
   except
-    MessageBox(handle, '答案库出错，' + #10 + '未能正确删除状态！', '错误', MB_ICONERROR or MB_OK);
+    MessageBox(handle, '状态库出错，' + #10 + '未能正确删除状态！', '错误', MB_ICONERROR or MB_OK);
   end;
 end;
 
-// 状态 -- 非本关卡的全部状态
+// 清理状态 -- 非本关卡的全部状态
 procedure Tmain.sa_ClraeAllClick(Sender: TObject);
 var
+  sldb: TSQLiteDatabase;
+  sSQL: String;
   i, len: Integer;
   actNode: ^TStateNode;
   s: string;
@@ -5750,20 +6346,27 @@ begin
 
   len := List_State.Count;
 
+  sldb := TSQLiteDatabase.Create(AnsiToUtf8(BoxManDBpath));
+
   try
     for i := 0 to len-1 do begin
         actNode := StateList[i];
         if i = 0 then s := IntToStr(actNode.id)
         else s := s + ', ' + IntToStr(actNode.id);
     end;
-    actNode := nil;
-    
-    DataModule1.ADOQuery1.Close;
-    DataModule1.ADOQuery1.SQL.Clear;
-    DataModule1.ADOQuery1.SQL.Text := 'delete from Tab_State where not id in (' + s + ')';
-    DataModule1.ADOQuery1.ExecSQL;
+
+    sSQL := 'delete from Tab_State where not id in (' + s + ')';
+
+    try
+      sldb.BeginTransaction;
+      sldb.ExecSQL(sSQL);
+      sldb.Commit;
+    finally
+      sldb.Free;
+      actNode := nil;
+    end;
   except
-    MessageBox(handle, '答案库出错，' + #10 + '未能正确清理状态！', '错误', MB_ICONERROR or MB_OK);
+    MessageBox(handle, '状态库出错，' + #10 + '未能正确清理状态！', '错误', MB_ICONERROR or MB_OK);
   end;
 end;
 
@@ -5975,6 +6578,8 @@ end;
 // 答案 -- 删除一条
 procedure Tmain.so_DeleteClick(Sender: TObject);
 var
+  sldb: TSQLiteDatabase;
+  sSQL: String;
   solNode: ^TSoltionNode;
 
 begin
@@ -5982,19 +6587,25 @@ begin
 
   if MessageBox(Handle, '删除选中的答案，确定吗？', '警告', MB_ICONWARNING + MB_OKCANCEL) <> idOK then Exit;
 
+  sldb := TSQLiteDatabase.Create(AnsiToUtf8(BoxManDBpath));
+
   try
 
     solNode := SoltionList[List_Solution.ItemIndex];
 
-    DataModule1.ADOQuery1.Close;
-    DataModule1.ADOQuery1.SQL.Clear;
-    DataModule1.ADOQuery1.SQL.Text := 'delete from Tab_Solution where id = ' + IntToStr(solNode.id);
-    DataModule1.ADOQuery1.ExecSQL;
+    try
+      sSQL := 'delete from Tab_Solution where id = ' + IntToStr(solNode.id);
 
-    solNode := nil;
+      sldb.BeginTransaction;
+      sldb.ExecSQL(sSQL);
+      sldb.Commit;
 
-    SoltionList.Delete(List_Solution.ItemIndex);
-    List_Solution.Items.Delete(List_Solution.ItemIndex);
+      SoltionList.Delete(List_Solution.ItemIndex);
+      List_Solution.Items.Delete(List_Solution.ItemIndex);
+    finally
+      sldb.Free;
+      solNode := nil;
+    end;
   except
     MessageBox(handle, '答案库出错，' + #10 + '未能正确删除答案！', '错误', MB_ICONERROR or MB_OK);
   end;
@@ -6004,6 +6615,8 @@ end;
 // 答案 -- 删除全部
 procedure Tmain.so_DeleteAllClick(Sender: TObject);
 var
+  sldb: TSQLiteDatabase;
+  sSQL: String;
   i, len: Integer;
   solNode: ^TSoltionNode;
   s: string;
@@ -6014,21 +6627,28 @@ begin
 
   len := List_Solution.Count;
 
+  sldb := TSQLiteDatabase.Create(AnsiToUtf8(BoxManDBpath));
+
   try
     for i := 0 to len-1 do begin
         solNode := SoltionList[i];
         if i = 0 then s := IntToStr(solNode.id)
         else s := s + ', ' + IntToStr(solNode.id);
     end;
-    solNode := nil;
-    
-    DataModule1.ADOQuery1.Close;
-    DataModule1.ADOQuery1.SQL.Clear;
-    DataModule1.ADOQuery1.SQL.Text := 'delete from Tab_Solution where id in (' + s + ')';
-    DataModule1.ADOQuery1.ExecSQL;
 
-    SoltionList.Clear;
-    List_Solution.Clear;
+    sSQL := 'delete from Tab_Solution where id in (' + s + ')';
+
+    try
+      sldb.BeginTransaction;
+      sldb.ExecSQL(sSQL);
+      sldb.Commit;
+
+      SoltionList.Clear;
+      List_Solution.Clear;
+    finally
+      sldb.Free;
+      solNode := nil;
+    end;
   except
     MessageBox(handle, '答案库出错，' + #10 + '未能正确删除答案！', '错误', MB_ICONERROR or MB_OK);
   end;
@@ -6160,19 +6780,43 @@ end;
 procedure Tmain.FormMouseWheelDown(Sender: TObject; Shift: TShiftState;
   MousePos: TPoint; var Handled: Boolean);
 begin
+
+{$IFDEF DEBUG}
+   Writeln(myLogFile, 'Enter FormMouseWheelDown...');
+   Flush(myLogFile);
+{$ENDIF}
+
   if isMoving then IsStop := True
   else N15.Click;          // z，撤销
   Handled := True;
   Delay(10);
+
+{$IFDEF DEBUG}
+   Writeln(myLogFile, 'Exit FormMouseWheelDown...');
+   Flush(myLogFile);
+{$ENDIF}
+
 end;
 
 procedure Tmain.FormMouseWheelUp(Sender: TObject; Shift: TShiftState;
   MousePos: TPoint; var Handled: Boolean);
 begin
+
+{$IFDEF DEBUG}
+   Writeln(myLogFile, 'Enter FormMouseWheelUp...');
+   Flush(myLogFile);
+{$ENDIF}
+
   if isMoving then IsStop := True
   else N18.Click;          // x，重做
   Handled := True;
   Delay(10);
+
+{$IFDEF DEBUG}
+   Writeln(myLogFile, 'Exit FormMouseWheelUp...');
+   Flush(myLogFile);
+{$ENDIF}
+
 end;
 
 // GET 请求
@@ -6366,9 +7010,9 @@ begin
   else IsStop := False;
 
   size := mySettings.LaterList.Count;
+  pm_Later.Items.Clear;
 
   if size > 0 then begin
-     pm_Later.Items.Clear;
      for i := 0 to size-1 do begin
         ItemL1 := TMenuItem.Create(Nil);
         ItemL1.Caption := mySettings.LaterList[i];
@@ -6398,6 +7042,8 @@ begin
   if isMoving then IsStop := True
   else IsStop := False;
 
+  isKeyPush := False;
+  
   if mySettings.isXSB_Saved then begin
     SaveState();                                   // 保存状态到数据库
   end else begin
@@ -6451,19 +7097,12 @@ begin
   StatusBar1.Panels[7].Text := '现场 XSB 已送入剪切板！';
 end;
 
-// 导出关卡xsb -- 文档
-procedure Tmain.XSB3Click(Sender: TObject);
-begin
-  if isMoving then IsStop := True
-  else IsStop := False;
-
-  StatusBar1.Panels[7].Text := '';
-  isKeyPush := False;
-  bt_Save.Click;
-end;
-
-// 导出关卡xsb -- 剪切板
+// 导出关卡xsb和已做动作 -- 剪切板
 procedure Tmain.XSB2Click(Sender: TObject);
+var
+  str: string;
+  r, c: Integer;
+  
 begin
   if isMoving then IsStop := True
   else IsStop := False;
@@ -6471,9 +7110,29 @@ begin
   StatusBar1.Panels[7].Text := '';
 
   if curMapNode = nil then Exit;
-  
-  XSBToClipboard();
-  StatusBar1.Panels[7].Text := '关卡 XSB 已送入剪切板！';
+
+  // 关卡 XSB
+  str := GetXSB(curMapNode);
+
+  // 正推动作
+  if UnDoPos > 0 then begin
+     if UnDoPos < MaxLenPath then UndoList[UnDoPos+1] := #0;
+     str := str + PChar(@UndoList) + #10;
+  end;
+
+  // 逆推动作
+  if (ManPos_BK >= 0) and (UnDoPos_BK > 0) then begin
+    c := ManPos_BK mod curMapNode.Cols + 1;
+    r := ManPos_BK div curMapNode.Cols + 1;
+
+    if UnDoPos_BK < MaxLenPath then UndoList_BK[UnDoPos_BK+1] := #0;
+    str := str + '[' + IntToStr(c) + ', ' + IntToStr(r) + ']' + PChar(@UndoList_BK) + #10;
+  end;
+
+  // 送入剪切板
+  Clipboard.SetTextBuf(PChar(str));
+
+  StatusBar1.Panels[7].Text := '关卡和已做动作(XSB + Lurd)已送入剪切板！';
 end;
 
 // 导入关卡 xsb -- 剪切板
@@ -7028,15 +7687,19 @@ begin
         ManPos_BK := ManPos_BK_0_2;
         if map_Board_BK[ManPos_BK] = FloorCell then
           map_Board_BK[ManPos_BK] := ManCell
-        else
-          map_Board_BK[ManPos_BK] := ManGoalCell;
+        else if map_Board_BK[ManPos_BK] = GoalCell then
+          map_Board_BK[ManPos_BK] := ManGoalCell
+        else begin
+          ManPos_BK_0_2 := -1;
+          ManPos_BK_0 := -1;
+          ManPos_BK := -1;
+        end;
         UnDoPos_BK := 0;
         MoveTimes_BK := 0;
         PushTimes_BK := 0;
-        LastSteps := -1;              // 正推最后一次点推前的步数
+        LastSteps := -1;                           // 正推最后一次点推前的步数
         IsManAccessibleTips_BK := false;           // 是否显示人的逆推可达提示
         IsBoxAccessibleTips_BK := false;           // 是否显示箱子的逆推可达提示
-//              mySettings.isLurd_Saved := True;            // 推关卡的动作是否保存过了
         DrawMap();         // 画地图
         SetButton();       // 设置按钮状态
         ShowStatusBar();   // 底行状态栏
@@ -7095,6 +7758,33 @@ begin
     Index := List.ItemAtPos(APoint, True);
     List.ItemIndex := Index;
   end;
+end;
+
+procedure Tmain.SpeedButton1Click(Sender: TObject);
+var
+  i: Integer;
+  mapNode: PMapNode;
+begin
+  if MapList.Count = 0 then Exit;
+
+  for i := 0 to MapList.Count-1 do begin
+      mapNode := MapList[i];
+      if mapNode.Solved then begin
+         TestForm.Memo1.Lines.Add(mapNode.Map_Thin);
+         TestForm.Memo1.Lines.Add('');
+      end;
+  end;
+  TestForm.Show;
+end;
+
+procedure Tmain.N27Click(Sender: TObject);
+begin
+  MessageBox(Handle, PChar('设计中...' + #10 + '把答案库内的所有答案，保存到一个文档中。'), '信息', MB_ICONINFORMATION + MB_OK);
+end;
+
+procedure Tmain.N28Click(Sender: TObject);
+begin
+  MessageBox(Handle, PChar('设计中...' + #10 + '把文档中关卡答案导入的答案库内。'), '信息', MB_ICONINFORMATION + MB_OK);
 end;
 
 end.

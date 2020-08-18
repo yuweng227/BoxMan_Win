@@ -1,8 +1,8 @@
 object main: Tmain
-  Left = 223
-  Top = 132
+  Left = 280
+  Top = 165
   Width = 732
-  Height = 531
+  Height = 532
   Caption = 'BoxMan'
   Color = clBtnFace
   Font.Charset = ANSI_CHARSET
@@ -161,7 +161,7 @@ object main: Tmain
   TextHeight = 13
   object StatusBar1: TStatusBar
     Left = 0
-    Top = 474
+    Top = 475
     Width = 716
     Height = 19
     Panels = <
@@ -215,14 +215,14 @@ object main: Tmain
     Left = 0
     Top = 30
     Width = 716
-    Height = 444
+    Height = 445
     Align = alClient
     TabOrder = 1
     object pl_Side: TPanel
       Left = 1
       Top = 1
       Width = 172
-      Height = 442
+      Height = 443
       Align = alLeft
       BevelInner = bvLowered
       Color = clInactiveCaption
@@ -231,7 +231,7 @@ object main: Tmain
         Left = 2
         Top = 32
         Width = 168
-        Height = 408
+        Height = 409
         Cursor = crHandPoint
         ActivePage = Tab_Solution
         Align = alClient
@@ -243,7 +243,7 @@ object main: Tmain
             Left = 0
             Top = 0
             Width = 160
-            Height = 380
+            Height = 381
             Style = lbOwnerDrawVariable
             Align = alClient
             ImeName = #20013#25991'('#31616#20307') - '#25628#29399#25340#38899#36755#20837#27861
@@ -263,7 +263,7 @@ object main: Tmain
             Left = 0
             Top = 0
             Width = 160
-            Height = 380
+            Height = 381
             Style = lbOwnerDrawVariable
             Align = alClient
             ImeName = #20013#25991'('#31616#20307') - '#25628#29399#25340#38899#36755#20837#27861
@@ -283,7 +283,7 @@ object main: Tmain
             Left = 0
             Top = 0
             Width = 160
-            Height = 380
+            Height = 381
             TabStop = False
             Align = alClient
             ImeName = #20013#25991'('#31616#20307') - '#25628#29399#25340#38899#36755#20837#27861
@@ -321,8 +321,8 @@ object main: Tmain
           Width = 64
           Height = 22
           Cursor = crHandPoint
-          Hint = #20445#23384#29616#22330': Ctrl + S'
-          Caption = #29366#24577#23384#26723
+          Hint = #29616#22330#23384#26723': Ctrl + S'
+          Caption = #29616#22330#23384#26723
           ParentShowHint = False
           ShowHint = True
           OnClick = bt_SaveClick
@@ -333,7 +333,7 @@ object main: Tmain
       Left = 173
       Top = 1
       Width = 542
-      Height = 442
+      Height = 443
       Align = alClient
       Alignment = taLeftJustify
       BevelOuter = bvNone
@@ -617,6 +617,24 @@ object main: Tmain
       ShowHint = True
       OnClick = sb_HelpClick
     end
+    object SpeedButton1: TSpeedButton
+      Left = 624
+      Top = 4
+      Width = 23
+      Height = 22
+      Hint = #24110#21161#65306#12304'F1'#12305
+      Caption = 'T'
+      Font.Charset = ANSI_CHARSET
+      Font.Color = clWindowText
+      Font.Height = -13
+      Font.Name = #23435#20307
+      Font.Style = [fsBold]
+      ParentFont = False
+      ParentShowHint = False
+      ShowHint = True
+      Visible = False
+      OnClick = SpeedButton1Click
+    end
     object pnl_Trun: TPanel
       Left = 484
       Top = 4
@@ -668,7 +686,7 @@ object main: Tmain
   object pmBoardBK: TPopupMenu
     AutoHotkeys = maManual
     Left = 263
-    Top = 56
+    Top = 48
     object pmGoal: TMenuItem
       Caption = #22266#23450#30340#30446#26631#20301
       ShortCut = 16455
@@ -688,7 +706,7 @@ object main: Tmain
       OnClick = XSB1Click
     end
     object XSB2: TMenuItem
-      Caption = #20851#21345'XSB'#36865#20837#21098#20999#26495
+      Caption = #20851#21345#21644#24050#20570#21160#20316'(XSB + Lurd)'#36865#20837#21098#20999#26495
       ShortCut = 16451
       OnClick = XSB2Click
     end
@@ -696,11 +714,6 @@ object main: Tmain
       Caption = #29616#22330'XSB'#36865#20837#21098#20999#26495
       ShortCut = 49219
       OnClick = XSB4Click
-    end
-    object XSB3: TMenuItem
-      Caption = #20851#21345'XSB'#20445#23384#21040#25991#26723
-      ShortCut = 16467
-      OnClick = XSB3Click
     end
     object XSB0: TMenuItem
       Caption = #36865#20837#21608#36716#24211'(BoxMan.xsb)'
@@ -800,6 +813,20 @@ object main: Tmain
     object so_DeleteAll: TMenuItem
       Caption = #21024#38500#20840#37096
       OnClick = so_DeleteAllClick
+    end
+    object N26: TMenuItem
+      Caption = '-'
+      Visible = False
+    end
+    object N27: TMenuItem
+      Caption = #23548#20986#31572#26696#24211' '#8594' '#25991#26723
+      Visible = False
+      OnClick = N27Click
+    end
+    object N28: TMenuItem
+      Caption = #23548#20837#31572#26696' '#8592' '#25991#26723
+      Visible = False
+      OnClick = N28Click
     end
   end
   object pmState: TPopupMenu

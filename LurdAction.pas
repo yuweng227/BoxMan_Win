@@ -11,7 +11,7 @@ type
       Moves   : Integer;           // 移动步数
       Pushs   : Integer;           // 推动步数
       CRC32   : Integer;           // 答案 CRC
-      DateTime: TDateTime;         // 时间戳
+      DateTime: TDateTime;            // 时间戳
   end;
 
 type
@@ -211,15 +211,14 @@ begin
          str2 := copy(str, i+1, j-i-1);
          delete(str, 1, j);
          p := TStringList.Create;
+         p.Delimiter := ',';
          p.CommaText := str2;
 
          if p.Count = 2 then begin
             try
-//              j := strToInt(p[0]);
-//              i := strToInt(p[1]);
-              j := strToInt(p[0])-1;
+              j := strToInt(p[0])-1;         // 用家看到的坐标，从[1, 1]开始，程序内部是从[0, 0]开始
               i := strToInt(p[1])-1;
-              if not ((i < 0) or (j < 0) or (i >= curMapNode.Rows) or (j >= curMapNode.Cols)) then ManPos_BK_0_2 := i * curMapNode.Cols + j;
+              if (i >= 0) and (j >= 0) and (i < curMapNode.Rows) and (j < curMapNode.Cols) then ManPos_BK_0_2 := i * curMapNode.Cols + j;
             except
             end;
          end;

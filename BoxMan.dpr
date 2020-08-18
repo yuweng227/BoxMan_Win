@@ -6,7 +6,6 @@ uses
   SysUtils,
   Registry,
   Windows,
-  DateModule in 'DateModule.pas' {DataModule1: TDataModule},
   LoadSkin in 'LoadSkin.pas' {LoadSkinForm},
   MainForm in 'MainForm.pas' {main},
   PathFinder in 'PathFinder.pas',
@@ -18,7 +17,8 @@ uses
   inf in 'inf.pas' {InfForm},
   Submit in 'Submit.pas' {MySubmit},
   ShowSolutionList in 'ShowSolutionList.pas' {ShowSolutuionList},
-  OpenFile in 'OpenFile.pas' {MyOpenFile};
+  OpenFile in 'OpenFile.pas' {MyOpenFile},
+  myTest in 'myTest.pas' {TestForm};
 
 const
   iAtom = 'yuweng_BoxMan_2019_';        // 让程序只运行一次的全局原子
@@ -41,9 +41,9 @@ begin
       Application.Title := 'yuweng_BoxMan_2019';
 
       Application.Initialize;
-      Application.CreateForm(TDataModule1, DataModule1);
       Application.CreateForm(Tmain, main);
-      //  Application.CreateForm(TLoadSkinForm, LoadSkinForm);
+  Application.CreateForm(TTestForm, TestForm);
+  //  Application.CreateForm(TLoadSkinForm, LoadSkinForm);
       Application.CreateForm(TActionForm, ActionForm);
       Application.CreateForm(TInfForm, InfForm);
       Application.CreateForm(TMySubmit, MySubmit);

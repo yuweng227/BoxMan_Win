@@ -20,6 +20,7 @@ uses
 
 type
   TIntArr = array[0..1023] of integer;
+  TColors = array[0..7] of integer;
   
 type
   TRecogForm_ = class(TForm)
@@ -85,6 +86,7 @@ type
     Panel4: TPanel;
     Image3: TImage;
     Panel5: TPanel;
+    bt_Skin: TSpeedButton;
     procedure sb_OpenClick(Sender: TObject);
     procedure FormActivate(Sender: TObject);
     procedure DrawBianJie;
@@ -119,8 +121,8 @@ type
     procedure FormMouseWheelDown(Sender: TObject; Shift: TShiftState;
       MousePos: TPoint; var Handled: Boolean);                                  // 画元素选择框、改变鼠标样式
     procedure findSubimages;                                                    // 识别
-    function isSubimage(img1: TBitmap): boolean;             // 与样本比较
-    function getAverageGrey(img: TBitmap; isYangben: Boolean; var PicColor: Integer;
+    function isSubimage(img1: TBitmap; c, r: Integer): boolean;                 // 与样本比较
+    function getAverageGrey(img: TBitmap; isYangben: Boolean; var PicColor: TColors;
       var dest: TIntArr): integer;                                              // 获取图片的平均灰度值
     function calSimilarity(a, b: TIntArr): double;                              // 通过汉明距离计算相似度
 
@@ -223,6 +225,13 @@ type
       Y: Integer);
     procedure Image3Click(Sender: TObject);
     procedure Panel4Click(Sender: TObject);
+    procedure bt_SkinClick(Sender: TObject);
+    procedure bt_SkinMouseMove(Sender: TObject; Shift: TShiftState; X,
+      Y: Integer);
+    procedure ScrollBox1MouseWheelDown(Sender: TObject; Shift: TShiftState;
+      MousePos: TPoint; var Handled: Boolean);
+    procedure ScrollBox1MouseWheelUp(Sender: TObject; Shift: TShiftState;
+      MousePos: TPoint; var Handled: Boolean);
   private 
     { Private declarations }
   public
@@ -237,10 +246,13 @@ var
 
   myScale: Integer;                      // 图像缩放倍数
 
+  pxSize: Integer;                       // 样本像素数
+
   myMap: array[0..99, 0..99] of Char;
 
 {$IFDEF TEST}
   duMap: array[0..99, 0..99] of Integer;
+  clMap: array[0..99, 0..99] of Integer;
 {$ENDIF}
 
   myClickPoint, myMovePoint: TPoint;     // 鼠标按下时的坐标和移动时的位置
@@ -250,7 +262,11 @@ var
 
   rUnDoList, rReDoList: TStringList;
 
+  procedure LoadSkin;         // 换肤
+
 implementation
+
+uses LoadSkin, Editor_;
 
 const
   cursorWall_     = 11;
@@ -259,31 +275,68 @@ const
   cursorGoal_     = 14;
   cursorMan_      = 15;
   cursorErase_    = 16;
+  cursorSheel_    = 17;
 
   XSB_Char :array[1..7] of Char = ( '#', '$', '*', '.', '-', '@', '+' );
 
 var
   m_SampleArray0: TIntArr;                             //样本的比较数组
-  my_Color0, my_Color1: Integer;                       //图片的色调
+  my_Color0, my_Color1: TColors;                       //图片的色相分布
   my_Grey0, my_Grey1: Integer;                         //图片的灰度值
 
   cur_Rect: TRect;
 
-  mySizeOf: Integer;
+  mySizeOf, mySizeOf_: Integer;
 
   //临时隐藏一下的元素
   myHintChar: Char;           // Shift 键
   myHintPos: TPoint;          // Ctrl 键
+
+  isShiftDown: Boolean;       // 是否 Shift 被单独按下，此时，鼠标滚轮可以微调框线等
+  isSheelEnable: Boolean;     // 是否允许滚轮微调框线
 
   myStartTime: Int64;         // 记录鼠标双击使用的第一击的时间戳
 
 {$IFDEF TEST}
   tmpPic: TBitmap;
   imgDu: Integer;
+  clrDu: Integer;
 {$ENDIF}
 
 {$R *.dfm}
 {$R MyCursor_.res}
+
+// 换肤
+procedure LoadSkin;
+begin
+  if LoadSkinForm.ShowModal = mrOK then
+  begin
+    if not LoadSkinForm.LoadSkin(ExtractFilePath(Application.ExeName) + 'Skins\' +LoadSkinForm.SkinFileName) then
+    begin
+      LoadSkinForm.LoadDefaultSkin();         // 使用默认的简单皮肤
+    end;
+
+    RecogForm_.Image4.Canvas.CopyRect(Rect(0, 0, 60, 60), FloorPic.Canvas, Rect(0, 0, FloorPic.Width, FloorPic.Height));
+    RecogForm_.Image4.Canvas.CopyRect(Rect(60, 0, 120, 60), GoalPic.Canvas, Rect(0, 0, GoalPic.Width, GoalPic.Height));
+    RecogForm_.Image4.Canvas.CopyRect(Rect(120, 0, 180, 60), BoxPic.Canvas, Rect(0, 0, BoxPic.Width, BoxPic.Height));
+    RecogForm_.Image4.Canvas.CopyRect(Rect(180, 0, 240, 60), BoxGoalPic.Canvas, Rect(0, 0, BoxGoalPic.Width, BoxGoalPic.Height));
+    RecogForm_.Image4.Canvas.CopyRect(Rect(240, 0, 300, 60), ManPic.Canvas, Rect(0, 0, ManPic.Width, ManPic.Height));
+    RecogForm_.Image4.Canvas.CopyRect(Rect(300, 0, 360, 60), ManGoalPic.Canvas, Rect(0, 0, ManGoalPic.Width, ManGoalPic.Height));
+    RecogForm_.Image4.Canvas.CopyRect(Rect(360, 0, 420, 60), WallPic.Canvas, Rect(0, 0, WallPic.Width, WallPic.Height));
+
+    RecogForm_.img_Goal.Canvas.CopyRect(Rect(0, 0, 60, 60), GoalPic.Canvas, Rect(0, 0, GoalPic.Width, GoalPic.Height));
+    RecogForm_.img_Box.Canvas.CopyRect(Rect(0, 0, 60, 60), BoxPic.Canvas, Rect(0, 0, BoxPic.Width, BoxPic.Height));
+    RecogForm_.img_BoxGoal.Canvas.CopyRect(Rect(0, 0, 60, 60), BoxGoalPic.Canvas, Rect(0, 0, BoxGoalPic.Width, BoxGoalPic.Height));
+    RecogForm_.img_Player.Canvas.CopyRect(Rect(0, 0, 60, 60), ManPic.Canvas, Rect(0, 0, ManPic.Width, ManPic.Height));
+    RecogForm_.img_Wall.Canvas.CopyRect(Rect(0, 0, 60, 60), WallPic.Canvas, Rect(0, 0, WallPic.Width, WallPic.Height));
+
+    EditorForm_.img_Floor.Canvas.CopyRect(Rect(0, 0, 60, 60), FloorPic.Canvas, Rect(0, 0, FloorPic.Width, FloorPic.Height));
+    EditorForm_.img_Goal.Canvas.CopyRect(Rect(0, 0, 60, 60), GoalPic.Canvas, Rect(0, 0, GoalPic.Width, GoalPic.Height));
+    EditorForm_.img_Box.Canvas.CopyRect(Rect(0, 0, 60, 60), BoxPic.Canvas, Rect(0, 0, BoxPic.Width, BoxPic.Height));
+    EditorForm_.img_Player.Canvas.CopyRect(Rect(0, 0, 60, 60), ManPic.Canvas, Rect(0, 0, ManPic.Width, ManPic.Height));
+    EditorForm_.img_Wall.Canvas.CopyRect(Rect(0, 0, 60, 60), WallPic.Canvas, Rect(0, 0, WallPic.Width, WallPic.Height));
+  end;
+end;
 
 function GetJavaTime( d: TDateTime ): Int64;
 var
@@ -367,6 +420,8 @@ begin
   img0.Canvas.CopyMode := cmSrcCopy;
   img1.Canvas.CopyMode := cmSrcCopy;
 
+  pxSize := ww * hh;
+
 	rt2 := Rect(0, 0, ww, hh);
 
 	rt0 := Rect(cur_Rect.left div myScale + 2, cur_Rect.top div myScale + 2, cur_Rect.left div myScale + 2 + img0.width, cur_Rect.top div myScale + 2 + img0.height);  // 样本范围
@@ -382,7 +437,7 @@ begin
       if myMap[r, c] = '-' then begin
               rt1 := Rect(x + 2, y + 2, x + 2 + ww, y + 2 + hh);   // 格子范围
               img1.Canvas.CopyRect(rt2, Image2.Canvas, rt1);                                   // 格子图片
-              if isSubimage(img1) then begin
+              if isSubimage(img1, c, r) then begin
                  case mySelect of
                    1: myMap[r, c] := XSB_Char[1];                                       // 墙壁
                    2: myMap[r, c] := XSB_Char[2];
@@ -392,6 +447,7 @@ begin
               end;
 {$IFDEF TEST}
     duMap[r, c] := imgDu;
+    clMap[r, c] := clrDu;
 {$ENDIF}
 
       end else begin
@@ -399,8 +455,9 @@ begin
 {$IFDEF TEST}
     rt1 := Rect(x + 2, y + 2, x + 2 + ww, y + 2 + hh);   // 格子范围
     img1.Canvas.CopyRect(rt2, Image2.Canvas, rt1);       // 格子图片
-    isSubimage(img1);
+    isSubimage(img1, c, r);
     duMap[r, c] := imgDu;
+    clMap[r, c] := clrDu;
 {$ENDIF}
 
       end;
@@ -412,27 +469,55 @@ begin
   FreeAndNil(img1);
 end;
 
-// 与样本比较
-function TRecogForm_.isSubimage(img1: TBitmap): boolean;
+// 两个色相数组是否相近
+// 两个色相数组是否相近
+function isColorNear(c1, c2: TColors): Boolean;
 var
-	m_SampleArray1: TIntArr;   //格子的比较数组
-	v: double;
+  i, n1, n2, m1, m2: Integer;
+begin
+  result := True;
+  m1 := 0;
+  m2 := 0;
+  n1 := 0;
+  n2 := 0;
+  for i := 0 to 7 do begin
+    if m1 < c1[i] then begin
+       m1 := c1[i];
+       n1 := i;
+    end;
+    if m2 < c2[i] then begin
+       m2 := c2[i];
+       n2 := i;
+    end;
+    if n1 <> n2 then begin
+       result := False;
+       Exit
+    end;
+  end;
+end;
+
+// 与样本比较
+function TRecogForm_.isSubimage(img1: TBitmap; c, r: Integer): boolean;
+var
+	m_SampleArray1: TIntArr;   // 格子的比较数组
+	v, v_: double;
   flg: boolean;
 begin
 	my_Grey1 := getAverageGrey(img1, False, my_Color1, m_SampleArray1);                  // 获取比较图块的主颜色
 
-	v := calSimilarity(m_SampleArray0, m_SampleArray1) * 100;
+	v  := calSimilarity(m_SampleArray0, m_SampleArray1) * 100;
+//  v_ := ColorNear(my_Color0, my_Color1) * 100;
 
 {$IFDEF TEST}
   imgDu := Trunc(v);
+//  clrDu := Trunc(v_);
 {$ENDIF}
-  
+
+  // 比较与样本色相相似度
+
 	flg := (Trunc(v) >= TrackBar2.Position) and                                   // 相似度
          ((not CheckBox5.Checked) or (my_Grey0 = my_Grey1)) and                 // 平均灰度
-         ((not CheckBox4.Checked) or (my_Color1 = my_Color0) or                 // 色调
-         ((my_Color1 < 7) and (my_Color0 + 7 > 360) and (Abs(my_Color1 + 360 - my_Color0) <= 7)) or
-         ((my_Color0 < 7) and (my_Color1 + 7 > 360) and (Abs(my_Color1 - 360 - my_Color0) <= 7))
-         );
+         ((not CheckBox4.Checked) or isColorNear(my_Color0, my_Color1));        // 色相
 
   result := flg;
 end;
@@ -484,11 +569,10 @@ begin
 end;
 
 // 获取图片的平均灰度值
-function TRecogForm_.getAverageGrey(img: TBitmap; isYangben: Boolean; var PicColor: Integer; var dest: TIntArr): Integer;
+function TRecogForm_.getAverageGrey(img: TBitmap; isYangben: Boolean; var PicColor: TColors; var dest: TIntArr): Integer;
 var
-  i, j, k, width, height, size, n: integer;
+  i, j, width, height, size, n: integer;
 	red, green, blue, grey, averageColor: integer;
-	color: array[0..359] of integer;
 	sumGrey: Int64;
 	image: TBitmap;
   R1, R2: TRect;
@@ -499,7 +583,7 @@ var
   psub_: PByteArray;
 {$ENDIF}
 begin
-  for i := 0 to 359 do color[i] := 0;
+  for i := 0 to 7 do PicColor[i] := 0;
 
 	// 转换至灰度图
 	width := img.Width;         //获取位图的宽
@@ -515,12 +599,22 @@ begin
 			green := psub[j*3+1];
 			red   := psub[j*3+2];
 
-			//计算图块的颜色偏重
-      RGBtoHSL(red, green, blue, H, S, L);
-      n := Trunc(H) and $FFF8;
-			inc(color[n]);
+			//计算图块的色相
+      RGBtoHSL(red and $FFFFF8, green and $FFFFF8, blue and $FFFFF8, H, S, L);
+      n := Trunc(H);
+//			inc(PicColor[n]);
 
+      if (n > 315) or (n < 20) then inc(PicColor[0])
+      else if n > 295 then inc(PicColor[7])
+      else if n > 270 then inc(PicColor[6])
+      else if n > 190 then inc(PicColor[5])
+      else if n > 155 then inc(PicColor[4])
+      else if n > 75 then inc(PicColor[3])
+      else if n > 40 then inc(PicColor[2])
+      else inc(PicColor[1]);
+      
 			grey := Round(red * 0.3 + green * 0.59 + blue * 0.11);
+//			grey := Round(red * 0.2126 + green * 0.7152 + blue * 0.0722);             // YASC
 			psub[j*3]   := grey;
 			psub[j*3+1] := grey;
 			psub[j*3+2] := grey;
@@ -529,7 +623,7 @@ begin
 		end;
 	end;
 
-  result := Trunc(sumGrey / size) and $FFF8;                                    // 平均灰度值
+  result := Trunc(sumGrey / size) and $FFFFF8;                                  // 平均灰度值       
 
   // 缩放至 32 * 32
 	image := TBitmap.create;
@@ -565,7 +659,7 @@ begin
 
       for j := 0 to 31 do begin
         grey := psub[j*3];
-        if grey > averageColor then dest[i * 32 + j] := 1
+        if grey > averageColor then dest[i * 32 + j] := 1   
         else dest[i * 32 + j] := 0;
 
 {$IFDEF TEST}
@@ -587,15 +681,6 @@ begin
   finally
     FreeAndNil(image);
   end;
-
-  // 图块的色调
-  PicColor := 0;
-	for k := 1 to 359 do begin
-		if color[PicColor] < color[k] then begin
-		   PicColor := k;
-		end;
-	end;
-
 end;
 
 // 通过汉明距离计算相似度
@@ -624,6 +709,7 @@ begin
   myHintPos.X := -1;
   myHintPos.Y := -1;
   Tag := 0;
+  isShiftDown := False;
   SetSelect;
   myDraw;
   rUnDoList.Clear;
@@ -688,6 +774,7 @@ begin
 
 {$IFDEF TEST}
              duMap[i, j] := 0;
+             clMap[i, j] := 0;
 {$ENDIF}
 
          end;
@@ -790,9 +877,10 @@ begin
      for i := 0 to 99 do begin
        for j := 0 to 99 do begin
            myMap[i, j] := '-';
-           
+
 {$IFDEF TEST}
-           duMap[i, j] := 0;
+   duMap[i, j] := 0;
+   clMap[i, j] := 0;
 {$ENDIF}
 
        end;
@@ -896,13 +984,19 @@ begin
           end;
 
 {$IFDEF TEST}
-  if (Image3.Visible) and (duMap[i, j] > 30) then begin
+  if Image3.Visible then begin
      x := j * Map_ColWidth.Value + Map_Left.Value;
      y := i * Map_RowHeight.Value + Map_Top.Value;
-     R2 := Rect(x, y, x + Map_ColWidth.Value, y + Map_RowHeight.Value);
      Image1.Canvas.Brush.Style := bsClear;
      Image1.Canvas.Font.Size := 7;
-     Image1.Canvas.TextOut(R2.Left+4, R2.Bottom-13, IntToStr(duMap[i, j]));
+     if duMap[i, j] > 30 then begin
+         Image1.Canvas.Font.Color := clWhite;
+         Image1.Canvas.TextOut(x+4, y + Map_RowHeight.Value-13, IntToStr(duMap[i, j]));
+     end;
+//     if clMap[i, j] > 30 then begin
+//         Image1.Canvas.Font.Color := clYellow;
+//         Image1.Canvas.TextOut(x+4, y + Map_RowHeight.Value-28, IntToStr(clMap[i, j]));
+//     end;
    end;
 {$ENDIF}
 
@@ -983,8 +1077,15 @@ begin
   
   if  mySelect = 0 then begin
     mySizeOf := 0;
+    mySizeOf_ := 0;
     Image1.Cursor := crCross;
-    if (Abs(X - Map_Left.Value) < 4) and (Y - Map_Top.Value > 8) and (Map_Bottom.Value - Y > 8) then begin
+    if (Abs(X - Map_Left.Value) < 4) and (Abs(Y - Map_Top.Value) < 4) then begin
+       Image1.Cursor := crSizeNWSE;
+       mySizeOf := 8;
+    end else if (Abs(X - (Map_Left.Value + Map_ColWidth.Value)) < 4) and (Abs(Y - (Map_Top.Value + Map_RowHeight.Value)) < 4) then begin
+       Image1.Cursor := crSizeNWSE;  //  crSizeAll
+       mySizeOf := 7;
+    end else if (Abs(X - Map_Left.Value) < 4) and (Y - Map_Top.Value > 8) and (Map_Bottom.Value - Y > 8) then begin
        Image1.Cursor := crSizeWE;
        mySizeOf := 1;
     end else if (Abs(X - Map_Right.Value) < 4) and (Y - Map_Top.Value > 8) and (Map_Bottom.Value - Y > 8) then begin
@@ -1004,7 +1105,6 @@ begin
        mySizeOf := 6;
     end;
   end;
-
 end;
 
 // 鼠标抬起
@@ -1081,7 +1181,10 @@ begin
                 else myMap[r, c] := '.';
              end;
            end;
-        end else findSubimages;
+        end else begin                                                          // 识别模式
+           if myMap[r, c] = '-' then findSubimages                              // 若被点击的位置上还“空着”，则执行识别
+           else myMap[r, c] := XSB_Char[mySelect];                              // 若被点击的位置上已经有了“识别”，则直接修改此格子                    
+        end;
      end else if mySelect = 5 then begin                                        // 仓管员，执行编辑
         if myMap[r, c] in [ '@', '+' ] then begin
           if myMap[r, c] = '@' then myMap[r, c] := '+'
@@ -1224,11 +1327,12 @@ begin
 
   CheckBox1.Caption := '手动编辑';
   CheckBox2.Caption := 'XSB字符';
-  CheckBox4.Caption := '色调';
-  CheckBox5.Caption := '灰度';
+  CheckBox4.Caption := '色相';
+  CheckBox5.Caption := '平均灰度';
 
   sb_Return.Hint := '结束识别，返回编辑【Ctrl + Q】';
-
+  bt_Skin.Hint := '更换皮肤';
+  
   B_Top.Caption    := '上边界(&T) - Top';
   B_Bottom.Caption := '下边界(&B) - Bottom';
   B_Left.Caption   := '左边界(&L) - Left';
@@ -1268,6 +1372,7 @@ begin
   Screen.Cursors[cursorGoal_]     := LoadCursor(HInstance, 'CURSOR_GOAL_');
   Screen.Cursors[cursorMan_]      := LoadCursor(HInstance, 'CURSOR_PLAYER_');
   Screen.Cursors[cursorErase_]    := LoadCursor(HInstance, 'CURSOR_ERASE_');
+  Screen.Cursors[cursorSheel_]    := LoadCursor(HInstance, 'CURSOR_SHEEL_');     
 
   rUnDoList := TStringList.Create;
   rReDoList := TStringList.Create;
@@ -1445,54 +1550,98 @@ end;
 
 procedure TRecogForm_.FormMouseWheelUp(Sender: TObject; Shift: TShiftState;
   MousePos: TPoint; var Handled: Boolean);
+var
+  k: Integer;
 begin
   if Image1.Visible then begin
-     if Image1.Tag = 1 then begin
-        if Map_Left.Value > 0 then Map_Left.Value := Map_Left.Value-1;
-     end else if Image1.Tag = 3 then begin
-        if Map_Right.Value > 0 then Map_Right.Value := Map_Right.Value-1;
-     end else if Image1.Tag = 2 then begin
-        if Map_Top.Value > 0 then Map_Top.Value := Map_Top.Value-1;
-     end else if Image1.Tag = 4 then begin
-        if Map_Bottom.Value > 0 then Map_Bottom.Value := Map_Bottom.Value-1;
-     end else if Image1.Tag = 6 then begin
-        if Map_RowHeight.Value > 10 then Map_RowHeight.Value := Map_RowHeight.Value-1;
-      end else if Image1.Tag = 5 then begin
-        if Map_ColWidth.Value > 10 then Map_ColWidth.Value := Map_ColWidth.Value-1;
-     end else if ssCtrl in Shift then begin
-        ScrollBox1.Perform(WM_HSCROLL,SB_LINEUP,0);
-     end
-     else begin
-       ScrollBox1.Perform(WM_VSCROLL,SB_LINEUP,0);
+     if isMouseSheel or (not isSheelEnable) then k := 1
+     else k := -1;
+
+     if isShiftDown or isSheelEnable then begin
+       if mySizeOf_ = 1 then begin
+          if Map_Left.Value > 0 then Map_Left.Value := Map_Left.Value+k;
+       end else if mySizeOf_ = 2 then begin
+          if Map_Right.Value > 0 then Map_Right.Value := Map_Right.Value+k;
+       end else if mySizeOf_ = 3 then begin
+          if Map_Top.Value > 0 then Map_Top.Value := Map_Top.Value+k;
+       end else if mySizeOf_ = 4 then begin
+          if Map_Bottom.Value > 0 then Map_Bottom.Value := Map_Bottom.Value+k;
+       end else if mySizeOf_ = 6 then begin
+          if Map_RowHeight.Value > 10 then Map_RowHeight.Value := Map_RowHeight.Value+k;
+       end else if mySizeOf_ = 5 then begin
+          if Map_ColWidth.Value > 10 then Map_ColWidth.Value := Map_ColWidth.Value+k;
+       end else if mySizeOf_ = 7 then begin
+          if Map_ColWidth.Value > 10 then Map_ColWidth.Value := Map_ColWidth.Value+k;
+          if Map_RowHeight.Value > 10 then Map_RowHeight.Value := Map_RowHeight.Value+k;
+       end else if mySizeOf_ = 8 then begin
+          if Map_Left.Value > 0 then Map_Left.Value := Map_Left.Value+k;
+          if Map_Top.Value > 0 then Map_Top.Value := Map_Top.Value+k;
+       end;
+     end else begin
+       if Image1.Tag = 1 then begin
+          if Map_Left.Value > 0 then Map_Left.Value := Map_Left.Value+k;
+       end else if Image1.Tag = 3 then begin
+          if Map_Right.Value > 0 then Map_Right.Value := Map_Right.Value+k;
+       end else if Image1.Tag = 2 then begin
+          if Map_Top.Value > 0 then Map_Top.Value := Map_Top.Value+k;
+       end else if Image1.Tag = 4 then begin
+          if Map_Bottom.Value > 0 then Map_Bottom.Value := Map_Bottom.Value+k;
+       end else if Image1.Tag = 6 then begin
+          if Map_RowHeight.Value > 10 then Map_RowHeight.Value := Map_RowHeight.Value+k;
+       end else if Image1.Tag = 5 then begin
+          if Map_ColWidth.Value > 10 then Map_ColWidth.Value := Map_ColWidth.Value+k;
+       end;
      end;
+     Handled := True;
   end;
-  Handled := True;
 end;
 
 procedure TRecogForm_.FormMouseWheelDown(Sender: TObject;
   Shift: TShiftState; MousePos: TPoint; var Handled: Boolean);
+var
+  k: Integer;
 begin
   if Image1.Visible then begin
-     if Image1.Tag = 1 then begin
-        if Map_Left.Value < Map_Left.MaxValue then Map_Left.Value := Map_Left.Value+1;
-     end else if Image1.Tag = 3 then begin
-        if Map_Right.Value < Map_Right.MaxValue then Map_Right.Value := Map_Right.Value+1;
-     end else if Image1.Tag = 2 then begin
-        if Map_Top.Value < Map_Top.MaxValue then Map_Top.Value := Map_Top.Value+1;
-     end else if Image1.Tag = 4 then begin
-        if Map_Bottom.Value < Map_Bottom.MaxValue then Map_Bottom.Value := Map_Bottom.Value+1;
-     end else if Image1.Tag = 6 then begin
-        if Map_RowHeight.Value < Map_Bottom.Value-Map_Top.Value then Map_RowHeight.Value := Map_RowHeight.Value+1;
-     end else if Image1.Tag = 5 then begin
-        if Map_ColWidth.Value < Map_Right.Value-Map_Left.Value then Map_ColWidth.Value := Map_ColWidth.Value+1;
-     end else if ssCtrl in Shift then begin
-       ScrollBox1.Perform(WM_HSCROLL,SB_LINEDOWN,0);
-     end
-     else begin
-       ScrollBox1.Perform(WM_VSCROLL,SB_LINEDOWN,0);
+     if isMouseSheel or (not isSheelEnable) then k := -1
+     else k := 1;
+
+     if isShiftDown or isSheelEnable then begin
+         if mySizeOf_ = 1 then begin
+            if Map_Left.Value < Map_Left.MaxValue then Map_Left.Value := Map_Left.Value+k;
+         end else if mySizeOf_ = 2 then begin
+            if Map_Right.Value < Map_Right.MaxValue then Map_Right.Value := Map_Right.Value+k;
+         end else if mySizeOf_ = 3 then begin
+            if Map_Top.Value < Map_Top.MaxValue then Map_Top.Value := Map_Top.Value+k;
+         end else if mySizeOf_ = 4 then begin
+            if Map_Bottom.Value < Map_Bottom.MaxValue then Map_Bottom.Value := Map_Bottom.Value+k;
+         end else if mySizeOf_ = 6 then begin
+            if Map_RowHeight.Value < Map_Bottom.Value-Map_Top.Value then Map_RowHeight.Value := Map_RowHeight.Value+k;
+         end else if mySizeOf_ = 5 then begin
+            if Map_ColWidth.Value < Map_Right.Value-Map_Left.Value then Map_ColWidth.Value := Map_ColWidth.Value+k;
+         end else if mySizeOf_ = 7 then begin
+            if Map_ColWidth.Value < Map_Right.Value-Map_Left.Value then Map_ColWidth.Value := Map_ColWidth.Value+k;
+            if Map_RowHeight.Value < Map_Bottom.Value-Map_Top.Value then Map_RowHeight.Value := Map_RowHeight.Value+k;
+         end else if mySizeOf_ = 8 then begin
+            if Map_Left.Value < Map_Left.MaxValue then Map_Left.Value := Map_Left.Value+k;
+            if Map_Top.Value < Map_Top.MaxValue then Map_Top.Value := Map_Top.Value+k;
+         end;
+     end else begin
+         if Image1.Tag = 1 then begin
+            if Map_Left.Value < Map_Left.MaxValue then Map_Left.Value := Map_Left.Value+k;
+         end else if Image1.Tag = 3 then begin
+            if Map_Right.Value < Map_Right.MaxValue then Map_Right.Value := Map_Right.Value+k;
+         end else if Image1.Tag = 2 then begin
+            if Map_Top.Value < Map_Top.MaxValue then Map_Top.Value := Map_Top.Value+k;
+         end else if Image1.Tag = 4 then begin
+            if Map_Bottom.Value < Map_Bottom.MaxValue then Map_Bottom.Value := Map_Bottom.Value+k;
+         end else if Image1.Tag = 6 then begin
+            if Map_RowHeight.Value < Map_Bottom.Value-Map_Top.Value then Map_RowHeight.Value := Map_RowHeight.Value+k;
+         end else if Image1.Tag = 5 then begin
+            if Map_ColWidth.Value < Map_Right.Value-Map_Left.Value then Map_ColWidth.Value := Map_ColWidth.Value+k;
+         end;
      end;
+     Handled := True;
   end;
-  Handled := True;
 end;
 
 // UnDo
@@ -1540,6 +1689,12 @@ begin
      for i := 0 to 99 do begin
        for j := 0 to 99 do begin
            myMap[i, j] := '-';
+
+{$IFDEF TEST}
+   duMap[i, j] := 0;
+   clMap[i, j] := 0;
+{$ENDIF}
+
        end;
      end;
      myDraw;
@@ -1553,6 +1708,7 @@ begin
   case Key of
     16:                // Shift
      if (ssShift in Shift) and (Image1.Visible) then begin
+        isShiftDown := true;
         myHintChar := myMap[(myMovePoint.Y - Map_Top.Value) div Map_RowHeight.Value, (myMovePoint.X - Map_Left.Value) div Map_ColWidth.Value];
         myDraw;
      end else myHintChar := '-';
@@ -1613,10 +1769,11 @@ begin
         Map_Bottom.SetFocus;
         myDraw;
       end;
+    VK_F2:                         // F2，更换皮肤
+      bt_Skin.Click;
   end;
 end;
 
-// 放大镜
 procedure TRecogForm_.Image1MouseMove(Sender: TObject; Shift: TShiftState;
   X, Y: Integer);
 var
@@ -1629,77 +1786,124 @@ begin
   myMovePoint.X := X;
   myMovePoint.Y := Y;
 
+  if isShiftDown then mySizeOf := 0
+  else mySizeOf_ := 0;
+
+  isSheelEnable := False;
+
   if mySelect = 0 then begin
-    StatusBar1.Panels[8].Text := '除拖动调整外，还可以用【L、T、R、B】键定义“左上右下”边框；特别的：【左键双击】可快速指定“左上角”；【右键单击】可快速指定“右下角”';
+    StatusBar1.Panels[8].Text := '除拖或滚轮动调整外，还可以用【L、T、R、B】键定义“左上右下”边框；特别的：【左键双击】可快速指定“左上角”；【右键单击】可快速指定“右下角”';
     case mySizeOf of
       0: begin
         Image1.Cursor := crCross;
-        if (Abs(X - Map_Left.Value) < 4) and (Y - Map_Top.Value > 8) and (Map_Bottom.Value - Y > 8) then begin
+        if (Abs(X - Map_Left.Value) < 4) and (Abs(Y - Map_Top.Value) < 4) then begin
+           Image1.Cursor := crSizeNWSE;
+           mySizeOf_ := 8;
+           isSheelEnable := True;
+           StatusBar1.Panels[8].Text := '【拖动 / 鼠标滚轮】调整【左上角】';     //  Shift +
+        end else if (Abs(X - (Map_Left.Value + Map_ColWidth.Value)) < 4) and (Abs(Y - (Map_Top.Value + Map_RowHeight.Value)) < 4) then begin
+           Image1.Cursor := crSizeNWSE;
+           mySizeOf_ := 7;
+           isSheelEnable := True;
+           StatusBar1.Panels[8].Text := '【拖动 / 鼠标滚轮】同时调整【行高列宽】';   //   Shift +
+        end else if (X > Map_Left.Value + 4) and (X < Map_Left.Value + Map_ColWidth.Value - 4) and (Y > Map_Top.Value + 4) and (Y < Map_Top.Value + Map_RowHeight.Value - 4) then begin
+           Image1.Cursor := cursorSheel_;
+           mySizeOf_ := 7;
+           isSheelEnable := True;
+           StatusBar1.Panels[8].Text := '【鼠标滚轮】同时调整【行高列宽】';     //    Shift +
+        end else if (Abs(X - Map_Left.Value) < 4) and (Y - Map_Top.Value > 8) and (Map_Bottom.Value - Y > 8) then begin
            Image1.Cursor := crSizeWE;
-           StatusBar1.Panels[8].Text := '拖动以调整【左边界】';
+           mySizeOf_ := 1;
+           isSheelEnable := True;
+           StatusBar1.Panels[8].Text := '【拖动 / 鼠标滚轮】调整【左边界】';   //   Shift +
         end else if (Abs(X - Map_Right.Value) < 4) and (Y - Map_Top.Value > 8) and (Map_Bottom.Value - Y > 8) then begin
            Image1.Cursor := crSizeWE;
-           StatusBar1.Panels[8].Text := '拖动以调整【右边界】';
+           mySizeOf_ := 2;
+           isSheelEnable := True;
+           StatusBar1.Panels[8].Text := '【拖动 / 鼠标滚轮】调整【右边界】';  //   Shift +
         end else if (Abs(Y - Map_Top.Value) < 4) and (X - Map_Left.Value > 8) and (Map_Right.Value - X > 8) then begin
            Image1.Cursor := crSizeNS;
-           StatusBar1.Panels[8].Text := '拖动以调整【上边界】';
+           mySizeOf_ := 3;
+           isSheelEnable := True;
+           StatusBar1.Panels[8].Text := '【拖动 / 鼠标滚轮】调整【上边界】';   //  Shift +
         end else if (Abs(Y - Map_Bottom.Value) < 4) and (X - Map_Left.Value > 8) and (Map_Right.Value - X > 8) then begin
            Image1.Cursor := crSizeNS;
-           StatusBar1.Panels[8].Text := '拖动以调整【下边界】';
+           mySizeOf_ := 4;
+           isSheelEnable := True;
+           StatusBar1.Panels[8].Text := '【拖动 / 鼠标滚轮】调整【下边界】';     //       Shift +
         end else if (Abs(X - (Map_Left.Value + Map_ColWidth.Value)) < 4) and (Y - Map_Top.Value > 8) and (Map_Bottom.Value - Y > 8) then begin
            Image1.Cursor := crSizeWE;
-           StatusBar1.Panels[8].Text := '拖动以调整【列宽】';
+           mySizeOf_ := 5;
+           isSheelEnable := True;
+           StatusBar1.Panels[8].Text := '【拖动 / 鼠标滚轮】调整【列宽】';         //        Shift +
         end else if (Abs(Y - (Map_Top.Value + Map_RowHeight.Value)) < 4) and (X - Map_Left.Value > 8) and (Map_Right.Value - X > 8) then begin
            Image1.Cursor := crSizeNS;
-           StatusBar1.Panels[8].Text := '拖动以调整【行高】';
+           mySizeOf_ := 6;
+           isSheelEnable := True;
+           StatusBar1.Panels[8].Text := '【拖动 / 鼠标滚轮】调整【行高】';     //    Shift + 
         end;
       end;
       1: begin
         SetLeft(X);
         PicCols := (Map_Right.Value-Map_Left.Value) div Map_ColWidth.Value;
-        Map_Left.SetFocus;
         myDraw;
-        StatusBar1.Panels[8].Text := '拖动以调整【左边界】';
+        StatusBar1.Panels[8].Text := '拖动调整【左边界】';
       end;
       2: begin
         SetRight(X);
         PicCols := (Map_Right.Value-Map_Left.Value) div Map_ColWidth.Value;
-        Map_Right.SetFocus;
         myDraw;
-        StatusBar1.Panels[8].Text := '拖动以调整【右边界】';
+        StatusBar1.Panels[8].Text := '拖动调整【右边界】';
       end;
       3: begin
         SetTop(Y);
         PicRows := (Map_Bottom.Value-Map_Top.Value) div Map_RowHeight.Value;
-        Map_Top.SetFocus;
         myDraw;
-        StatusBar1.Panels[8].Text := '拖动以调整【上边界】';
+        StatusBar1.Panels[8].Text := '拖动调整【上边界】';
       end;
       4: begin
         SetBottom(Y);
         PicRows := (Map_Bottom.Value-Map_Top.Value) div Map_RowHeight.Value;
-        Map_Bottom.SetFocus;
         myDraw;
-        StatusBar1.Panels[8].Text := '拖动以调整【下边界】';
+        StatusBar1.Panels[8].Text := '拖动调整【下边界】';
       end;
       5: begin
         if (X - Map_Left.Value > 9) and (X < Map_Right.Value) then
             Map_ColWidth.Value := Map_ColWidth.Value+dx;
         PicCols := (Map_Right.Value-Map_Left.Value) div Map_ColWidth.Value;
-        Map_ColWidth.SetFocus;
         myDraw;
-        StatusBar1.Panels[8].Text := '拖动以调整【列宽】';
+        StatusBar1.Panels[8].Text := '拖动调整【列宽】';
       end;
       6: begin
         if (Y - Map_Top.Value > 9) and (Y < Map_Bottom.Value) then
             Map_RowHeight.Value := Map_RowHeight.Value + dy;
         PicRows := (Map_Bottom.Value-Map_Top.Value) div Map_RowHeight.Value;
-        Map_RowHeight.SetFocus;
         myDraw;
-        StatusBar1.Panels[8].Text := '拖动以调整【行高】';
+        StatusBar1.Panels[8].Text := '拖动调整【行高】';
+      end;
+      7: begin
+        if (X - Map_Left.Value > 9) and (X < Map_Right.Value) and (Y - Map_Top.Value > 9) and (Y < Map_Bottom.Value) then begin
+            Map_ColWidth.Value := Map_ColWidth.Value+dx;
+            Map_RowHeight.Value := Map_RowHeight.Value + dy;
+        end;
+        PicCols := (Map_Right.Value-Map_Left.Value) div Map_ColWidth.Value;
+        PicRows := (Map_Bottom.Value-Map_Top.Value) div Map_RowHeight.Value;
+        myDraw;
+        StatusBar1.Panels[8].Text := '拖动同时调整【行高列宽】';
+      end;
+      8: begin
+        if (X > 0) and (X < Map_Right.Value) and (Y > 0) and (Y < Map_Bottom.Value) then begin
+            Map_Top.Value := Y;
+            Map_Left.Value := X;
+        end;
+        PicCols := (Map_Right.Value-Map_Left.Value) div Map_ColWidth.Value;
+        PicRows := (Map_Bottom.Value-Map_Top.Value) div Map_RowHeight.Value;
+        myDraw;
+        StatusBar1.Panels[8].Text := '拖动调整【左上角】';
       end;
     end;
   end;
+  scrollBox1.SetFocus;
 end;
 
 procedure TRecogForm_.sb_ReturnClick(Sender: TObject);
@@ -1754,6 +1958,7 @@ end;
 procedure TRecogForm_.FormKeyUp(Sender: TObject; var Key: Word;
   Shift: TShiftState);
 begin
+  isShiftDown := False;
   myHintChar := '-';
   myHintPos.X := -1;
   myHintPos.Y := -1;
@@ -1883,6 +2088,7 @@ procedure TRecogForm_.Map_LeftMouseMove(Sender: TObject;
   Shift: TShiftState; X, Y: Integer);
 begin
   Image1.Tag := 1;
+  isShiftDown := False;
   Map_Left.SetFocus;
   StatusBar1.Panels[8].Text := '输入或微调【左边界】';
 end;
@@ -1897,6 +2103,7 @@ procedure TRecogForm_.Map_RightMouseMove(Sender: TObject;
   Shift: TShiftState; X, Y: Integer);
 begin
   Image1.Tag := 3;
+  isShiftDown := False;
   Map_Right.SetFocus;
   StatusBar1.Panels[8].Text := '输入或微调【右边界】';
 end;
@@ -1911,6 +2118,7 @@ procedure TRecogForm_.Map_TopMouseMove(Sender: TObject; Shift: TShiftState;
   X, Y: Integer);
 begin
   Image1.Tag := 2;
+  isShiftDown := False;
   Map_Top.SetFocus;
   StatusBar1.Panels[8].Text := '输入或微调【上边界】';
 end;
@@ -1925,6 +2133,7 @@ procedure TRecogForm_.Map_BottomMouseMove(Sender: TObject;
   Shift: TShiftState; X, Y: Integer);
 begin
   Image1.Tag := 4;
+  isShiftDown := False;
   Map_Bottom.SetFocus;
   StatusBar1.Panels[8].Text := '输入或微调【下边界】';
 end;
@@ -1939,6 +2148,7 @@ procedure TRecogForm_.Map_RowHeightMouseMove(Sender: TObject;
   Shift: TShiftState; X, Y: Integer);
 begin
   Image1.Tag := 6;
+  isShiftDown := False;
   Map_RowHeight.SetFocus;
   StatusBar1.Panels[8].Text := '输入或微调【行高】';
 end;
@@ -1947,6 +2157,7 @@ procedure TRecogForm_.Map_ColWidthMouseMove(Sender: TObject;
   Shift: TShiftState; X, Y: Integer);
 begin
   Image1.Tag := 5;
+  isShiftDown := False;
   Map_ColWidth.SetFocus;
   StatusBar1.Panels[8].Text := '输入或微调【列宽】';
 end;
@@ -2079,9 +2290,15 @@ var
   i, j, nRows, nCols: Integer;
   MyXSB: TStringList;
 begin
-  for i := 1 to 99 do begin
-      for j := 1 to 99 do begin
+  for i := 0 to 99 do begin
+      for j := 0 to 99 do begin
           myMap[i, j] := '-';
+
+{$IFDEF TEST}
+   duMap[i, j] := 0;
+   clMap[i, j] := 0;
+{$ENDIF}
+
       end;
   end;
 
@@ -2131,6 +2348,39 @@ procedure TRecogForm_.Panel4Click(Sender: TObject);
 begin
   Image3.Visible := True;
   myDraw;
+end;
+
+procedure TRecogForm_.bt_SkinClick(Sender: TObject);
+begin
+  Recog_.LoadSkin;
+  myDraw;
+end;
+
+procedure TRecogForm_.bt_SkinMouseMove(Sender: TObject; Shift: TShiftState;
+  X, Y: Integer);
+begin
+  Image1.Tag := 0;
+  StatusBar1.Panels[8].Text := bt_Skin.Hint;
+end;
+
+procedure TRecogForm_.ScrollBox1MouseWheelDown(Sender: TObject;
+  Shift: TShiftState; MousePos: TPoint; var Handled: Boolean);
+begin
+  if isShiftDown or isSheelEnable then Exit;
+
+  if ssCtrl in Shift then TScrollBox(Sender).HorzScrollBar.Position := TScrollBox(Sender).HorzScrollBar.Position + 50
+  else TScrollBox(Sender).VertScrollBar.Position := TScrollBox(Sender).VertScrollBar.Position + 50;
+  Handled := True;
+end;
+
+procedure TRecogForm_.ScrollBox1MouseWheelUp(Sender: TObject;
+  Shift: TShiftState; MousePos: TPoint; var Handled: Boolean);
+begin
+  if isShiftDown or isSheelEnable then Exit;
+  
+  if ssCtrl in Shift then TScrollBox(Sender).HorzScrollBar.Position := TScrollBox(Sender).HorzScrollBar.Position - 50
+  else TScrollBox(Sender).VertScrollBar.Position := TScrollBox(Sender).VertScrollBar.Position - 50;
+  Handled := True;
 end;
 
 end.

@@ -58,6 +58,7 @@ object ActionForm: TActionForm
       Font.Height = -21
       Font.Name = #26999#20307
       Font.Style = []
+      ImeName = #20013#25991'('#31616#20307') - '#25628#29399#25340#38899#36755#20837#27861
       ParentFont = False
       TabOrder = 0
     end
@@ -160,6 +161,7 @@ object ActionForm: TActionForm
     Height = 22
     Style = csOwnerDrawFixed
     DropDownCount = 9
+    ImeName = #20013#25991'('#31616#20307') - '#25628#29399#25340#38899#36755#20837#27861
     ItemHeight = 16
     TabOrder = 10
     OnSelect = LoadBoxSelect
@@ -180,6 +182,7 @@ object ActionForm: TActionForm
     Width = 105
     Height = 22
     Style = csOwnerDrawFixed
+    ImeName = #20013#25991'('#31616#20307') - '#25628#29399#25340#38899#36755#20837#27861
     ItemHeight = 16
     TabOrder = 11
     OnSelect = SaveBoxSelect

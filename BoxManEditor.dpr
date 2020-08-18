@@ -6,7 +6,7 @@ uses
   EditorInf_ in 'EditorInf_.pas' {EditorInfForm_},
   Recog_ in 'Recog_.pas' {RecogForm_},
   LoadSkin in 'LoadSkin.pas' {LoadSkinForm},
-  EditorHelp in 'Immge\EditorHelp.pas' {EditorHelpForm};
+  EditorHelp in 'EditorHelp.pas' {EditorHelpForm};
 
 {$R *.res}
 
