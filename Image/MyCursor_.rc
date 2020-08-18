@@ -1,0 +1,7 @@
+CURSOR_WALL_     CURSOR	cursorwall_.cur
+CURSOR_BOX_      CURSOR	cursorbox_.cur
+CURSOR_BOXGOAL_  CURSOR	cursorboxgoal_.cur
+CURSOR_GOAL_     CURSOR	cursorgoal_.cur
+CURSOR_ERASE_    CURSOR cursorerase_.cur
+CURSOR_PLAYER_   CURSOR	cursorplayer_.cur
+

@@ -25,3 +25,5 @@ modules/
 /BoxMan.log
 /BoxMan.dat
 /BoxMan.cfg
+/*.dcu
+/BoxMan.ldb

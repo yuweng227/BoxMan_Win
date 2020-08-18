@@ -1,8 +1,8 @@
 object main: Tmain
-  Left = 222
+  Left = 223
   Top = 132
   Width = 732
-  Height = 530
+  Height = 531
   Caption = 'BoxMan'
   Color = clBtnFace
   Font.Charset = ANSI_CHARSET
@@ -152,7 +152,6 @@ object main: Tmain
   OnCreate = FormCreate
   OnDestroy = FormDestroy
   OnKeyDown = FormKeyDown
-  OnKeyPress = FormKeyPress
   OnKeyUp = FormKeyUp
   OnMouseWheelDown = FormMouseWheelDown
   OnMouseWheelUp = FormMouseWheelUp
@@ -162,7 +161,7 @@ object main: Tmain
   TextHeight = 13
   object StatusBar1: TStatusBar
     Left = 0
-    Top = 473
+    Top = 474
     Width = 716
     Height = 19
     Panels = <
@@ -216,14 +215,14 @@ object main: Tmain
     Left = 0
     Top = 30
     Width = 716
-    Height = 443
+    Height = 444
     Align = alClient
     TabOrder = 1
     object pl_Side: TPanel
       Left = 1
       Top = 1
       Width = 172
-      Height = 441
+      Height = 442
       Align = alLeft
       BevelInner = bvLowered
       Color = clInactiveCaption
@@ -232,7 +231,7 @@ object main: Tmain
         Left = 2
         Top = 32
         Width = 168
-        Height = 407
+        Height = 408
         Cursor = crHandPoint
         ActivePage = Tab_Solution
         Align = alClient
@@ -244,15 +243,17 @@ object main: Tmain
             Left = 0
             Top = 0
             Width = 160
-            Height = 379
+            Height = 380
             Style = lbOwnerDrawVariable
             Align = alClient
+            ImeName = #20013#25991'('#31616#20307') - '#25628#29399#25340#38899#36755#20837#27861
             ItemHeight = 13
             PopupMenu = pmSolution
             TabOrder = 0
             OnDblClick = List_SolutionDblClick
             OnDrawItem = List_SolutionDrawItem
             OnMeasureItem = List_SolutionMeasureItem
+            OnMouseDown = List_SolutionMouseDown
           end
         end
         object Tab_Snapshot: TTabSheet
@@ -262,15 +263,17 @@ object main: Tmain
             Left = 0
             Top = 0
             Width = 160
-            Height = 379
+            Height = 380
             Style = lbOwnerDrawVariable
             Align = alClient
+            ImeName = #20013#25991'('#31616#20307') - '#25628#29399#25340#38899#36755#20837#27861
             ItemHeight = 13
             PopupMenu = pmState
             TabOrder = 0
             OnDblClick = List_StateDblClick
             OnDrawItem = List_SolutionDrawItem
             OnMeasureItem = List_SolutionMeasureItem
+            OnMouseDown = List_SolutionMouseDown
           end
         end
         object tsList_Inf: TTabSheet
@@ -280,9 +283,10 @@ object main: Tmain
             Left = 0
             Top = 0
             Width = 160
-            Height = 379
+            Height = 380
             TabStop = False
             Align = alClient
+            ImeName = #20013#25991'('#31616#20307') - '#25628#29399#25340#38899#36755#20837#27861
             Lines.Strings = (
               '')
             ReadOnly = True
@@ -329,7 +333,7 @@ object main: Tmain
       Left = 173
       Top = 1
       Width = 542
-      Height = 441
+      Height = 442
       Align = alClient
       Alignment = taLeftJustify
       BevelOuter = bvNone
@@ -596,13 +600,22 @@ object main: Tmain
       ShowHint = True
       OnClick = bt_LeftBarClick
     end
-    object SpeedButton1: TSpeedButton
+    object sb_Help: TSpeedButton
       Left = 584
       Top = 4
       Width = 23
       Height = 22
-      Visible = False
-      OnClick = SpeedButton1Click
+      Hint = #24110#21161#65306#12304'F1'#12305
+      Caption = '?'
+      Font.Charset = ANSI_CHARSET
+      Font.Color = clWindowText
+      Font.Height = -13
+      Font.Name = #23435#20307
+      Font.Style = [fsBold]
+      ParentFont = False
+      ParentShowHint = False
+      ShowHint = True
+      OnClick = sb_HelpClick
     end
     object pnl_Trun: TPanel
       Left = 484
@@ -639,6 +652,7 @@ object main: Tmain
       Height = 19
       BevelInner = bvNone
       Ctl3D = False
+      ImeName = #20013#25991'('#31616#20307') - '#25628#29399#25340#38899#36755#20837#27861
       MaxLength = 4
       ParentCtl3D = False
       TabOrder = 2
