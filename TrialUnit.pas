@@ -4,7 +4,7 @@ interface
 
 uses
   Windows, Messages, SysUtils, Variants, Classes, Graphics, Controls, Forms,
-  Dialogs, Buttons, ExtCtrls, ComCtrls, AppEvnts, PathFinder, Math, StdCtrls;
+  Dialogs, Buttons, ExtCtrls, ComCtrls, AppEvnts, PathFinder, Math, StdCtrls, Clipbrd;
 
 type
   TTrialForm = class(TForm)
@@ -19,6 +19,7 @@ type
     StatusBar1: TStatusBar;
     ApplicationEvents1: TApplicationEvents;
     pnl_Trun: TPanel;
+    bt_Save: TSpeedButton;
     procedure FormCreate(Sender: TObject);
     procedure bt_ExitMouseMove(Sender: TObject; Shift: TShiftState; X,
       Y: Integer);
@@ -60,6 +61,8 @@ type
       MousePos: TPoint; var Handled: Boolean);
     procedure FormMouseWheelDown(Sender: TObject; Shift: TShiftState;
       MousePos: TPoint; var Handled: Boolean);
+    procedure bt_SaveClick(Sender: TObject);
+
   private
     { Private declarations }
   public
@@ -113,11 +116,13 @@ var
             ('d', 'r', 'u', 'l', 'D', 'R', 'U', 'L'),
             ('l', 'd', 'r', 'u', 'L', 'D', 'R', 'U'),
             ('u', 'l', 'd', 'r', 'U', 'L', 'D', 'R'));
-            
+
+    xbsChar: array[0..7] of Char = ( '_', '#', '-', '.', '$', '*', '@', '+' );
+
 implementation
 
 uses
-  LurdAction, LoadSkin, Recog_;
+  Editor_, LurdAction, LoadSkin, Recog_;
 
 {$R *.dfm}
 
@@ -575,11 +580,13 @@ begin
   bt_Exit.Caption := '返回';
   bt_GoThrough.Caption := '穿越';
   bt_OddEven.Caption := '奇偶';
+  bt_Save.Caption := '导出（XSB + Lurd）';
 
-  bt_Exit.Hint := '返回编辑: Esc';
-  bt_GoThrough.Hint := '穿越开关: G';
-  bt_OddEven.Hint := '奇偶格位: E';
-
+  bt_Exit.Hint := '返回编辑【Ctrl + Q】';
+  bt_GoThrough.Hint := '穿越开关【G】';
+  bt_OddEven.Hint := '奇偶格位【E】';
+  bt_Save.Hint := '导出演练场的 XSB + Lurd【Ctrl + C】';
+  
   StatusBar1.Panels[0].Text := '移动';
   StatusBar1.Panels[2].Text := '推动';
   StatusBar1.Panels[4].Text := '箱子数';
@@ -903,6 +910,7 @@ var
   i: Integer;
 begin
   myPathFinder.isEditor := True;        // 编辑器调用时，不会自动保存动作日志
+  myPathFinder.setThroughable(isGoThrough);
 
   UnDoPos := 0;
   ReDoPos := 0;
@@ -1006,6 +1014,7 @@ end;
 procedure TTrialForm.bt_GoThroughClick(Sender: TObject);
 begin
   isGoThrough := not isGoThrough;
+  myPathFinder.setThroughable(isGoThrough);
   SetButton;
 end;
 
@@ -1330,6 +1339,8 @@ begin
       if ssCtrl in Shift then begin
          Close();
       end;
+    71:                // G， 穿越
+      bt_GoThrough.Click;
     76:                // Ctrl + L， 从剪切板加载 Lurd
       if ssCtrl in Shift then begin
          if LoadLurdFromClipboard(isBK) then begin
@@ -1341,6 +1352,10 @@ begin
       if ssCtrl in Shift then begin
          if LurdToClipboard(ManPos mod mapCols, ManPos div mapCols) then
             StatusBar1.Panels[7].Text := '动作 Lurd 送入剪切板！';
+      end;
+    67:                 // Ctrl + C， XSB 送入剪切板
+      if ssCtrl in Shift then begin
+        bt_Save.Click;
       end;
     106, 56:                    // 第 0 转
       begin
@@ -1675,6 +1690,34 @@ begin
   bt_UnDo.Click;          // z，撤销
   Handled := True;
   Delay(10);
+end;
+
+procedure TTrialForm.bt_SaveClick(Sender: TObject);
+var
+  str: string;
+  r, c: Integer;
+begin
+  StatusBar1.Panels[7].Text := '';
+
+  // 关卡 XSB
+  str := EditorForm_.GetXSB;
+
+  if isBK then begin    // 逆推演练时，记录人的初始位置
+    c := manPos mod mapCols + 1;
+    r := manPos div mapCols + 1;
+
+    str := #10 + '; SXB 为关卡逆推初态' + #10 + str + '[' + IntToStr(c) + ', ' + IntToStr(r) + ']';
+  end;
+  
+  if UnDoPos > 0 then begin
+     if UnDoPos < MaxLenPath then UndoList[UnDoPos+1] := #0;
+     str := str + PChar(@UndoList) + #10;
+  end;
+  
+  // 送入剪切板
+  Clipboard.SetTextBuf(PChar(str));
+
+  StatusBar1.Panels[7].Text := 'XSB + Lurd 已送入剪切板！';
 end;
 
 end.

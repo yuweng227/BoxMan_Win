@@ -346,7 +346,7 @@ const
   SpeedInf: array[0..4] of string = ('最快', '较快', '中速', '较慢', '最慢');
   
   AppName = 'BoxMan';
-  AppVer = ' V2.1';
+  AppVer = ' V2.2';
 
 var
   main: Tmain;
@@ -2434,6 +2434,7 @@ end;
 // 键盘按下
 procedure Tmain.FormKeyDown(Sender: TObject; var Key: Word; Shift: TShiftState);
 begin
+//  StatusBar1.Panels[7].Text := IntToStr(Key);
   case Key of
     VK_PRIOR:               // Page Up键，  上一关
       begin
@@ -2652,6 +2653,8 @@ begin
     71:                // Ctrl + G， 固定的目标位
       if ssCtrl in Shift then begin
          pmGoal.Click;
+      end else begin
+        bt_GoThrough.Click;
       end;
     74:                // Ctrl + J， 即景目标位
       if ssCtrl in Shift then begin

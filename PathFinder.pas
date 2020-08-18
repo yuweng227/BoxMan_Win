@@ -1151,6 +1151,13 @@ end;
         end;
     end;
 
+    while PQ <> nil do begin
+        PQ_Head := PQ;
+        PQ := PQ.next;
+        Dispose(PQ_Head);
+        PQ_Head := nil;
+    end;
+
     if (isFound) then begin  // 找到了路径
 
         mToR  := toR;        // 箱子目标

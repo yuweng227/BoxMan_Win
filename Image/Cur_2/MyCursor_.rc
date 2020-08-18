@@ -5,3 +5,4 @@ CURSOR_GOAL_	 CURSOR	cursorgoal_.cur
 CURSOR_PLAYER_	 CURSOR	cursorplayer_.cur
 CURSOR_ERASE_    CURSOR cursorErase_.cur
 CURSOR_SHEEL_    CURSOR cursorSheel_.cur
+CURSOR_BOXM_	 CURSOR	cursorboxm_.cur

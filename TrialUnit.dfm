@@ -178,7 +178,7 @@ object TrialForm: TTrialForm
       Width = 33
       Height = 22
       Cursor = crHandPoint
-      Hint = #25764#38144': Z'
+      Hint = #25764#38144#12304'Z'#12305
       Glyph.Data = {
         F6000000424DF600000000000000760000002800000010000000100000000100
         04000000000080000000C40E0000C40E00001000000000000000000000000000
@@ -198,7 +198,7 @@ object TrialForm: TTrialForm
       Width = 33
       Height = 22
       Cursor = crHandPoint
-      Hint = #37325#20570': X'
+      Hint = #37325#20570#12304'X'#12305
       Glyph.Data = {
         F6000000424DF600000000000000760000002800000010000000100000000100
         04000000000080000000C40E0000C40E00001000000000000000000000000000
@@ -213,12 +213,12 @@ object TrialForm: TTrialForm
       OnClick = bt_ReDoClick
     end
     object bt_OddEven: TSpeedButton
-      Left = 105
+      Left = 113
       Top = 4
       Width = 36
       Height = 22
       Cursor = crHandPoint
-      Hint = #22855#20598#26684#20301': E'
+      Hint = #22855#20598#26684#20301#12304'E'#12305
       Caption = #22855#20598
       ParentShowHint = False
       ShowHint = True
@@ -226,12 +226,12 @@ object TrialForm: TTrialForm
       OnMouseUp = bt_OddEvenMouseUp
     end
     object bt_GoThrough: TSpeedButton
-      Left = 57
+      Left = 65
       Top = 4
       Width = 36
       Height = 22
       Cursor = crHandPoint
-      Hint = #31359#36234#24320#20851': G'
+      Hint = #31359#36234#24320#20851#12304'G'#12305
       AllowAllUp = True
       GroupIndex = 1
       Caption = #31359#36234
@@ -242,21 +242,33 @@ object TrialForm: TTrialForm
     object bt_Exit: TSpeedButton
       Left = 12
       Top = 4
-      Width = 33
+      Width = 40
       Height = 22
       Cursor = crHandPoint
-      Hint = #36820#22238#32534#36753': Esc'
+      Hint = #36820#22238#32534#36753#12304'Ctrl + Q'#12305
       Caption = #36820#22238
       ParentShowHint = False
       ShowHint = True
       OnClick = bt_ExitClick
     end
+    object bt_Save: TSpeedButton
+      Left = 338
+      Top = 4
+      Width = 119
+      Height = 22
+      Cursor = crHandPoint
+      Hint = #23548#20986#28436#32451#22330#30340' XSB + Lurd '#21040#21098#20999#26495#12304'Ctrl + C'#12305
+      Caption = #23548#20986#65288'XSB + Lurd'#65289
+      ParentShowHint = False
+      ShowHint = True
+      OnClick = bt_SaveClick
+    end
     object pnl_Trun: TPanel
-      Left = 268
+      Left = 264
       Top = 4
       Width = 41
       Height = 23
-      Hint = #26059#36716#20851#21345': *'#12289'/'#12289#24038#21491#40736#26631#38190
+      Hint = #26059#36716#20851#21345#12304'*'#12289'/'#12289#24038#21491#40736#26631#38190#12305
       BevelInner = bvLowered
       Caption = '0'#36716
       Color = clActiveCaption
@@ -341,7 +353,6 @@ object TrialForm: TTrialForm
         Width = 4
       end
       item
-        Style = psOwnerDraw
         Text = ' '
         Width = 50
       end>

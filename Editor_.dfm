@@ -3,7 +3,7 @@ object EditorForm_: TEditorForm_
   Top = 140
   Width = 800
   Height = 561
-  Caption = #20851#21345#32534#36753#22120
+  Caption = #20851#21345#32534#36753#22120' v19.12'
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
   Font.Color = clWindowText
@@ -3397,24 +3397,27 @@ object EditorForm_: TEditorForm_
     Left = 216
     Top = 49
     object N1: TMenuItem
-      Caption = #21491#31227#19968#21015
-      ShortCut = 16429
+      Caption = #21491#31227#19968#21015'    '#12304'Ctrl + '#8594#12305
       OnClick = N1Click
     end
     object N2: TMenuItem
-      Caption = #24038#31227#19968#21015
-      ShortCut = 16430
+      Caption = #24038#31227#19968#21015'    '#12304'Ctrl + '#8592#12305
       OnClick = N2Click
     end
     object N3: TMenuItem
-      Caption = #19979#31227#19968#34892
-      ShortCut = 8237
+      Caption = #19979#31227#19968#34892'    '#12304'Ctrl + '#8595#12305
       OnClick = N3Click
     end
     object N4: TMenuItem
-      Caption = #19978#31227#19968#34892
-      ShortCut = 8238
+      Caption = #19978#31227#19968#34892'    '#12304'Ctrl + '#8593#12305
       OnClick = N4Click
+    end
+    object N12: TMenuItem
+      Caption = '-'
+    end
+    object InPlace: TMenuItem
+      Caption = #25670#31665#23376#27169#24335'    '#12304'F8'#12305
+      OnClick = InPlaceClick
     end
     object N5: TMenuItem
       Caption = '-'
@@ -3451,6 +3454,13 @@ object EditorForm_: TEditorForm_
     AutoHotkeys = maManual
     Left = 360
     Top = 51
+    object N14: TMenuItem
+      Caption = #25670#31665#23376#27169#24335'    '#12304'F8'#12305
+      OnClick = InPlaceClick
+    end
+    object N13: TMenuItem
+      Caption = '-'
+    end
     object N9: TMenuItem
       Caption = #28165#38500#31665#23376
       OnClick = N9Click

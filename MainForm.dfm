@@ -1,6 +1,6 @@
 object main: Tmain
-  Left = 324
-  Top = 139
+  Left = 317
+  Top = 141
   Width = 732
   Height = 532
   Caption = 'BoxMan'
@@ -620,10 +620,10 @@ object main: Tmain
     object SpeedButton1: TSpeedButton
       Left = 624
       Top = 4
-      Width = 23
+      Width = 49
       Height = 22
       Hint = #24110#21161#65306#12304'F1'#12305
-      Caption = 'T'
+      Caption = #27979#35797
       Font.Charset = ANSI_CHARSET
       Font.Color = clWindowText
       Font.Height = -13
