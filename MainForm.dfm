@@ -1,6 +1,6 @@
 object main: Tmain
-  Left = 866
-  Top = 137
+  Left = 325
+  Top = 141
   Width = 732
   Height = 532
   Caption = 'BoxMan'

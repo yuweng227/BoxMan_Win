@@ -500,7 +500,7 @@ end;
 function TRecogForm_.isSubimage(img1: TBitmap; c, r: Integer): boolean;
 var
 	m_SampleArray1: TIntArr;   // 格子的比较数组
-	v, v_: double;
+	v: double;                 // , v_
   flg: boolean;
 begin
 	my_Grey1 := getAverageGrey(img1, False, my_Color1, m_SampleArray1);                  // 获取比较图块的主颜色

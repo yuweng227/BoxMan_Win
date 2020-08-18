@@ -58,13 +58,16 @@ type
     PopupMenu3: TPopupMenu;
     N8: TMenuItem;
     sb_Trial: TSpeedButton;
+    PopupMenu4: TPopupMenu;
+    N9: TMenuItem;
+    N10: TMenuItem;
+    N11: TMenuItem;
     procedure SetSelect;
     procedure img_WallClick(Sender: TObject);
     procedure img_BoxClick(Sender: TObject);
     procedure img_GoalClick(Sender: TObject);
     procedure img_FloorClick(Sender: TObject);
     procedure img_PlayerClick(Sender: TObject);
-    procedure FormActivate(Sender: TObject);
     procedure DrawGrid1DrawCell(Sender: TObject; ACol, ARow: Integer;
       Rt: TRect; State: TGridDrawState);
     procedure FormCreate(Sender: TObject);
@@ -144,7 +147,10 @@ type
     procedure N8Click(Sender: TObject);
     procedure sb_TrialMouseMove(Sender: TObject; Shift: TShiftState; X,
       Y: Integer);
-    procedure sb_TrialClick(Sender: TObject);  private                     // 读取关卡 -- 从剪切板加载 XSB
+    procedure sb_TrialClick(Sender: TObject);
+    procedure N9Click(Sender: TObject);
+    procedure N10Click(Sender: TObject);
+    procedure N11Click(Sender: TObject);  private                     // 读取关卡 -- 从剪切板加载 XSB
     procedure SetUnDoReDo(isReDo: Boolean = false);                             // Set UnDo
     function LurdToXSB(mStr: String): boolean;                                  // 用答案倒推关卡
     function isLurd(str: String): boolean;                                      // 是否 Lurd 字符串
@@ -195,25 +201,6 @@ uses
   
 {$R *.dfm}
 {$R MyCursor.res}
-
-// 初始画面
-procedure TEditorForm_.FormActivate(Sender: TObject);
-var
-  i, j: Integer;
-begin
-  mySelect := 0;
-  SetSelect;
-  
-  curCell.X := 0;
-  curCell.Y := 0;
-
-  for i := 1 to MaxSize do begin
-      for j := 1 to MaxSize do begin
-          MapBoard[i, j] := 0;
-      end;
-  end;
-
-end;
 
 // 画元素选择框、改变鼠标样式
 procedure TEditorForm_.SetSelect;
@@ -373,6 +360,8 @@ begin
 end;
 
 procedure TEditorForm_.FormCreate(Sender: TObject);
+var
+  i, j: Integer;
 begin
   if paramcount = 1 then
      isMouseSheel := AnsiSameText('/m', paramstr(1));
@@ -400,6 +389,9 @@ begin
   N6.Caption := '参考图';
   N7.Caption := '小参考图';
   N8.Caption := '最小标准化';
+  N9.Caption := '清除箱子';
+  N10.Caption := '清除目标点';
+  N11.Caption := '仅保留墙壁';
 
   sb_SaveToFile.Hint := '保存到文档【Ctrl + S】';
   sb_Save.Hint := '复制 - 送入剪切板【Ctrl + C】';
@@ -412,7 +404,7 @@ begin
   sb_Help.Hint := '帮助【F1]';
   sb_LoadPic.Hint := '截图识别';
   bt_Skin.Hint := '更换皮肤【F2】'; 
-  sb_Trial.Hint := '试炼场【F5/F6】';  
+  sb_Trial.Hint := '演炼场【F5、单击/F6、Ctrl + 单击】';  
 
   img_Wall.Hint := '绘制 -- 『墙壁』';
   img_Box.Hint := '绘制 -- 『箱子』';
@@ -447,8 +439,18 @@ begin
   N6.Checked := False;
   N7.Checked := False;
 
-  CellSize := 60;
+  mySelect := 0;
+  SetSelect;
+  
+  curCell.X := 0;
+  curCell.Y := 0;
 
+  for i := 1 to MaxSize do begin
+      for j := 1 to MaxSize do begin
+          MapBoard[i, j] := 0;
+      end;
+  end;
+  
   KeyPreview := true;
 end;
 
@@ -551,7 +553,7 @@ begin
   with Sender as TDrawGrid do begin
     MouseToCell(x, y, xx, yy);
     if (xx >= 0) and (xx < ColCount) and (yy >= 0) and (yy < RowCount) then begin
-      if (xx-LeftCol < (Width-24) div CellSize) and (yy-TopRow < (Height-24) div CellSize)then begin
+      if (CellSize > 0) and (xx-LeftCol < (Width-24) div CellSize) and (yy-TopRow < (Height-24) div CellSize)then begin
         Row := yy;
         Col := xx;
       end;
@@ -943,7 +945,11 @@ begin
   result := TStringList.Create;
 
   src := StringReplace(src, #13, #10, [rfReplaceAll]);
-  src := StringReplace(src, #10#10, #10, [rfReplaceAll]);
+  i := 1;
+  while i > 0 do begin
+     src := StringReplace(src, #10#10, #10, [rfReplaceAll]);
+     i := pos(#10#10, src);
+  end;
 
   repeat
     i := pos(#10, src);
@@ -1308,6 +1314,10 @@ begin
       end;
     VK_F2:                         // F2，更换皮肤
       bt_Skin.Click;
+    VK_F5:                         // F5，正推演练
+      sb_Trial.Click;
+    VK_F6:                         // F6，逆推演练
+      sb_Trial.Click;
     37:                                                    // Ctrl + ←，左移列
       if ssCtrl in Shift then begin
          N2.Click;
@@ -2100,12 +2110,13 @@ begin
   StatusBar1.Panels[8].Text := sb_Trial.Hint;
 end;
 
+// 进入演练场
 procedure TEditorForm_.sb_TrialClick(Sender: TObject);
 const
   dr4 : array[0..3] of Integer = (  0, 0, -1, 1 );         // 四邻常量：左、右、上、下
   dc4 : array[0..3] of Integer = ( -1, 1,  0, 0 );
 var
-  i, j, k, mr, mc, nRen, nPos, p, tail: Integer;
+  i, j, k, mr, mc, nRen, nPos, p, tail, nBox: Integer;
   mr2, mc2: Integer;
   pt: array[0..MaxSize*MaxSize] of Integer;
   Mark: array[1..MaxSize, 1..MaxSize] of Boolean;
@@ -2113,14 +2124,8 @@ var
   flg: Boolean;
 
 begin
-  mr := manPos.Y;
-  mc := manPos.X;
-  
-  if (mr < 0) or (mc < 0) then begin
-     MessageBox(Handle, '仓管员数不正确！', '错误', MB_ICONERROR + MB_OK);           // 没有仓管员
-     Exit;
-  end;
-
+  mr := -1;
+  mc := -1;
   nRen := 0;
   for i := 1 to MaxSize do begin
     for j := 1 to MaxSize do begin
@@ -2134,9 +2139,12 @@ begin
     end;
   end;
 
-  if nRen <> 1 then Exit;               // 仓管员 <> 1
-
-  // 为方便，在临时地图四周加上墙壁框
+  if nRen <> 1 then begin
+     MessageBox(Handle, '仓管员数不正确！', '错误', MB_ICONERROR + MB_OK);           // 没有仓管员
+     Exit;
+  end;
+  
+  // 为了计算和比对的方便，在临时地图四周加上墙壁框
   for i := 0 to MaxSize+1 do begin
     MapBoard_OK[i,         0        ] := '#';
     MapBoard_OK[i,         MaxSize+1] := '#';
@@ -2151,6 +2159,7 @@ begin
     end;
   end;
 
+  nBox := 0;
   p := 0; tail := 0;
   Mark[mr, mc] := True;
   pt[0] := (mr shl 16) or mc;
@@ -2158,6 +2167,8 @@ begin
     nPos := pt[p];
     mr := (nPos shr 16) and $FFFF;
     mc := nPos and $FFFF;;
+
+    if MapBoard_OK[mr, mc] in ['$', '*'] then Inc(nBox);
 
     // 向周边探索，检查是否可达
     for k := 0 to 3 do begin
@@ -2178,13 +2189,15 @@ begin
     Inc(p);
   end;
 
+  // 梳理单元格数据
   for i := 1 to MaxSize do begin
     for j := 1 to MaxSize do begin
       if (MapBoard[i, j] < 0) or (MapBoard[i, j] > 6) then MapBoard_OK[i, j] := '-'
       else MapBoard_OK[i, j] := XSB[MapBoard[i, j]];
     end;
   end;
-  
+
+  // 以人的活动范围定义地图的“四至”
   flg := True;
   top := 1;
   while flg and (top <= MaxSize) do begin
@@ -2238,25 +2251,109 @@ begin
       if flg then dec(right);
   end;
 
+  // 试炼场范围，定义为人的活动范围向外扩充一个单元格
   Dec(top);
   Dec(left);
   Inc(bottom);
   Inc(right);
-  TrialForm.isBK        := False;
-  TrialForm.isGoThrough := True;
-  TrialForm.isOddEven   := True;
   TrialForm.mapRows     := bottom - top  + 1;
   TrialForm.mapCols     := right  - left + 1;
 
   TrialForm.myPathFinder.PathFinder(TrialForm.mapCols, TrialForm.mapRows);
 
+  // 将试炼地图送入试炼场
   for i := top to bottom do begin
       for j := left to right do begin
-          TrialForm.map_Board[(i-top) * TrialForm.mapCols + j-left] := MapBoard_OK[i, j];
+          case MapBoard_OK[i, j] of
+            '#': TrialForm.map_Board[(i-top) * TrialForm.mapCols + j-left] := 1;      // WallCell
+            '.': TrialForm.map_Board[(i-top) * TrialForm.mapCols + j-left] := 3;      // GoalCell
+            '$': TrialForm.map_Board[(i-top) * TrialForm.mapCols + j-left] := 4;      // BoxCell
+            '*': TrialForm.map_Board[(i-top) * TrialForm.mapCols + j-left] := 5;      // BoxGoalCell
+            '@': TrialForm.map_Board[(i-top) * TrialForm.mapCols + j-left] := 6;      // ManCell
+            '+': TrialForm.map_Board[(i-top) * TrialForm.mapCols + j-left] := 7;      // ManGoalCell
+            else TrialForm.map_Board[(i-top) * TrialForm.mapCols + j-left] := 2;      // FloorCell
+          end;
       end;
   end;
-    
+
+  // 进入试炼场
+  if GetKeyState(VK_CONTROL) < 0 then begin  // 是否按下 ctrl 键
+    TrialForm.isBK := True;         // 逆推演炼场
+    TrialForm.Caption := '逆推演炼场';
+  end else begin
+    TrialForm.isBK := False;        // 正推演炼场
+    TrialForm.Caption := '正推演炼场';
+  end;
+
+  TrialForm.StatusBar1.Panels[5].Text := Format('%d', [ nBox ]);
+
   TrialForm.Show;
+end;
+
+// 清除箱子
+procedure TEditorForm_.N9Click(Sender: TObject);
+var
+  i, j: Integer;
+begin
+  SetUnDoReDo;
+
+  isDrawing := True;
+
+  for i := 1 to MaxSize do begin
+      for j := 1 to MaxSize do begin
+          if MapBoard[i, j] = 2 then MapBoard[i, j] := 0
+          else if MapBoard[i, j] = 3 then MapBoard[i, j] := 1;
+      end;
+  end;
+
+  isSaved := False;
+  isDrawing := False;
+  myCount;
+  DrawGrid1.Invalidate;
+end;
+
+// 清除目标点
+procedure TEditorForm_.N10Click(Sender: TObject);
+var
+  i, j: Integer;
+begin
+  SetUnDoReDo;
+
+  isDrawing := True;
+
+  for i := 1 to MaxSize do begin
+      for j := 1 to MaxSize do begin
+          if MapBoard[i, j] = 1 then MapBoard[i, j] := 0
+          else if MapBoard[i, j] = 3 then MapBoard[i, j] := 2
+          else if MapBoard[i, j] = 5 then MapBoard[i, j] := 4;
+      end;
+  end;
+
+  isSaved := False;
+  isDrawing := False;
+  myCount;
+  DrawGrid1.Invalidate;
+end;
+
+//仅保留箱子
+procedure TEditorForm_.N11Click(Sender: TObject);
+var
+  i, j: Integer;
+begin
+  SetUnDoReDo;
+
+  isDrawing := True;
+
+  for i := 1 to MaxSize do begin
+      for j := 1 to MaxSize do begin
+          if MapBoard[i, j] <> 6 then MapBoard[i, j] := 0;
+      end;
+  end;
+
+  isSaved := False;
+  isDrawing := False;
+  myCount;
+  DrawGrid1.Invalidate;
 end;
 
 end.

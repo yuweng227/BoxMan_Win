@@ -38,9 +38,12 @@ type
 
       function canThrough(isBK: Boolean; r, c, r1, c1, r2, c2, dir: Integer): Boolean;        // 检查 pos1 与 pos 两点是否穿越可达, 点 pos2 是被穿越的箱子，且在穿越时，箱子需要临时移动到 pos
       function getPathForThrough(nRow, nCol, nRow1, nCol1, nRow2, nCol2: Integer; dir: Byte; num: Integer): Integer;  // 计算并返回 nRow1, nCol1 与 nRow, nCol 两点间的穿越路径到 TurnPath，返回路径长度, 点 nRow2, nCol2 是被穿越的箱子，且在穿越时，箱子需要临时移动到 nRow, nCol
-      function manTo2b(isBK: Boolean; boxR, boxC, firR, firC, secR, secC: Integer): Boolean;  // 割点法，检查两点是否人可达
+      function manTo2b(isBK: Boolean; boxR, boxC, firR, firC, secR, secC: Integer): Boolean;  // 割点法，检查两点是否人可达，计算箱子可达时调用
+      function manTo2(isBK: Boolean; boxR, boxC, firR, firC, secR, secC: Integer): Boolean;   // 常规法，检查两点是否人可达，计算箱子可达时调用
 
     public
+      isEditor: Boolean;                                                  // 因为编辑器模块也用调用，而编辑器调用时，历史动作不需要保存到log文档，所以设置此变量以区别
+      
       procedure PathFinder(w, h: Integer);                                // 初始化
       procedure setThroughable(f: Boolean);                               // 设置是否允许穿越
       function  isManReachable(pos: Integer): Boolean;                    // 查看“位置”人是否可达
@@ -50,15 +53,13 @@ type
       function  isManReachableByThrough_BK(pos: Integer): Boolean;        // 查看“位置”人是否穿越可达 -- 逆推
       function  isBoxOfThrough_BK(pos: Integer): Boolean;                 // 查看“位置”是否穿越点 -- 逆推
       procedure manReachable(isBK: Boolean; level: array of Integer; manPos: Integer);                      // 计算仓管员的可达范围
-      function  manTo(isBK: Boolean; level: array of Integer; manPos, toPos: Integer): Integer;              // 计算人到达 toPos 的路径，保存到 tmpPath，返回路径长度
-      function  manTo2(isBK: Boolean; boxR, boxC, firR, firC, secR, secC: Integer): Boolean;   // 常规法，检查两点是否人可达
+      function  manTo(isBK: Boolean; level: array of Integer; manPos, toPos: Integer): Integer;             // 计算人到达 toPos 的路径，保存到 tmpPath，返回路径长度
 
       procedure FindBlock(level: array of Integer; boxPos: Integer);      // 地图分块
       procedure boxReachable(isBK: Boolean; boxPos, manPos: Integer);     // 计算箱子的可达位置
       function  isBoxReachable(pos: Integer): Boolean;                    // 查看“位置”箱子是否可达
       function  isBoxReachable_BK(pos: Integer): Boolean;                 // 查看“位置”箱子是否可达 -- 逆推
       function  boxTo(isBK: Boolean; boxPos, toPos, manPos: Integer): Integer;  // 计算箱子到达 toPos 的路径，并由 list 带回
-
   end;
 
 implementation
@@ -71,7 +72,7 @@ const
 
   bt : array[0..7] of Byte = ( 0, 2, 1, 3, 4, 6, 5, 7 );      // 对应动作：l u r d L U R D
 
-  mByte : array[0..3] of Byte = ( 1, 2, 4, 8 );      // 便于查找“块”的常量
+  mByte : array[0..3] of Byte = ( 1, 2, 4, 8 );       // 便于查找“块”的常量
 
 var
   isThroughable: boolean;                             // 是否允许穿越
@@ -1044,6 +1045,7 @@ begin
 
 // 调试功能，当程序崩溃时，BoxMan.log 文档中，会记录之前的动作，避免造成太大的损失    
 {$IFDEF LASTACT}
+if not isEditor then begin
 //   ReWrite(myLogFile_);
    Writeln(myLogFile_, '');
    Writeln(myLogFile_, DateTimeToStr(Now));
@@ -1061,6 +1063,7 @@ begin
       Writeln(myLogFile_, act);
       Flush(myLogFile_);
    end;
+end;
 {$ENDIF}
 
     for i := 0 to mapHeight-1 do begin

@@ -27,6 +27,8 @@ type
     { Public declarations }
     SkinFileName: string;
 
+    procedure BrightnessChange(const SrcBmp, DestBmp: TBitmap; ValueChange: integer);  // 图元亮度调整
+
     procedure LoadDefaultSkin();                       // 默认的简单皮肤
     function  LoadSkin(FileName:string):boolean;       // 加载玩家自定义的皮肤
     
@@ -188,6 +190,37 @@ begin
   end;
 end;
 
+// 图元亮度调整
+procedure TLoadSkinForm.BrightnessChange(const SrcBmp, DestBmp: TBitmap; ValueChange: integer);
+var
+  i, j: integer;
+  SrcRGB, DestRGB: pRGBTriple;
+  
+begin
+  SrcBmp.PixelFormat   :=   pf24Bit;
+  DestBmp.PixelFormat   :=   pf24Bit;
+  for i := 0 to SrcBmp.Height - 1 do
+  begin
+    SrcRGB := SrcBmp.ScanLine[i];
+    DestRGB := DestBmp.ScanLine[i];
+    for j := 0 to SrcBmp.Width - 1 do
+    begin
+      if ValueChange > 0 then
+      begin
+        DestRGB.rgbtRed := Min(255, SrcRGB.rgbtRed + ValueChange);
+        DestRGB.rgbtGreen := Min(255, SrcRGB.rgbtGreen + ValueChange);
+        DestRGB.rgbtBlue := Min(255, SrcRGB.rgbtBlue + ValueChange);
+      end else begin
+        DestRGB.rgbtRed := Max(0, SrcRGB.rgbtRed + ValueChange);
+        DestRGB.rgbtGreen := Max(0, SrcRGB.rgbtGreen + ValueChange);
+        DestRGB.rgbtBlue := Max(0, SrcRGB.rgbtBlue + ValueChange);
+      end;
+      Inc(SrcRGB);
+      Inc(DestRGB);
+    end;
+  end;
+end;
+
 // 默认皮肤，仅仅是几个简单的几何图像
 procedure TLoadSkinForm.LoadDefaultSkin();
 begin
@@ -255,37 +288,25 @@ begin
   WallPic.Canvas.Brush.Color := $73655F;
   WallPic.Canvas.FillRect(Rect(0, 0, SkinSize, SkinSize));
   
-end;
-
-// 图元亮度调整
-procedure BrightnessChange(const SrcBmp, DestBmp: TBitmap; ValueChange: integer);
-var
-  i, j: integer;
-  SrcRGB, DestRGB: pRGBTriple;
-  
-begin
-  SrcBmp.PixelFormat   :=   pf24Bit;
-  DestBmp.PixelFormat   :=   pf24Bit;
-  for i := 0 to SrcBmp.Height - 1 do
-  begin
-    SrcRGB := SrcBmp.ScanLine[i];
-    DestRGB := DestBmp.ScanLine[i];
-    for j := 0 to SrcBmp.Width - 1 do
-    begin
-      if ValueChange > 0 then
-      begin
-        DestRGB.rgbtRed := Min(255, SrcRGB.rgbtRed + ValueChange);
-        DestRGB.rgbtGreen := Min(255, SrcRGB.rgbtGreen + ValueChange);
-        DestRGB.rgbtBlue := Min(255, SrcRGB.rgbtBlue + ValueChange);
-      end else begin
-        DestRGB.rgbtRed := Max(0, SrcRGB.rgbtRed + ValueChange);
-        DestRGB.rgbtGreen := Max(0, SrcRGB.rgbtGreen + ValueChange);
-        DestRGB.rgbtBlue := Max(0, SrcRGB.rgbtBlue + ValueChange);
-      end;
-      Inc(SrcRGB);
-      Inc(DestRGB);
-    end;
-  end;
+  // 高亮图元
+  FloorPic2.Width := SkinSize;
+  FloorPic2.Height := SkinSize;
+  GoalPic2.Width := SkinSize;
+  GoalPic2.Height := SkinSize;
+  ManPic2.Width := SkinSize;
+  ManPic2.Height := SkinSize;
+  ManGoalPic2.Width := SkinSize;
+  ManGoalPic2.Height := SkinSize;
+  BoxPic2.Width := SkinSize;
+  BoxPic2.Height := SkinSize;
+  BoxGoalPic2.Width := SkinSize;
+  BoxGoalPic2.Height := SkinSize;
+  BrightnessChange(FloorPic, FloorPic2, -10);
+  BrightnessChange(GoalPic, GoalPic2, -10);
+  BrightnessChange(ManPic, ManPic2, -10);
+  BrightnessChange(ManGoalPic, ManGoalPic2, -10);
+  BrightnessChange(BoxPic, BoxPic2, -10);
+  BrightnessChange(BoxGoalPic, BoxGoalPic2, -10);
 end;
 
 // 加载皮肤

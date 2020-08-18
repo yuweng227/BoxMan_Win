@@ -660,7 +660,11 @@ begin
   result := TStringList.Create;
 
   src := StringReplace(src, #13, #10, [rfReplaceAll]);
-  src := StringReplace(src, #10#10, #10, [rfReplaceAll]);
+  i := 1;
+  while i > 0 do begin
+     src := StringReplace(src, #10#10, #10, [rfReplaceAll]);
+     i := pos(#10#10, src);
+  end;
 
   repeat
     i := pos(#10, src);
@@ -1296,6 +1300,10 @@ var
 begin
   Result := #10;
 
+  if curMapNode = nil then begin
+     Exit;
+  end;
+
   if curMapNode.Map.Count > 0 then
   begin
     for i := 0 to curMapNode.Rows - 1 do
@@ -1303,11 +1311,51 @@ begin
       for j := 0 to curMapNode.Cols - 1 do
       begin
         pos := i * curMapNode.Cols + j;
-        if main.mySettings.isBK then             // 逆推
-           myCell := main.map_Board_BK[pos]
-        else
-           myCell := main.map_Board[pos];
-
+        if main.mySettings.isBK then begin                // 逆推
+           if main.mySettings.isJijing then begin              // 即景目标位
+              if main.map_Board[pos] in [BoxCell, BoxGoalCell] then begin
+                 if main.map_Board_BK[pos] = BoxCell then myCell := BoxGoalCell
+                 else if main.map_Board_BK[pos] = ManCell then myCell := ManGoalCell
+                 else if main.map_Board_BK[pos] = FloorCell then myCell := GoalCell
+                 else myCell := main.map_Board_BK[pos];
+              end else begin
+                 if main.map_Board_BK[pos] = BoxGoalCell then myCell := BoxCell
+                 else if main.map_Board_BK[pos] = ManGoalCell then myCell := ManCell
+                 else if main.map_Board_BK[pos] = GoalCell then myCell := FloorCell
+                 else myCell := main.map_Board_BK[pos];
+              end;
+           end else if main.mySettings.isSameGoal then begin   // 固定目标位
+              if main.map_Board_OG[pos] in [GoalCell, BoxGoalCell, ManGoalCell] then begin
+                 if main.map_Board_BK[pos] = BoxCell then myCell := BoxGoalCell
+                 else if main.map_Board_BK[pos] = ManCell then myCell := ManGoalCell
+                 else if main.map_Board_BK[pos] = FloorCell then myCell := GoalCell
+                 else myCell := main.map_Board_BK[pos];
+              end else begin
+                 if main.map_Board_BK[pos] = BoxGoalCell then myCell := BoxCell
+                 else if main.map_Board_BK[pos] = ManGoalCell then myCell := ManCell
+                 else if main.map_Board_BK[pos] = GoalCell then myCell := FloorCell
+                 else myCell := main.map_Board_BK[pos];
+              end;
+           end else begin
+              myCell := main.map_Board_BK[pos];
+           end;
+        end else begin
+           if main.mySettings.isJijing then begin              // 即景目标位
+              if main.map_Board_BK[pos] in [BoxGoalCell, BoxCell] then begin
+                 if main.map_Board[pos] = BoxCell then myCell := BoxGoalCell
+                 else if main.map_Board[pos] = ManCell then myCell := ManGoalCell
+                 else if main.map_Board[pos] = FloorCell then myCell := GoalCell
+                 else myCell := main.map_Board[pos];
+              end else begin
+                 if main.map_Board[pos] = BoxGoalCell then myCell := BoxCell
+                 else if main.map_Board[pos] = ManGoalCell then myCell := ManCell
+                 else if main.map_Board[pos] = GoalCell then myCell := FloorCell
+                 else myCell := main.map_Board[pos];
+              end;
+           end else begin
+              myCell := main.map_Board[pos];
+           end;
+        end;
         Result := Result + xbsChar[myCell];
       end;
       Result := Result + #10;
@@ -1318,7 +1366,7 @@ end;
 // XSB 送入剪切板
 procedure XSBToClipboard();
 begin
-  if curMapNode.Map.Count > 0 then
+  if (curMapNode <> nil) and (curMapNode.Map.Count > 0) then
   begin
     Clipboard.SetTextBuf(PChar(GetXSB(curMapNode)));
   end;
@@ -1327,7 +1375,7 @@ end;
 // XSB 送入剪切板
 procedure XSBToClipboard_2();
 begin
-  if curMapNode.Map.Count > 0 then
+  if (curMapNode <> nil) and (curMapNode.Map.Count > 0) then
   begin
     Clipboard.SetTextBuf(PChar(GetXSB_2()));
   end;

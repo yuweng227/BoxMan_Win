@@ -270,7 +270,6 @@ type
     IsBoxAccessibleTips: boolean;                     // 是否显示箱子的正推可达提示
     IsBoxAccessibleTips_BK: boolean;                  // 是否显示箱子的逆推可达提示
 
-    map_Board_OG: array[0..9999] of integer;          // 原始地图
     BoxNum_Board: array[0..9999] of integer;          // 箱子编号
     PosNum_Board: array[0..9999] of integer;          // 位置编号
     BoxNum_Board_BK: array[0..9999] of integer;       // 箱子编号 - 逆推
@@ -329,6 +328,7 @@ type
 
     map_Board_BK: array[0..9999] of integer;          // 逆推地图
     map_Board: array[0..9999] of integer;             // 正推地图
+    map_Board_OG: array[0..9999] of integer;          // 原始地图
     
     function LoadSolution(): Boolean;                 // 加载答案
 
@@ -344,7 +344,7 @@ const
   SpeedInf: array[0..4] of string = ('最快', '较快', '中速', '较慢', '最慢');
   
   AppName = 'BoxMan';
-  AppVer = ' V1.9';
+  AppVer = ' V2.0';
 
 var
   main: Tmain;
@@ -538,6 +538,11 @@ var
   ss: TStringList;
   
 begin
+  if (curMapNode = nil) or (curMapNode.Cols <= 0) then begin
+     MessageBox(handle, '尚无打开的关卡！', '错误', MB_ICONERROR or MB_OK);
+     Exit;
+  end;
+
   Rows := curMapNode.Map.Count;
 
   if Rows = 0 then Exit;          // 空地图
@@ -727,8 +732,9 @@ procedure Tmain.NewMapSize();
 var
   w, h: integer;
 begin
-  if curMapNode = nil then
-    exit;
+  if (curMapNode = nil) or (curMapNode.Cols <= 0) then begin
+     Exit;
+  end;
   
   // 计算地图单元格的大小
   if (curMapNode.Cols > 2) and (curMapNode.Rows > 2) then
@@ -993,13 +999,13 @@ begin
       if mySettings.isBK then begin         // 逆推
         if map_Selected_BK[i] then begin
            if map_Board_BK[i] = BoxCell then inc(boxNum)
-           else if map_Board_BK[i] = GoalCell then inc(GoalNum)
+           else if map_Board_BK[i] in [ GoalCell, ManGoalCell ] then inc(GoalNum)
            else if map_Board_BK[i] = BoxGoalCell then inc(BoxGoalNum);
         end;
       end else begin
         if map_Selected[i] then begin
            if map_Board[i] = BoxCell then inc(boxNum)
-           else if map_Board[i] = GoalCell then inc(GoalNum)
+           else if map_Board[i] in [ GoalCell, ManGoalCell ] then inc(GoalNum)
            else if map_Board[i] = BoxGoalCell then inc(BoxGoalNum);
         end;
       end;
@@ -1050,8 +1056,9 @@ var
   R, R2: TRect;
     
 begin
-  if curMapNode = nil then
-    exit;
+  if (curMapNode = nil) or (curMapNode.Cols <= 0) then begin
+     Exit;
+  end;
 
   if mySettings.isBK and (IsManAccessibleTips_BK or IsBoxAccessibleTips_BK) then map_Image.Cursor := crDrag
   else if (not mySettings.isBK) and (IsManAccessibleTips or IsBoxAccessibleTips) then map_Image.Cursor := crDrag
@@ -1983,13 +1990,13 @@ begin
   if mySettings.isGoThrough then
   begin
     bt_GoThrough.Font.Color := clBlack;
-    bt_GoThrough.Font.Style := bt_IM.Font.Style + [fsBold];
+    bt_GoThrough.Font.Style := bt_GoThrough.Font.Style + [fsBold];
     bt_GoThrough.Down := True;
   end
   else
   begin
     bt_GoThrough.Font.Color := clGray;
-    bt_GoThrough.Font.Style := bt_IM.Font.Style - [fsBold];
+    bt_GoThrough.Font.Style := bt_GoThrough.Font.Style - [fsBold];
     bt_GoThrough.Down := False;
   end;
 
@@ -2088,7 +2095,8 @@ begin
     end;
   end;
   if (curMap.ManPosition <> ManPos_BK) then begin
-    result := myPathFinder.manTo2(false, -1, -1, curMap.ManPosition div curMapNode.Cols, curMap.ManPosition mod curMapNode.Cols, ManPos_BK div curMapNode.Cols, ManPos_BK mod curMapNode.Cols);
+    myPathFinder.manReachable(true, map_Board_BK, ManPos_BK);
+    result := (myPathFinder.isManReachable_BK(curMap.ManPosition) or myPathFinder.isManReachableByThrough_BK(curMap.ManPosition));
   end;
 end;
 
@@ -2108,26 +2116,17 @@ begin
   len := curMap.MapSize;
   for i := 0 to len-1 do
   begin
-    if ((map_Board[i] = BoxCell) or (map_Board[i] = BoxGoalCell)) and (map_Board_BK[i] <> BoxCell) and (map_Board_BK[i] <> BoxGoalCell) then
+    if (map_Board[i] in [ BoxCell, BoxGoalCell ]) and (not (map_Board_BK[i] in [ BoxCell, BoxGoalCell ])) then
     begin
-      flg := False;
-      Break;
+      Exit;
     end;
-  end;
-
-  // 检查是否即景相合
-  if not flg then begin
-    if mySettings.isJijing and (ManPos_BK >= 0) then begin
-      for i := 0 to len-1 do
-      begin
-         if (map_Board[i] in [ BoxCell, BoxGoalCell ]) and (map_Board_BK[i] in [ BoxCell, BoxGoalCell ]) then Exit;
-      end;
-    end else Exit;
   end;
 
   if (ManPos <> ManPos_BK) then
   begin
-    flg := myPathFinder.manTo2(false, -1, -1, ManPos div curMapNode.Cols, ManPos mod curMapNode.Cols, ManPos_BK div curMapNode.Cols, ManPos_BK mod curMapNode.Cols);
+    myPathFinder.manReachable(true, map_Board_BK, ManPos_BK);
+    flg := (myPathFinder.isManReachable_BK(ManPos) or myPathFinder.isManReachableByThrough_BK(ManPos));
+//    flg := myPathFinder.manTo2(false, -1, -1, ManPos div curMapNode.Cols, ManPos mod curMapNode.Cols, ManPos_BK div curMapNode.Cols, ManPos_BK mod curMapNode.Cols);
   end;
 
   if flg then begin
@@ -2956,7 +2955,7 @@ var
   MapClickPos: TPoint;
   myCell, pos, x2, y2, k: Integer;
 begin
-  if curMap.CellSize = 0 then Exit;
+  if (curMapNode = nil) or (curMap.CellSize = 0) then Exit;
   
   IsStop := true;
 
@@ -3293,7 +3292,7 @@ var
   x2, y2: Integer;
 
 begin
-  if curMap.CellSize = 0 then Exit;
+  if (curMapNode = nil) or (curMap.CellSize = 0) then Exit;
 
   x2 := X div curMap.CellSize;
   y2 := Y div curMap.CellSize;
@@ -3322,7 +3321,7 @@ var
   x2, y2, i, j, i1, j1, i2, j2: Integer;
 
 begin
-  if curMap.CellSize = 0 then Exit;
+  if (curMapNode = nil) or (curMap.CellSize = 0) then Exit;
 
   if isDelSelect then begin
      if not (ssAlt in Shift) then begin
@@ -3425,21 +3424,26 @@ begin
 
   if isKeyPush then begin       // 若为演示动画，则按直推方式瞬移显示动画
     if mySettings.isIM then begin
-       if mySettings.isBK then begin
-          if (UnDoPos_BK <= 0) or (UnDoPos_BK > MaxLenPath) then ch1 := ' '
-          else ch1 := UndoList_BK[UnDoPos_BK];
-          if (ReDoPos_BK <= 0) or (ReDoPos_BK > MaxLenPath) then ch2 := ' '
-          else ch2 := RedoList_BK[ReDoPos_BK];
-       end else begin
-          if (UnDoPos <= 0) or (UnDoPos > MaxLenPath) then ch1 := ' '
-          else ch1 := UndoList[UnDoPos];
-          if (ReDoPos <= 0) or (ReDoPos > MaxLenPath) then ch2 := ' '
-          else ch2 := RedoList[ReDoPos];
+       try
+         if mySettings.isBK then begin
+            if (UnDoPos_BK <= 0) or (UnDoPos_BK > MaxLenPath) then ch1 := '~'
+            else ch1 := UndoList_BK[UnDoPos_BK];
+            if (ReDoPos_BK <= 0) or (ReDoPos_BK > MaxLenPath) then ch2 := '~'
+            else ch2 := RedoList_BK[ReDoPos_BK];
+         end else begin
+            if (UnDoPos <= 0) or (UnDoPos > MaxLenPath) then ch1 := '~'
+            else ch1 := UndoList[UnDoPos];
+            if (ReDoPos <= 0) or (ReDoPos > MaxLenPath) then ch2 := '~'
+            else ch2 := RedoList[ReDoPos];
+         end;
+         if ch1 = '' then ch1 := '~';
+         if ch2 = '' then ch2 := '~';
+         if (ch1 in [ 'l', 'r', 'u' ,'d' ]) and (ch2 in [ 'l', 'r', 'u' ,'d'] ) or
+            (ch1 in [ 'L', 'R', 'U' ,'D' ]) and (ch1 = ch2)then Exit;
+
+         DrawMap();             // 刷新地图画面
+       except
        end;
-       if (ch1 in [ 'l', 'r', 'u' ,'d' ]) and (ch2 in [ 'l', 'r', 'u' ,'d'] ) or
-          (ch1 in [ 'L', 'R', 'U' ,'D' ]) and (ch1 = ch2)then Exit;
-          
-       DrawMap();             // 刷新地图画面
     end;
     StatusBar1.Repaint;
   end else begin              // 常规动画，仅检查是否瞬移来觉得是否执行延时操作
@@ -3472,6 +3476,8 @@ var
 begin
   Result := False;
 
+  if (curMapNode = nil) or (curMapNode.Map.Count = 0) then Exit;
+
   if (PushTimes = 0) and (PushTimes_BK = 0) then
     Exit;
 
@@ -3503,7 +3509,8 @@ begin
   while i < size do
   begin
     actNode := StateList[i];
-    if (actNode.CRC32 = ActCRC) and (actNode.Moves = MoveTimes) and (actNode.Pushs = PushTimes) and (actNode.CRC32_BK = ActCRC_BK) and (actNode.Moves_BK = MoveTimes_BK) and (actNode.Pushs_BK = PushTimes_BK) and (actNode.Man_X = x) and (actNode.Man_Y = y) then
+    if (actNode.CRC32 = ActCRC) and (actNode.Moves = MoveTimes) and (actNode.Pushs = PushTimes) and
+       (actNode.CRC32_BK = ActCRC_BK) and (actNode.Moves_BK = MoveTimes_BK) and (actNode.Pushs_BK = PushTimes_BK) and (actNode.Man_X = x+1) and (actNode.Man_Y = y+1) then
       Break;
     inc(i);
   end;
@@ -3645,6 +3652,8 @@ var
   SysFrset: TFormatSettings;
 begin
   Result := False;
+
+  if (curMapNode = nil) or (curMapNode.Map.Count = 0) then Exit;
 
 //  StateList.Clear;
   MyListClear(StateList);
@@ -3839,7 +3848,8 @@ var
   SysFrset: TFormatSettings;
 begin
   Result := False;
-//  SoltionList.Clear;
+  if (curMapNode = nil) or (curMapNode.Map.Count = 0) then Exit;
+
   MyListClear(SoltionList);
   List_Solution.Clear;
 
@@ -3956,8 +3966,13 @@ var
   ch, ch_: Char;
   pos1, pos2: Integer;
   isMeet, IsCompleted: Boolean;
+{$IFDEF LASTACT}
+  act: string;
+{$ENDIF}
 
 begin
+  if (curMapNode = nil) or (curMapNode.Map.Count = 0) then Exit;
+
   StatusBar1.Panels[7].Text := '';
 
   isSelectMod := False;
@@ -3970,145 +3985,159 @@ begin
 
   isMeet := False;
   IsCompleted := False;
-  
-  while (not IsStop) and (Steps > 0) and (ReDoPos > 0) and (UnDoPos < MaxLenPath) do begin 
 
-    // 人的位置出现异常
-    if (ManPos < 0) or (ManPos >= curMap.MapSize) or
-       (not (map_Board[ManPos] in [ManCell, ManGoalCell])) then begin
-       StatusBar1.Panels[7].Text := format('人的位置异常！- [%d, %d]', [ManPos mod curMapNode.Cols + 1, ManPos div curMapNode.Cols + 1]);
-       Break;
-    end;
+  try
+    while (not IsStop) and (Steps > 0) and (ReDoPos > 0) and (UnDoPos < MaxLenPath) do begin
 
-    ch  := RedoList[ReDoPos];
-    ch_ := ch;
+      // 人的位置出现异常
+      if (ManPos < 0) or (ManPos >= curMap.MapSize) or
+         (not (map_Board[ManPos] in [ManCell, ManGoalCell])) then begin
+         StatusBar1.Panels[7].Text := format('人的位置异常！- [%d, %d]', [ManPos mod curMapNode.Cols + 1, ManPos div curMapNode.Cols + 1]);
+         Break;
+      end;
 
-    pos1 := -1;
-    pos2 := -1;
-    case ch of
-      'l', 'L':
-        begin
-          pos1 := ManPos - 1;
-          pos2 := ManPos - 2;
-          ch := 'l';
-        end;
-      'r', 'R':
-        begin
-          pos1 := ManPos + 1;
-          pos2 := ManPos + 2;
-          ch := 'r';
-        end;
-      'u', 'U':
-        begin
-          pos1 := ManPos - curMapNode.Cols;
-          pos2 := ManPos - curMapNode.Cols * 2;
-          ch := 'u';
-        end;
-      'd', 'D':
-        begin
-          pos1 := ManPos + curMapNode.Cols;
-          pos2 := ManPos + curMapNode.Cols * 2;
-          ch := 'd';
-        end;
-    end;
+      ch  := RedoList[ReDoPos];
+      ch_ := ch;
 
-    if (pos1 < 0) or (pos1 >= curMap.MapSize) then begin                        // pos1 界外
-       StatusBar1.Panels[7].Text := '遇到了错误的动作符号！- ' + ch_;
-       Break;
-    end;
+      pos1 := -1;
+      pos2 := -1;
+      case ch of
+        'l', 'L':
+          begin
+            pos1 := ManPos - 1;
+            pos2 := ManPos - 2;
+            ch := 'l';
+          end;
+        'r', 'R':
+          begin
+            pos1 := ManPos + 1;
+            pos2 := ManPos + 2;
+            ch := 'r';
+          end;
+        'u', 'U':
+          begin
+            pos1 := ManPos - curMapNode.Cols;
+            pos2 := ManPos - curMapNode.Cols * 2;
+            ch := 'u';
+          end;
+        'd', 'D':
+          begin
+            pos1 := ManPos + curMapNode.Cols;
+            pos2 := ManPos + curMapNode.Cols * 2;
+            ch := 'd';
+          end;
+      end;
 
-    // 遇到地板，仅仅移动人即可；若遇到箱子，需要同时移动箱子和人；否则，遇到了错误，直接结束本次的移动
-    if (map_Board[pos1] in [ FloorCell, GoalCell]) then begin                   // pos1 是通道
-
-       if map_Board[pos1] = FloorCell then map_Board[pos1] := ManCell
-       else map_Board[pos1] := ManGoalCell;
-
-    end else if (map_Board[pos1] in [ BoxCell, BoxGoalCell]) then begin         // pos1 是箱子
-
-      if (pos2 < 0) or (pos2 >= curMap.MapSize) then begin                      // pos2 界外
+      if (pos1 < 0) or (pos1 >= curMap.MapSize) then begin                        // pos1 界外
          StatusBar1.Panels[7].Text := '遇到了错误的动作符号！- ' + ch_;
          Break;
       end;
 
-      if (map_Board[pos2] in [ FloorCell, GoalCell]) then begin                 // pos2 是通道
+      // 遇到地板，仅仅移动人即可；若遇到箱子，需要同时移动箱子和人；否则，遇到了错误，直接结束本次的移动
+      if (map_Board[pos1] in [ FloorCell, GoalCell]) then begin                   // pos1 是通道
 
-         if map_Board[pos2] = FloorCell then map_Board[pos2] := BoxCell         // 箱子到位
-         else map_Board[pos2] := BoxGoalCell;
-
-         if map_Board[pos1] = BoxCell then map_Board[pos1] := ManCell           // 人到位
+         if map_Board[pos1] = FloorCell then map_Board[pos1] := ManCell
          else map_Board[pos1] := ManGoalCell;
 
-         ch := Char(Ord(ch) - 32);                                              // 变成大写 -- 推动
-         BoxNum_Board[pos2] := BoxNum_Board[pos1];                              // 新箱子编号
-         BoxNum_Board[pos1] := -1;                                              // 原箱子编号
+      end else if (map_Board[pos1] in [ BoxCell, BoxGoalCell]) then begin         // pos1 是箱子
 
-         Inc(PushTimes);                                                        // 推动步数
-      end else begin                                                            // 错误动作
+        if (pos2 < 0) or (pos2 >= curMap.MapSize) then begin                      // pos2 界外
+           StatusBar1.Panels[7].Text := '遇到了错误的动作符号！- ' + ch_;
+           Break;
+        end;
+
+        if (map_Board[pos2] in [ FloorCell, GoalCell]) then begin                 // pos2 是通道
+
+           if map_Board[pos2] = FloorCell then map_Board[pos2] := BoxCell         // 箱子到位
+           else map_Board[pos2] := BoxGoalCell;
+
+           if map_Board[pos1] = BoxCell then map_Board[pos1] := ManCell           // 人到位
+           else map_Board[pos1] := ManGoalCell;
+
+           ch := Char(Ord(ch) - 32);                                              // 变成大写 -- 推动
+           BoxNum_Board[pos2] := BoxNum_Board[pos1];                              // 新箱子编号
+           BoxNum_Board[pos1] := -1;                                              // 原箱子编号
+
+           Inc(PushTimes);                                                        // 推动步数
+        end else begin                                                            // 错误动作
+           StatusBar1.Panels[7].Text := '遇到了错误的动作符号！- ' + ch_;
+           Break;
+        end;
+      end else begin                                                              // 错误动作
          StatusBar1.Panels[7].Text := '遇到了错误的动作符号！- ' + ch_;
          Break;
       end;
-    end else begin                                                              // 错误动作
-       StatusBar1.Panels[7].Text := '遇到了错误的动作符号！- ' + ch_;
-       Break;
-    end;
 
-    // 到了这里，动作正确，将人移走
-    if map_Board[ManPos] = ManCell then map_Board[ManPos] := FloorCell          // 人移走
-    else map_Board[ManPos] := GoalCell;
+      // 到了这里，动作正确，将人移走
+      if map_Board[ManPos] = ManCell then map_Board[ManPos] := FloorCell          // 人移走
+      else map_Board[ManPos] := GoalCell;
 
-    Inc(MoveTimes);                                                             // 移动步数
+      Inc(MoveTimes);                                                             // 移动步数
 
-    Dec(ReDoPos);
-    Inc(UnDoPos);
+      Dec(ReDoPos);
+      Inc(UnDoPos);
 
-    UndoList[UnDoPos] := ch;
-    ManPos := pos1;                                                             // 人的新位置
+      UndoList[UnDoPos] := ch;
+      ManPos := pos1;                                                             // 人的新位置
 
-    if (not mySettings.isIM) and (not isNoDelay) then DrawMap();                // 更新地图显示
+      if (not mySettings.isIM) and (not isNoDelay) then DrawMap();                // 更新地图显示
 
-    ShowStatusBar();
-    StatusBar1.Panels[5].Text := ' ' + GetCur(ManPos mod curMapNode.Cols, ManPos div curMapNode.Cols) + ' - [ ' + IntToStr((ManPos mod curMapNode.Cols) + 1) + ', ' + IntToStr((ManPos div curMapNode.Cols) + 1) + ' ]';       // 标尺
+      ShowStatusBar();
+      StatusBar1.Panels[5].Text := ' ' + GetCur(ManPos mod curMapNode.Cols, ManPos div curMapNode.Cols) + ' - [ ' + IntToStr((ManPos mod curMapNode.Cols) + 1) + ', ' + IntToStr((ManPos div curMapNode.Cols) + 1) + ' ]';       // 标尺
 
-    Dec(Steps);
-    if Steps > 0 then GameDelay();                                              // 延时
+      Dec(Steps);
+      if Steps > 0 then GameDelay();                                              // 延时
 
-    if (not curMap.isFinish) and (ch in [ 'L', 'R', 'U', 'D' ]) and (PushTimes > 0)then begin
-      if IsComplete() then                                      // 解关成功
-      begin
-        IsCompleted := True;
-        Break;
-      end
-      else if IsMeets(ch) then
-      begin                                                                     // 正逆相合
-        isMeet := True;
-        Break;
+      if (not curMap.isFinish) and (ch in [ 'L', 'R', 'U', 'D' ]) and (PushTimes > 0)then begin
+        if IsComplete() then                                      // 解关成功
+        begin
+          IsCompleted := True;
+          Break;
+        end
+        else if IsMeets(ch) then
+        begin                                                                     // 正逆相合
+          isMeet := True;
+          Break;
+        end;
       end;
+
     end;
 
+    if mySettings.isIM or isNoDelay then DrawMap();                               // 更新地图显示
+
+    StatusBar1.Repaint;
+
+    if IsCompleted then begin
+      ReDoPos := 0;
+
+      // 自动保存一下答案
+      SaveSolution(1);                                                            // 正推过关
+
+      mySettings.isLurd_Saved := True;
+
+      curMap.isFinish := True;
+      ShowMyInfo('正推过关！', '恭喜');
+
+    end else if isMeet then begin
+      // 自动保存一下答案
+      SaveSolution(2);
+      curMap.isFinish := True;                                                    // 正逆相合
+      ShowMyInfo('正逆相合！', '恭喜');
+    end;
+  except
+{$IFDEF LASTACT}
+   Writeln(myLogFile_, '');
+   Writeln(myLogFile_, 'ReDo Error: ');
+   Write(myLogFile_, DateTimeToStr(Now));
+   Writeln(myLogFile_, '');
+   if UnDoPos > 0 then begin
+      if UnDoPos < MaxLenPath then UndoList[UnDoPos+1] := #0;
+      act := PChar(@UndoList);
+      Writeln(myLogFile_, act);
+   end;
+   Flush(myLogFile_);
+{$ENDIF}
   end;
-
-  if mySettings.isIM or isNoDelay then DrawMap();                               // 更新地图显示
-
-  StatusBar1.Repaint;
-
-  if IsCompleted then begin
-    ReDoPos := 0;
-
-    // 自动保存一下答案
-    SaveSolution(1);                                                            // 正推过关
-
-    mySettings.isLurd_Saved := True;
-
-    curMap.isFinish := True;
-    ShowMyInfo('正推过关！', '恭喜');
-
-  end else if isMeet then begin
-    // 自动保存一下答案
-    SaveSolution(2);
-    curMap.isFinish := True;                                                    // 正逆相合
-    ShowMyInfo('正逆相合！', '恭喜');
-  end;
-
   IsStop    := false;
   isNoDelay := false;                                                           // 是否为无延时动作 -- 至首、至尾功能用
   isKeyPush := false;                                                           // 是否正在演示中 -- 空格键和退格键控制的
@@ -4120,7 +4149,12 @@ procedure Tmain.UnDo(Steps: Integer);
 var
   ch: Char;
   pos1, pos2: Integer;
+{$IFDEF LASTACT}
+  act: string;
+{$ENDIF}
 begin
+  if (curMapNode = nil) or (curMapNode.Map.Count = 0) then Exit;
+
   StatusBar1.Panels[7].Text := '';
 
   isSelectMod := False;
@@ -4131,115 +4165,129 @@ begin
   IsManAccessibleTips := False;
   StatusBar1.Panels[7].Text := '';
 
-  while (not IsStop) and (Steps > 0) and (UnDoPos > 0) and (ReDoPos < MaxLenPath) do begin
+  try
+    while (not IsStop) and (Steps > 0) and (UnDoPos > 0) and (ReDoPos < MaxLenPath) do begin
 
-    // 人的位置出现异常
-    if (ManPos < 0) or (ManPos >= curMap.MapSize) or
-       (not (map_Board[ManPos] in [ManCell, ManGoalCell])) then begin
-       StatusBar1.Panels[7].Text := format('人的位置异常！- [%d, %d]', [ManPos mod curMapNode.Cols + 1, ManPos div curMapNode.Cols + 1]);
-       Break;
-    end;
+      // 人的位置出现异常
+      if (ManPos < 0) or (ManPos >= curMap.MapSize) or
+         (not (map_Board[ManPos] in [ManCell, ManGoalCell])) then begin
+         StatusBar1.Panels[7].Text := format('人的位置异常！- [%d, %d]', [ManPos mod curMapNode.Cols + 1, ManPos div curMapNode.Cols + 1]);
+         Break;
+      end;
     
-    ch := UndoList[UnDoPos];
+      ch := UndoList[UnDoPos];
 
-    pos1 := -1;
-    pos2 := -1;
-    case ch of
-      'l', 'L':
-        begin
-          pos1 := ManPos - 1;
-          pos2 := ManPos + 1;
-        end;
-      'r', 'R':
-        begin
-          pos1 := ManPos + 1;
-          pos2 := ManPos - 1;
-        end;
-      'u', 'U':
-        begin
-          pos1 := ManPos - curMapNode.Cols;
-          pos2 := ManPos + curMapNode.Cols;
-        end;
-      'd', 'D':
-        begin
-          pos1 := ManPos + curMapNode.Cols;
-          pos2 := ManPos - curMapNode.Cols;
-        end;
-    end;
-
-    // 检测是否包含箱子的退回
-    if ch in ['L', 'R', 'U', 'D'] then
-    begin
-
-      if (pos1 < 0) or (pos1 >= curMap.MapSize) or                              // 界外，等
-         (pos2 < 0) or (pos2 >= curMap.MapSize) or
-         (not (map_Board[pos1] in [BoxCell, BoxGoalCell])) or
-         (not (map_Board[pos2] in [FloorCell, GoalCell])) then begin
-         StatusBar1.Panels[7].Text := '遇到了错误的动作符号！- ' + ch;
-         Break;
+      pos1 := -1;
+      pos2 := -1;
+      case ch of
+        'l', 'L':
+          begin
+            pos1 := ManPos - 1;
+            pos2 := ManPos + 1;
+          end;
+        'r', 'R':
+          begin
+            pos1 := ManPos + 1;
+            pos2 := ManPos - 1;
+          end;
+        'u', 'U':
+          begin
+            pos1 := ManPos - curMapNode.Cols;
+            pos2 := ManPos + curMapNode.Cols;
+          end;
+        'd', 'D':
+          begin
+            pos1 := ManPos + curMapNode.Cols;
+            pos2 := ManPos - curMapNode.Cols;
+          end;
       end;
 
-      if (map_Board[pos1] = BoxCell) then
-        map_Board[pos1] := FloorCell
+      // 检测是否包含箱子的退回
+      if ch in ['L', 'R', 'U', 'D'] then
+      begin
+
+        if (pos1 < 0) or (pos1 >= curMap.MapSize) or                              // 界外，等
+           (pos2 < 0) or (pos2 >= curMap.MapSize) or
+           (not (map_Board[pos1] in [BoxCell, BoxGoalCell])) or
+           (not (map_Board[pos2] in [FloorCell, GoalCell])) then begin
+           StatusBar1.Panels[7].Text := '遇到了错误的动作符号！- ' + ch;
+           Break;
+        end;
+
+        if (map_Board[pos1] = BoxCell) then
+          map_Board[pos1] := FloorCell
+        else
+          map_Board[pos1] := GoalCell;
+
+        if (map_Board[ManPos] = ManCell) then
+          map_Board[ManPos] := BoxCell
+        else
+          map_Board[ManPos] := BoxGoalCell;
+
+        // 人的回退
+        if map_Board[pos2] = FloorCell then
+          map_Board[pos2] := ManCell
+        else
+          map_Board[pos2] := ManGoalCell;
+
+        BoxNum_Board[ManPos] := BoxNum_Board[pos1];                               // 新箱子编号
+        BoxNum_Board[pos1] := -1;                                                 // 原箱子编号
+
+        Dec(PushTimes);                                                           // 推动步数
+      end
       else
-        map_Board[pos1] := GoalCell;
+      begin
+        if (pos2 < 0) or (pos2 >= curMap.MapSize) or                              // 界外，等
+           (not (map_Board[pos2] in [FloorCell, GoalCell])) then begin
+           StatusBar1.Panels[7].Text := '遇到了错误的动作符号！- ' + ch;
+           Break;
+        end;
 
-      if (map_Board[ManPos] = ManCell) then
-        map_Board[ManPos] := BoxCell
-      else
-        map_Board[ManPos] := BoxGoalCell;
+        if (map_Board[ManPos] = ManCell) then
+          map_Board[ManPos] := FloorCell
+        else
+          map_Board[ManPos] := GoalCell;
 
-      // 人的回退
-      if map_Board[pos2] = FloorCell then
-        map_Board[pos2] := ManCell
-      else
-        map_Board[pos2] := ManGoalCell;
-
-      BoxNum_Board[ManPos] := BoxNum_Board[pos1];                               // 新箱子编号
-      BoxNum_Board[pos1] := -1;                                                 // 原箱子编号
-
-      Dec(PushTimes);                                                           // 推动步数
-    end
-    else
-    begin
-      if (pos2 < 0) or (pos2 >= curMap.MapSize) or                              // 界外，等
-         (not (map_Board[pos2] in [FloorCell, GoalCell])) then begin
-         StatusBar1.Panels[7].Text := '遇到了错误的动作符号！- ' + ch;
-         Break;
+        // 人的回退
+        if map_Board[pos2] = FloorCell then
+          map_Board[pos2] := ManCell
+        else
+          map_Board[pos2] := ManGoalCell;
       end;
 
-      if (map_Board[ManPos] = ManCell) then
-        map_Board[ManPos] := FloorCell
-      else
-        map_Board[ManPos] := GoalCell;
+      Dec(MoveTimes);                                                             // 移动步数
 
-      // 人的回退
-      if map_Board[pos2] = FloorCell then
-        map_Board[pos2] := ManCell
-      else
-        map_Board[pos2] := ManGoalCell;
+      Dec(UnDoPos);
+      inc(ReDoPos);
+      RedoList[ReDoPos] := ch;
+      ManPos := pos2;                                                             // 人的新位置
+
+      if (not mySettings.isIM) and (not isNoDelay) then DrawMap();                // 更新地图显示
+      ShowStatusBar();
+      StatusBar1.Panels[5].Text := ' ' + GetCur(ManPos mod curMapNode.Cols, ManPos div curMapNode.Cols) + ' - [ ' + IntToStr((ManPos mod curMapNode.Cols) + 1) + ', ' + IntToStr((ManPos div curMapNode.Cols) + 1) + ' ]';       // 标尺
+
+      Dec(Steps);
+      if Steps > 0 then GameDelay();                                              // 延时
+
     end;
 
-    Dec(MoveTimes);                                                             // 移动步数
+    if mySettings.isIM or isNoDelay then DrawMap();                               // 更新地图显示
 
-    Dec(UnDoPos);
-    inc(ReDoPos);
-    RedoList[ReDoPos] := ch;
-    ManPos := pos2;                                                             // 人的新位置
-
-    if (not mySettings.isIM) and (not isNoDelay) then DrawMap();                // 更新地图显示
-    ShowStatusBar();
-    StatusBar1.Panels[5].Text := ' ' + GetCur(ManPos mod curMapNode.Cols, ManPos div curMapNode.Cols) + ' - [ ' + IntToStr((ManPos mod curMapNode.Cols) + 1) + ', ' + IntToStr((ManPos div curMapNode.Cols) + 1) + ' ]';       // 标尺
-
-    Dec(Steps);
-    if Steps > 0 then GameDelay();                                              // 延时
-
+    StatusBar1.Repaint;
+  except
+{$IFDEF LASTACT}
+   Writeln(myLogFile_, '');
+   Writeln(myLogFile_, 'UnDo Error: ');
+   Write(myLogFile_, DateTimeToStr(Now));
+   Writeln(myLogFile_, '');
+   if UnDoPos > 0 then begin
+      if UnDoPos < MaxLenPath then UndoList[UnDoPos+1] := #0;
+      act := PChar(@UndoList);
+      Writeln(myLogFile_, act);
+   end;
+   Flush(myLogFile_);
+{$ENDIF}
   end;
-
-  if mySettings.isIM or isNoDelay then DrawMap();                               // 更新地图显示
-
-  StatusBar1.Repaint;
-
   IsStop    := false;
   isNoDelay := false;                                                           // 是否为无延时动作 -- 至首、至尾功能用
   isKeyPush := false;                                                           // 是否正在演示中 -- 空格键和退格键控制的
@@ -4252,8 +4300,13 @@ var
   ch: Char;
   i, len, pos1, pos2, n: Integer;
   isOK, isMeet, IsCompleted: Boolean;
-  
+{$IFDEF LASTACT}
+  act: string;
+{$ENDIF}
+
 begin
+  if (curMapNode = nil) or (curMapNode.Map.Count = 0) then Exit;
+
   StatusBar1.Panels[7].Text := '';
   
   isSelectMod := False;
@@ -4265,187 +4318,202 @@ begin
   isMeet := False;
   IsCompleted := False;
 
-  while (not IsStop) and (Steps > 0) and (ReDoPos_BK > 0) and (UnDoPos_BK < MaxLenPath) do begin
+  try
+    while (not IsStop) and (Steps > 0) and (ReDoPos_BK > 0) and (UnDoPos_BK < MaxLenPath) do begin
 
-    // 人的位置出现异常
-    if (ManPos_BK < 0) or (ManPos_BK >= curMap.MapSize) or
-       (not (map_Board_BK[ManPos_BK] in [ManCell, ManGoalCell])) then begin
-       StatusBar1.Panels[7].Text := format('人的位置异常！- [%d, %d]', [ManPos_BK mod curMapNode.Cols + 1, ManPos_BK div curMapNode.Cols + 1]);
-       Break;
-    end;
-
-    ch := RedoList_BK[ReDoPos_BK];
-
-    pos1 := -1;
-    pos2 := -1;
-    isOK := False;
-    case ch of
-      'l', 'L':
-        begin
-          isOK := (ManPos_BK mod curMapNode.Cols) > 0;
-          pos1 := ManPos_BK - 1;
-          pos2 := ManPos_BK + 1;
-        end;
-      'r', 'R':
-        begin
-          isOK := (ManPos_BK mod curMapNode.Cols) < curMapNode.Cols - 1;
-          pos1 := ManPos_BK + 1;
-          pos2 := ManPos_BK - 1;
-        end;
-      'u', 'U':
-        begin
-          isOK := (ManPos_BK div curMapNode.Cols) > 0;
-          pos1 := ManPos_BK - curMapNode.Cols;
-          pos2 := ManPos_BK + curMapNode.Cols;
-        end;
-      'd', 'D':
-        begin
-          isOK := (ManPos_BK div curMapNode.Cols) < curMapNode.Rows - 1;
-          pos1 := ManPos_BK + curMapNode.Cols;
-          pos2 := ManPos_BK - curMapNode.Cols;
-        end;
-    end;
-
-    if isOK then
-    begin
-      if ch in [ 'L', 'R', 'U', 'D' ] then
-      begin
-
-        if (pos2 < 0) or (pos2 >= curMap.MapSize) or                              // 界外，等
-           (pos1 < 0) or (pos1 >= curMap.MapSize) or
-           (not (map_Board_BK[pos2] in [BoxCell, BoxGoalCell])) or
-           (not (map_Board_BK[pos1] in [FloorCell, GoalCell]))then begin
-           StatusBar1.Panels[7].Text := '遇到了错误的动作符号！- ' + ch;
-           Break;
-        end;
-
-        if map_Board_BK[pos2] = BoxCell then
-          map_Board_BK[pos2] := FloorCell
-        else
-          map_Board_BK[pos2] := GoalCell;
-
-        if (map_Board_BK[pos1] = FloorCell) then                                // 下一格是地板
-          map_Board_BK[pos1] := ManCell
-        else
-          map_Board_BK[pos1] := ManGoalCell;
-
-        if map_Board_BK[ManPos_BK] = ManCell then
-          map_Board_BK[ManPos_BK] := BoxCell
-        else
-          map_Board_BK[ManPos_BK] := BoxGoalCell;
-
-        BoxNum_Board_BK[ManPos_BK] := BoxNum_Board_BK[pos2];                    // 新箱子编号
-        BoxNum_Board_BK[pos2] := -1;                                            // 原箱子编号
-
-        Inc(PushTimes_BK);                                                      // 推动步数
-      end
-      else
-      begin
-
-        if (pos1 < 0) or (pos1 >= curMap.MapSize) or                            // 界外，等
-           (not (map_Board_BK[pos1] in [FloorCell, GoalCell]))then begin
-           StatusBar1.Panels[7].Text := '遇到了错误的动作符号！- ' + ch;
-           Break;
-        end;
-
-        // 人到位
-        if (map_Board_BK[pos1] = FloorCell) then                                // 下一格是地板
-          map_Board_BK[pos1] := ManCell          
-        else
-          map_Board_BK[pos1] := ManGoalCell;
-
-        if map_Board_BK[ManPos_BK] = ManCell then
-          map_Board_BK[ManPos_BK] := FloorCell
-        else
-          map_Board_BK[ManPos_BK] := GoalCell;
+      // 人的位置出现异常
+      if (ManPos_BK < 0) or (ManPos_BK >= curMap.MapSize) or
+         (not (map_Board_BK[ManPos_BK] in [ManCell, ManGoalCell])) then begin
+         StatusBar1.Panels[7].Text := format('人的位置异常！- [%d, %d]', [ManPos_BK mod curMapNode.Cols + 1, ManPos_BK div curMapNode.Cols + 1]);
+         Break;
       end;
 
-      Inc(MoveTimes_BK);                                                        // 移动步数
+      ch := RedoList_BK[ReDoPos_BK];
 
-      Dec(ReDoPos_BK);
-      Inc(UnDoPos_BK);
-      UndoList_BK[UnDoPos_BK] := ch;
-      ManPos_BK := pos1;                                                        // 人的新位置
-
-      if (not mySettings.isIM) and (not isNoDelay) then DrawMap();              // 更新地图显示
-      ShowStatusBar();
-      StatusBar1.Panels[5].Text := ' ' + GetCur(ManPos_BK mod curMapNode.Cols, ManPos_BK div curMapNode.Cols) + ' - [ ' + IntToStr((ManPos_BK mod curMapNode.Cols) + 1) + ', ' + IntToStr((ManPos_BK div curMapNode.Cols) + 1) + ' ]';       // 标尺
-
-      Dec(Steps);
-      if Steps > 0 then GameDelay();                                            // 延时
-
-      if (not curMap.isFinish) and (ch in [ 'L', 'R', 'U', 'D' ]) and (PushTimes_BK > 0)then begin
-        if IsComplete_BK() then begin                                           // 逆推过关
-          IsCompleted := True;                             
-          Break;
-        end else if IsMeets(ch) then begin                                      // 正逆相合
-          isMeet := True;
-          Break;
-        end;
+      pos1 := -1;
+      pos2 := -1;
+      isOK := False;
+      case ch of
+        'l', 'L':
+          begin
+            isOK := (ManPos_BK mod curMapNode.Cols) > 0;
+            pos1 := ManPos_BK - 1;
+            pos2 := ManPos_BK + 1;
+          end;
+        'r', 'R':
+          begin
+            isOK := (ManPos_BK mod curMapNode.Cols) < curMapNode.Cols - 1;
+            pos1 := ManPos_BK + 1;
+            pos2 := ManPos_BK - 1;
+          end;
+        'u', 'U':
+          begin
+            isOK := (ManPos_BK div curMapNode.Cols) > 0;
+            pos1 := ManPos_BK - curMapNode.Cols;
+            pos2 := ManPos_BK + curMapNode.Cols;
+          end;
+        'd', 'D':
+          begin
+            isOK := (ManPos_BK div curMapNode.Cols) < curMapNode.Rows - 1;
+            pos1 := ManPos_BK + curMapNode.Cols;
+            pos2 := ManPos_BK - curMapNode.Cols;
+          end;
       end;
-    end;
-  end;
 
-  StatusBar1.Repaint;
+      if isOK then
+      begin
+        if ch in [ 'L', 'R', 'U', 'D' ] then
+        begin
 
-  if mySettings.isIM or isNoDelay then DrawMap();                               // 更新地图显示
+          if (pos2 < 0) or (pos2 >= curMap.MapSize) or                              // 界外，等
+             (pos1 < 0) or (pos1 >= curMap.MapSize) or
+             (not (map_Board_BK[pos2] in [BoxCell, BoxGoalCell])) or
+             (not (map_Board_BK[pos1] in [FloorCell, GoalCell]))then begin
+             StatusBar1.Panels[7].Text := '遇到了错误的动作符号！- ' + ch;
+             Break;
+          end;
 
-  if IsCompleted then begin                                                     // 逆推过关，答案转存到正推
+          if map_Board_BK[pos2] = BoxCell then
+            map_Board_BK[pos2] := FloorCell
+          else
+            map_Board_BK[pos2] := GoalCell;
 
-    Restart(false);                                                             // 正推地图复位
-    ReDoPos := 0;
+          if (map_Board_BK[pos1] = FloorCell) then                                // 下一格是地板
+            map_Board_BK[pos1] := ManCell
+          else
+            map_Board_BK[pos1] := ManGoalCell;
 
-    len := myPathFinder.manTo(false, map_Board, ManPos, ManPos_BK);             // 取得人的“相合”路径
+          if map_Board_BK[ManPos_BK] = ManCell then
+            map_Board_BK[ManPos_BK] := BoxCell
+          else
+            map_Board_BK[ManPos_BK] := BoxGoalCell;
 
-    // 跳过逆推转正推答案时，最后一推后面无用的空移动作
-    n := 1;
-    while n <= UnDoPos_BK do begin
-      if UndoList_BK[n] in [ 'L', 'R', 'U', 'D' ] then Break;
-      inc(n);
-    end;
+          BoxNum_Board_BK[ManPos_BK] := BoxNum_Board_BK[pos2];                    // 新箱子编号
+          BoxNum_Board_BK[pos2] := -1;                                            // 原箱子编号
 
-    // 把逆推undolist_bk中的动作，转送入正推的resolist中
-    if len + UnDoPos_BK - n <= MaxLenPath then begin                                                          // 将逆推答案转送正推中
-      ReDoPos := 0;
-      for i := n to UnDoPos_BK do begin
-        Inc(ReDoPos);
-        case UndoList_BK[i] of
-          'l':
-            RedoList[ReDoPos] := 'r';
-          'r':
-            RedoList[ReDoPos] := 'l';
-          'u':
-            RedoList[ReDoPos] := 'd';
-          'd':
-            RedoList[ReDoPos] := 'u';
-          'L':
-            RedoList[ReDoPos] := 'R';
-          'R':
-            RedoList[ReDoPos] := 'L';
-          'U':
-            RedoList[ReDoPos] := 'D';
-          'D':
-            RedoList[ReDoPos] := 'U';
+          Inc(PushTimes_BK);                                                      // 推动步数
         end
+        else
+        begin
+
+          if (pos1 < 0) or (pos1 >= curMap.MapSize) or                            // 界外，等
+             (not (map_Board_BK[pos1] in [FloorCell, GoalCell]))then begin
+             StatusBar1.Panels[7].Text := '遇到了错误的动作符号！- ' + ch;
+             Break;
+          end;
+
+          // 人到位
+          if (map_Board_BK[pos1] = FloorCell) then                                // 下一格是地板
+            map_Board_BK[pos1] := ManCell          
+          else
+            map_Board_BK[pos1] := ManGoalCell;
+
+          if map_Board_BK[ManPos_BK] = ManCell then
+            map_Board_BK[ManPos_BK] := FloorCell
+          else
+            map_Board_BK[ManPos_BK] := GoalCell;
+        end;
+
+        Inc(MoveTimes_BK);                                                        // 移动步数
+
+        Dec(ReDoPos_BK);
+        Inc(UnDoPos_BK);
+        UndoList_BK[UnDoPos_BK] := ch;
+        ManPos_BK := pos1;                                                        // 人的新位置
+
+        if (not mySettings.isIM) and (not isNoDelay) then DrawMap();              // 更新地图显示
+        ShowStatusBar();
+        StatusBar1.Panels[5].Text := ' ' + GetCur(ManPos_BK mod curMapNode.Cols, ManPos_BK div curMapNode.Cols) + ' - [ ' + IntToStr((ManPos_BK mod curMapNode.Cols) + 1) + ', ' + IntToStr((ManPos_BK div curMapNode.Cols) + 1) + ' ]';       // 标尺
+
+        Dec(Steps);
+        if Steps > 0 then GameDelay();                                            // 延时
+
+        if (not curMap.isFinish) and (ch in [ 'L', 'R', 'U', 'D' ]) and (PushTimes_BK > 0)then begin
+          if IsComplete_BK() then begin                                           // 逆推过关
+            IsCompleted := True;                             
+            Break;
+          end else if IsMeets(ch) then begin                                      // 正逆相合
+            isMeet := True;
+            Break;
+          end;
+        end;
       end;
-      // 补足人的“相合”动作
-      for i := 1 to len do begin
+    end;
+
+    StatusBar1.Repaint;
+
+    if mySettings.isIM or isNoDelay then DrawMap();                               // 更新地图显示
+
+    if IsCompleted then begin                                                     // 逆推过关，答案转存到正推
+
+      Restart(false);                                                             // 正推地图复位
+      ReDoPos := 0;
+
+      len := myPathFinder.manTo(false, map_Board, ManPos, ManPos_BK);             // 取得人的“相合”路径
+
+      // 跳过逆推转正推答案时，最后一推后面无用的空移动作
+      n := 1;
+      while n <= UnDoPos_BK do begin
+        if UndoList_BK[n] in [ 'L', 'R', 'U', 'D' ] then Break;
+        inc(n);
+      end;
+
+      // 把逆推undolist_bk中的动作，转送入正推的resolist中
+      if len + UnDoPos_BK - n <= MaxLenPath then begin                                                          // 将逆推答案转送正推中
+        ReDoPos := 0;
+        for i := n to UnDoPos_BK do begin
           Inc(ReDoPos);
-          RedoList[ReDoPos] := ManPath[i];
+          case UndoList_BK[i] of
+            'l':
+              RedoList[ReDoPos] := 'r';
+            'r':
+              RedoList[ReDoPos] := 'l';
+            'u':
+              RedoList[ReDoPos] := 'd';
+            'd':
+              RedoList[ReDoPos] := 'u';
+            'L':
+              RedoList[ReDoPos] := 'R';
+            'R':
+              RedoList[ReDoPos] := 'L';
+            'U':
+              RedoList[ReDoPos] := 'D';
+            'D':
+              RedoList[ReDoPos] := 'U';
+          end
+        end;
+        // 补足人的“相合”动作
+        for i := 1 to len do begin
+            Inc(ReDoPos);
+            RedoList[ReDoPos] := ManPath[i];
+        end;
+        // 自动保存一下答案
+        SaveSolution(2);
+        curMap.isFinish := True;
+        ShowMyInfo('逆推过关！', '恭喜');
+      end else begin
+        SaveState();                                                            // 保存关卡 XSB 到文档，状态到数据库
+        ShowMyInfo('逆推过关！' + #10 + '因答案过长，仅以状态方式保存！', '恭喜');
       end;
+    end else if isMeet then begin                                                 // 正逆相合
       // 自动保存一下答案
       SaveSolution(2);
       curMap.isFinish := True;
-      ShowMyInfo('逆推过关！', '恭喜');
-    end else begin
-      SaveState();                                                            // 保存关卡 XSB 到文档，状态到数据库
-      ShowMyInfo('逆推过关！' + #10 + '因答案过长，仅以状态方式保存！', '恭喜');
+      ShowMyInfo('正逆相合！', '恭喜');
     end;
-  end else if isMeet then begin                                                 // 正逆相合
-    // 自动保存一下答案
-    SaveSolution(2);
-    curMap.isFinish := True;
-    ShowMyInfo('正逆相合！', '恭喜');
+  except
+{$IFDEF LASTACT}
+   Writeln(myLogFile_, '');
+   Writeln(myLogFile_, 'ReDo_BK Error: ');
+   Write(myLogFile_, DateTimeToStr(Now));
+   Writeln(myLogFile_, '');
+   if UnDoPos > 0 then begin
+      if UnDoPos < MaxLenPath then UndoList[UnDoPos+1] := #0;
+      act := PChar(@UndoList);
+      Writeln(myLogFile_, act);
+   end;
+   Flush(myLogFile_);
+{$ENDIF}
   end;
   
   IsStop    := false;
@@ -4459,8 +4527,13 @@ procedure Tmain.UnDo_BK(Steps: Integer);
 var
   ch: Char;
   pos1, pos2: Integer;
+{$IFDEF LASTACT}
+  act: string;
+{$ENDIF}
 
 begin
+  if (curMapNode = nil) or (curMapNode.Map.Count = 0) then Exit;
+
   StatusBar1.Panels[7].Text := '';
 
   isSelectMod := False;
@@ -4469,105 +4542,120 @@ begin
   IsBoxAccessibleTips_BK := False;
   IsManAccessibleTips_BK := False;
 
-  while (not IsStop) and (Steps > 0) and (UnDoPos_BK > 0) and (ReDoPos_BK < MaxLenPath) do begin
+  try
+    while (not IsStop) and (Steps > 0) and (UnDoPos_BK > 0) and (ReDoPos_BK < MaxLenPath) do begin
 
-    // 人的位置出现异常
-    if (ManPos_BK < 0) or (ManPos_BK >= curMap.MapSize) or
-       (not (map_Board_BK[ManPos_BK] in [ManCell, ManGoalCell])) then begin
-       StatusBar1.Panels[7].Text := format('人的位置异常！- [%d, %d]', [ManPos_BK mod curMapNode.Cols + 1, ManPos_BK div curMapNode.Cols + 1]);
-       Break;
-    end;
-
-    ch := UndoList_BK[UnDoPos_BK];
-
-    pos1 := -1;
-    pos2 := -1;
-    case ch of
-      'l', 'L':
-        begin
-          pos1 := ManPos_BK + 1;
-          pos2 := ManPos_BK + 2;
-        end;
-      'r', 'R':
-        begin
-          pos1 := ManPos_BK - 1;
-          pos2 := ManPos_BK - 2;
-        end;
-      'u', 'U':
-        begin
-          pos1 := ManPos_BK + curMapNode.Cols;
-          pos2 := ManPos_BK + curMapNode.Cols * 2;
-        end;
-      'd', 'D':
-        begin
-          pos1 := ManPos_BK - curMapNode.Cols;
-          pos2 := ManPos_BK - curMapNode.Cols * 2;
-        end;
-    end;
-
-    // 检测是否包含箱子的动作
-    if ch in [ 'L', 'R', 'U', 'D' ] then begin
-
-      if (pos2 < 0) or (pos2 >= curMap.MapSize) or                              // 界外，等
-         (pos1 < 0) or (pos1 >= curMap.MapSize) or
-         (not (map_Board_BK[pos1] in [BoxCell, BoxGoalCell])) or
-         (not (map_Board_BK[pos2] in [FloorCell, GoalCell]))then begin
-         StatusBar1.Panels[7].Text := '遇到了错误的动作符号！- ' + ch;
+      // 人的位置出现异常
+      if (ManPos_BK < 0) or (ManPos_BK >= curMap.MapSize) or
+         (not (map_Board_BK[ManPos_BK] in [ManCell, ManGoalCell])) then begin
+         StatusBar1.Panels[7].Text := format('人的位置异常！- [%d, %d]', [ManPos_BK mod curMapNode.Cols + 1, ManPos_BK div curMapNode.Cols + 1]);
          Break;
       end;
 
-      if map_Board_BK[pos1] = BoxCell then
-        map_Board_BK[pos1] := ManCell
-      else
-        map_Board_BK[pos1] := ManGoalCell;
+      ch := UndoList_BK[UnDoPos_BK];
 
-      if (map_Board_BK[pos2] = FloorCell) then
-        map_Board_BK[pos2] := BoxCell
-      else
-        map_Board_BK[pos2] := BoxGoalCell;
-
-      BoxNum_Board_BK[pos2] := BoxNum_Board_BK[pos1];                           // 新箱子编号
-      BoxNum_Board_BK[pos1] := -1;                                              // 原箱子编号
-
-      Dec(PushTimes_BK);                                                        // 推动步数
-    end else begin
-      if (pos1 < 0) or (pos1 >= curMap.MapSize) or                              // 界外，等
-         (not (map_Board_BK[pos1] in [FloorCell, GoalCell])) then begin
-         StatusBar1.Panels[7].Text := '遇到了错误的动作符号！- ' + ch;
-         Break;
+      pos1 := -1;
+      pos2 := -1;
+      case ch of
+        'l', 'L':
+          begin
+            pos1 := ManPos_BK + 1;
+            pos2 := ManPos_BK + 2;
+          end;
+        'r', 'R':
+          begin
+            pos1 := ManPos_BK - 1;
+            pos2 := ManPos_BK - 2;
+          end;
+        'u', 'U':
+          begin
+            pos1 := ManPos_BK + curMapNode.Cols;
+            pos2 := ManPos_BK + curMapNode.Cols * 2;
+          end;
+        'd', 'D':
+          begin
+            pos1 := ManPos_BK - curMapNode.Cols;
+            pos2 := ManPos_BK - curMapNode.Cols * 2;
+          end;
       end;
-      if (map_Board_BK[pos1] = FloorCell) then
-        map_Board_BK[pos1] := ManCell
+
+      // 检测是否包含箱子的动作
+      if ch in [ 'L', 'R', 'U', 'D' ] then begin
+
+        if (pos2 < 0) or (pos2 >= curMap.MapSize) or                              // 界外，等
+           (pos1 < 0) or (pos1 >= curMap.MapSize) or
+           (not (map_Board_BK[pos1] in [BoxCell, BoxGoalCell])) or
+           (not (map_Board_BK[pos2] in [FloorCell, GoalCell]))then begin
+           StatusBar1.Panels[7].Text := '遇到了错误的动作符号！- ' + ch;
+           Break;
+        end;
+
+        if map_Board_BK[pos1] = BoxCell then
+          map_Board_BK[pos1] := ManCell
+        else
+          map_Board_BK[pos1] := ManGoalCell;
+
+        if (map_Board_BK[pos2] = FloorCell) then
+          map_Board_BK[pos2] := BoxCell
+        else
+          map_Board_BK[pos2] := BoxGoalCell;
+
+        BoxNum_Board_BK[pos2] := BoxNum_Board_BK[pos1];                           // 新箱子编号
+        BoxNum_Board_BK[pos1] := -1;                                              // 原箱子编号
+
+        Dec(PushTimes_BK);                                                        // 推动步数
+      end else begin
+        if (pos1 < 0) or (pos1 >= curMap.MapSize) or                              // 界外，等
+           (not (map_Board_BK[pos1] in [FloorCell, GoalCell])) then begin
+           StatusBar1.Panels[7].Text := '遇到了错误的动作符号！- ' + ch;
+           Break;
+        end;
+        if (map_Board_BK[pos1] = FloorCell) then
+          map_Board_BK[pos1] := ManCell
+        else
+          map_Board_BK[pos1] := ManGoalCell;
+      end;
+
+      // 人的退回
+      if (map_Board_BK[ManPos_BK] = ManCell) then
+        map_Board_BK[ManPos_BK] := FloorCell
       else
-        map_Board_BK[pos1] := ManGoalCell;
+        map_Board_BK[ManPos_BK] := GoalCell;
+
+      Dec(MoveTimes_BK);                                                          // 移动步数
+
+      Dec(UnDoPos_BK);
+      Inc(ReDoPos_BK);
+      RedoList_BK[ReDoPos_BK] := ch;
+      ManPos_BK := pos1;                                                          // 人的新位置
+
+      if (not mySettings.isIM) and (not isNoDelay) then DrawMap();                // 更新地图显示
+      ShowStatusBar();
+      StatusBar1.Panels[5].Text := ' ' + GetCur(ManPos_BK mod curMapNode.Cols, ManPos_BK div curMapNode.Cols) + ' - [ ' + IntToStr((ManPos_BK mod curMapNode.Cols) + 1) + ', ' + IntToStr((ManPos_BK div curMapNode.Cols) + 1) + ' ]';       // 标尺
+
+      Dec(Steps);
+      if Steps > 0 then GameDelay();                                              // 延时
+
     end;
 
-    // 人的退回
-    if (map_Board_BK[ManPos_BK] = ManCell) then
-      map_Board_BK[ManPos_BK] := FloorCell
-    else
-      map_Board_BK[ManPos_BK] := GoalCell;
+    StatusBar1.Repaint;
 
-    Dec(MoveTimes_BK);                                                          // 移动步数
-
-    Dec(UnDoPos_BK);
-    Inc(ReDoPos_BK);
-    RedoList_BK[ReDoPos_BK] := ch;
-    ManPos_BK := pos1;                                                          // 人的新位置
-
-    if (not mySettings.isIM) and (not isNoDelay) then DrawMap();                // 更新地图显示
-    ShowStatusBar();
-    StatusBar1.Panels[5].Text := ' ' + GetCur(ManPos_BK mod curMapNode.Cols, ManPos_BK div curMapNode.Cols) + ' - [ ' + IntToStr((ManPos_BK mod curMapNode.Cols) + 1) + ', ' + IntToStr((ManPos_BK div curMapNode.Cols) + 1) + ' ]';       // 标尺
-
-    Dec(Steps);
-    if Steps > 0 then GameDelay();                                              // 延时
-
+    if mySettings.isIM or isNoDelay then DrawMap();                               // 更新地图显示
+  except
+{$IFDEF LASTACT}
+   Writeln(myLogFile_, '');
+   Writeln(myLogFile_, 'UnDo_BK Error: ');
+   Write(myLogFile_, DateTimeToStr(Now));
+   Writeln(myLogFile_, '');
+   if UnDoPos > 0 then begin
+      if UnDoPos < MaxLenPath then UndoList[UnDoPos+1] := #0;
+      act := PChar(@UndoList);
+      Writeln(myLogFile_, act);
+   end;
+   Flush(myLogFile_);
+{$ENDIF}
   end;
-
-  StatusBar1.Repaint;
-
-  if mySettings.isIM or isNoDelay then DrawMap();                               // 更新地图显示
-
+  
   IsStop    := false;
   isNoDelay := false;                                                           // 是否为无延时动作 -- 至首、至尾功能用
   isKeyPush := false;                                                           // 是否正在演示中 -- 空格键和退格键控制的
@@ -4815,7 +4903,7 @@ begin
 
        curMapNode := QuicklyLoadMap(MyOpenFile.FileListBox1.FileName, 1);
 
-       if curMapNode.Map.Count > 2 then begin
+       if (curMapNode <> nil) and (curMapNode.Map.Count  > 2) then begin
 
           curMap.CurrentLevel := 1;
           mySettings.MapFileName := MyOpenFile.FileListBox1.FileName;
@@ -5309,6 +5397,11 @@ var
 begin
   if isMoving then IsStop := True
   else IsStop := False;
+
+  if (curMapNode = nil) or (curMapNode.Cols <= 0) then begin
+     MessageBox(handle, '尚无打开的关卡！', '错误', MB_ICONERROR or MB_OK);
+     Exit;
+  end;
 
   // 参数传递 -- 是否逆推、默认路径
   ActionForm.isBK := mySettings.isBK;
@@ -6513,6 +6606,19 @@ begin
       
         if (jRet.O['extra'] <> nil) then begin
             strLevel := jRet.O['extra'].AsString;
+
+            if not AnsiSameText(strLevel, 'null') then begin
+               jLevel := SO(strLevel);
+               title := jLevel.O['title'].AsString;
+               author := jLevel.O['author'].AsString;
+               level := jLevel.O['level'].AsString;
+               level := StringReplace(level, '|', #10, [rfReplaceAll]);
+               str := str + level + #10 + 'Title: ' + title + #10 + 'Author' + author + #10;
+            end;
+        end;
+
+        if (jRet.O['extra2'] <> nil) then begin
+            strLevel := jRet.O['extra2'].AsString;
 
             if not AnsiSameText(strLevel, 'null') then begin
                jLevel := SO(strLevel);

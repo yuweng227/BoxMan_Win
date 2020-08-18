@@ -1,9 +1,9 @@
 object TrialForm: TTrialForm
-  Left = 231
-  Top = 266
+  Left = 821
+  Top = 199
   Width = 800
   Height = 600
-  Caption = #28436#32451#22330
+  Caption = #27491#25512#28436#32451#22330
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
   Font.Color = clWindowText
@@ -147,7 +147,14 @@ object TrialForm: TTrialForm
     000000000000000000000000000000000000000000000000000000000000}
   OldCreateOrder = False
   Position = poMainFormCenter
+  OnClose = FormClose
   OnCreate = FormCreate
+  OnDestroy = FormDestroy
+  OnKeyDown = FormKeyDown
+  OnKeyUp = FormKeyUp
+  OnMouseWheelDown = FormMouseWheelDown
+  OnMouseWheelUp = FormMouseWheelUp
+  OnResize = FormResize
   OnShow = FormShow
   PixelsPerInch = 96
   TextHeight = 13
@@ -158,6 +165,12 @@ object TrialForm: TTrialForm
     Height = 30
     Align = alTop
     Color = clInactiveCaption
+    Font.Charset = DEFAULT_CHARSET
+    Font.Color = clWindowText
+    Font.Height = -11
+    Font.Name = #24494#36719#38597#40657
+    Font.Style = []
+    ParentFont = False
     TabOrder = 0
     object bt_UnDo: TSpeedButton
       Left = 168
@@ -177,6 +190,7 @@ object TrialForm: TTrialForm
         8888888888888888888888888888888888888888888888888888}
       ParentShowHint = False
       ShowHint = True
+      OnClick = bt_UnDoClick
     end
     object bt_ReDo: TSpeedButton
       Left = 208
@@ -196,9 +210,10 @@ object TrialForm: TTrialForm
         8888888888888888888888888888888888888888888888888888}
       ParentShowHint = False
       ShowHint = True
+      OnClick = bt_ReDoClick
     end
     object bt_OddEven: TSpeedButton
-      Left = 109
+      Left = 105
       Top = 4
       Width = 36
       Height = 22
@@ -207,6 +222,8 @@ object TrialForm: TTrialForm
       Caption = #22855#20598
       ParentShowHint = False
       ShowHint = True
+      OnMouseDown = bt_OddEvenMouseDown
+      OnMouseUp = bt_OddEvenMouseUp
     end
     object bt_GoThrough: TSpeedButton
       Left = 57
@@ -220,6 +237,7 @@ object TrialForm: TTrialForm
       Caption = #31359#36234
       ParentShowHint = False
       ShowHint = True
+      OnClick = bt_GoThroughClick
     end
     object bt_Exit: TSpeedButton
       Left = 12
@@ -233,12 +251,25 @@ object TrialForm: TTrialForm
       ShowHint = True
       OnClick = bt_ExitClick
     end
-    object SpeedButton1: TSpeedButton
-      Left = 264
-      Top = 8
-      Width = 23
-      Height = 17
-      OnClick = SpeedButton1Click
+    object pnl_Trun: TPanel
+      Left = 268
+      Top = 4
+      Width = 41
+      Height = 23
+      Hint = #26059#36716#20851#21345': *'#12289'/'#12289#24038#21491#40736#26631#38190
+      BevelInner = bvLowered
+      Caption = '0'#36716
+      Color = clActiveCaption
+      Font.Charset = DEFAULT_CHARSET
+      Font.Color = clWindowText
+      Font.Height = -12
+      Font.Name = #24494#36719#38597#40657
+      Font.Style = []
+      ParentFont = False
+      ParentShowHint = False
+      ShowHint = True
+      TabOrder = 0
+      OnMouseUp = pnl_TrunMouseUp
     end
   end
   object pl_Ground: TPanel
@@ -262,6 +293,7 @@ object TrialForm: TTrialForm
       Top = 0
       Width = 1
       Height = 1
+      OnMouseDown = map_ImageMouseDown
     end
   end
   object StatusBar1: TStatusBar
@@ -295,12 +327,13 @@ object TrialForm: TTrialForm
       item
         Alignment = taRightJustify
         Bevel = pbNone
-        Text = #26631#23610
-        Width = 32
+        Text = #31665#23376#25968
+        Width = 50
       end
       item
+        Alignment = taCenter
         Text = ' '
-        Width = 120
+        Width = 80
       end
       item
         Alignment = taCenter

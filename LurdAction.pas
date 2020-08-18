@@ -36,7 +36,7 @@ const
   dc4 : array[0..3] of Integer = ( -1, 1,  0, 0 );
   
 var
-  UndoList, RedoList, UndoList_BK, RedoList_BK: array[1..MaxLenPath] of Char;   // 保存正逆推 Undo、Redo 动作的数组
+  UndoList, RedoList, UndoList_BK, RedoList_BK: array[1..MaxLenPath+1] of Char; // 保存正逆推 Undo、Redo 动作的数组
   UnDoPos, ReDoPos, UnDoPos_BK, ReDoPos_BK: Integer;                            // undo、redo 位置指针
 
   function LurdToClipboard(c, r: Integer): Boolean;        // Lurd 送入剪切板

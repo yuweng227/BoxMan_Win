@@ -368,7 +368,6 @@ object EditorForm_: TEditorForm_
     0000000000000000000000000000}
   OldCreateOrder = False
   Position = poMainFormCenter
-  OnActivate = FormActivate
   OnCloseQuery = FormCloseQuery
   OnCreate = FormCreate
   OnDestroy = FormDestroy
@@ -709,6 +708,7 @@ object EditorForm_: TEditorForm_
         FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF0000}
       ParentFont = False
       ParentShowHint = False
+      PopupMenu = PopupMenu4
       ShowHint = True
       OnClick = sb_ClearClick
       OnMouseMove = sb_ClearMouseMove
@@ -1021,7 +1021,7 @@ object EditorForm_: TEditorForm_
       Top = 5
       Width = 35
       Height = 26
-      Hint = #35797#28860#22330#12304'F5/F6'#12305
+      Hint = #28436#32451#22330#12304'F5/F6'#12305
       Font.Charset = DEFAULT_CHARSET
       Font.Color = clWindowText
       Font.Height = -12
@@ -3445,6 +3445,23 @@ object EditorForm_: TEditorForm_
     object N8: TMenuItem
       Caption = #26368#23567#26631#20934#21270
       OnClick = N8Click
+    end
+  end
+  object PopupMenu4: TPopupMenu
+    AutoHotkeys = maManual
+    Left = 360
+    Top = 51
+    object N9: TMenuItem
+      Caption = #28165#38500#31665#23376
+      OnClick = N9Click
+    end
+    object N10: TMenuItem
+      Caption = #28165#38500#30446#26631#28857
+      OnClick = N10Click
+    end
+    object N11: TMenuItem
+      Caption = #20165#20445#30041#22681#22721
+      OnClick = N11Click
     end
   end
 end
