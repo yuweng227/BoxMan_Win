@@ -150,7 +150,7 @@ begin
             end;
          end;
 
-         FreeAndNil(p);
+         if p <> nil then FreeAndNil(p);
       end else begin
          k := Max(i, j);
 

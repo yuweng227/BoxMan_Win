@@ -465,8 +465,8 @@ begin
 		end;
 		y := y + Map_RowHeight.Value div myScale;
 	end;
-  FreeAndNil(img0);
-  FreeAndNil(img1);
+  if img0 <> nil then FreeAndNil(img0);
+  if img1 <> nil then FreeAndNil(img1);
 end;
 
 // 两个色相数组是否相近
@@ -679,7 +679,7 @@ begin
       end;
     end;
   finally
-    FreeAndNil(image);
+    if image <> nil then FreeAndNil(image);
   end;
 end;
 
@@ -794,7 +794,7 @@ begin
 
        myDraw;
      finally
-       FreeAndNil(tmpBmp);
+       if tmpBmp <> nil then FreeAndNil(tmpBmp);
      end;
   end;
 end;
@@ -900,7 +900,7 @@ begin
 
      myDraw;
    finally
-     FreeAndNil(fullscreen);
+     if fullscreen <> nil then FreeAndNil(fullscreen);
    end;
 
    SendMessage(Application.Handle, WM_SYSCOMMAND, SC_RESTORE, 0);
@@ -2216,11 +2216,11 @@ end;
 
 procedure TRecogForm_.FormDestroy(Sender: TObject);
 begin
-  FreeAndNil(rUnDoList);
-  FreeAndNil(rReDoList);
-  
+  if rUnDoList <> nil then FreeAndNil(rUnDoList);
+  if rReDoList <> nil then FreeAndNil(rReDoList);
+
 {$IFDEF TEST}
-  FreeAndNil(tmpPic);
+  if tmpPic <> nil then FreeAndNil(tmpPic);
 {$ENDIF}
 end;
 
@@ -2320,7 +2320,7 @@ begin
           end;
       end;
   finally
-      FreeAndNil(MyXSB);
+      if MyXSB <> nil then FreeAndNil(MyXSB);
   end;
 end;
 

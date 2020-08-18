@@ -119,10 +119,9 @@ begin
     // 网页中的存在中文时，需要进行UTF8解码
 //    ResponseStr := UTF8Decode(ResponseStr);
   finally
-    IdHttp.Free;
-    RequestList.Free;
-//    RequestStream.Free;
-    ResponseStream.Free;
+    if IdHttp <> nil then FreeAndNil(IdHttp);
+    if RequestList <> nil then FreeAndNil(RequestList);
+    if ResponseStream <> nil then FreeAndNil(ResponseStream);
   end;
 
   Result := ResponseStr;

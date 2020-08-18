@@ -21,17 +21,13 @@ var
     ManPath: array[1..MaxLenPath] of Char;              // 保存人移动动作的临时数组
     BoxPath: array[1..MaxLenPath] of Char;              // 保存人推箱子动作的临时数组
 
-type
-  PathNode2 = record         // 路径节点
-      box_R, box_C: Integer;
-      dir, dir2: ShortInt;   // 用以指向父节点和父节点的父节点
-  end;
-
-type
-  BoxManNode2 = class      // 箱子和人的组合节点，优先队列用节点
+type                        // 单项链表
+  PBoxManNode = ^BoxManNode;
+  BoxManNode = record      // 箱子和人的组合节点，优先队列用节点
       boxPos: Integer;
       manPos: Integer;
       H, G, T, D: Integer;  // 评估值、累计步数、累计转弯次数、父节点方向
+      next: PBoxManNode;
   end;
 
 type
@@ -985,11 +981,10 @@ function TPathFinder.boxTo(isBK: Boolean; boxPos, toPos, manPos: Integer): Integ
 var
   i, j, k, boxR, boxC, toR, toC, manR, manC, newR, newC, mFromR, mFromC, mToR, mToC, r, c, box_R, box_C, man_R, man_C, H, G, T, DD, TT, GG, len, size: Integer;
   isFound: Boolean;
-  PQ:  TObjectList;
+  PQ_Head, PQ: PBoxManNode;
   list1, list2: array[0..49999] of Integer;
   size1, size2, Node: Integer;
   Node_box_R, Node_box_C, Node_dir, Node_dir2: Integer;
-  f: BoxManNode2;
   mDir, mDir0: ShortInt;
   tmpMap2: array[0..1] of Integer;
   ch: Char;
@@ -999,42 +994,47 @@ var
 {$ENDIF}
 
   // 以此模拟优先队列
-  procedure AddNode2(bpos, mpos, H, G, T, k: Integer; var myList: TObjectList);
+  procedure AddNode2(bpos, mpos, H, G, T, k: Integer; var myList: PBoxManNode);
   var
-     x, y: BoxManNode2;
-     i, size: Integer;
-
+     x, y, z: PBoxManNode;
   begin
-      x := BoxManNode2.Create;
+      New(x);
       x.boxPos := bpos;
       x.manPos := mpos;
       x.H := H;
       x.G := G;
       x.T := T;
       x.D := k;
+      x.next := myList;
+      myList := x;
 
-      size := myList.Count;
-
-      i := 0;
-      while i < size do begin
-          y := BoxManNode2(myList.items[i]);
-
-          if x.T > y.T then begin             // 先比较转弯数
+      z := nil;
+      while x.next <> nil do begin
+          y := x.next;
+          
+          if x.T < y.T then begin             // 先比较转弯数
              Break;
-          end else begin
-             if x.H > y.H then begin          // 再比较评估值
+          end else if x.T = y.T then begin
+             if x.H < y.H then begin          // 再比较评估值
                 Break;
-             end else begin
-                if x.G > y.G then begin       // 最后比较推动消耗（步数）
+             end else if x.H = y.H then begin
+                if x.G < y.G then begin       // 最后比较推动消耗（步数）
                    Break;
                 end;
              end;
           end;
-          inc(i);
-      end;
 
-      if i < size then myList.Insert(i, x)
-      else myList.Add(x);
+          x.next := y.next;
+          y.next := x;
+          
+          if z = nil then myList := y
+          else z.next := y;
+
+          z := y;
+      end;
+      x := nil;
+      y := nil;
+      z := nil;
   end;
 
 begin
@@ -1081,31 +1081,31 @@ begin
     manR := manPos div mapWidth;
     manC := manPos mod mapWidth;
 
-    PQ := TObjectList.Create;
-    f := BoxManNode2.Create;
-    f.boxPos := boxPos;                         // 初始位置入队列，待查其四邻
-    f.manPos := manPos;
-    f.H := abs(boxR - toR) + abs(boxC - toC);
-    f.G := 0;
-    f.T := -1;
-    f.D := -1;
-    PQ.Add(f);
+    New(PQ);
+    PQ.boxPos := boxPos;                         // 初始位置入队列，待查其四邻
+    PQ.manPos := manPos;
+    PQ.H := abs(boxR - toR) + abs(boxC - toC);
+    PQ.G := 0;
+    PQ.T := -1;
+    PQ.D := -1;
+    PQ.next := nil;
 
     size1 := 0;
     size2 := 0;
-    size := PQ.Count;
-    while not isFound and (size > 0) do begin
-        size := PQ.Count;
-        f := BoxManNode2(PQ.Items[size-1]);                       // 出队列
-        box_R := f.boxPos div mapWidth;
-        box_C := f.boxPos mod mapWidth;
-        man_R := f.manPos div mapWidth;
-        man_C := f.manPos mod mapWidth;
-        DD := f.D;
-        TT := f.T;
-        GG := f.G;
-        PQ.Delete(size-1);
-        
+
+    while not isFound and (PQ <> nil) do begin
+        PQ_Head := PQ;
+        PQ := PQ.next;
+        box_R := PQ_Head.boxPos div mapWidth;
+        box_C := PQ_Head.boxPos mod mapWidth;
+        man_R := PQ_Head.manPos div mapWidth;
+        man_C := PQ_Head.manPos mod mapWidth;
+        DD := PQ_Head.D;
+        TT := PQ_Head.T;
+        GG := PQ_Head.G;
+        Dispose(PQ_Head);
+        PQ_Head := nil;
+
         for k := 0 to 3 do begin         // 检查f的四邻
             if mark0[box_R, box_C, k] then continue;  // 该节点的此方向（反）已推
 
@@ -1147,7 +1147,6 @@ begin
             end;
         end;
     end;
-    FreeAndNil(PQ);
 
     if (isFound) then begin  // 找到了路径
 

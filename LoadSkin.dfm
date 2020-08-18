@@ -86,6 +86,7 @@ object LoadSkinForm: TLoadSkinForm
     Width = 241
     Height = 329
     Color = clHighlightText
+    ImeName = #20013#25991'('#31616#20307') - '#25628#29399#25340#38899#36755#20837#27861
     ItemHeight = 13
     TabOrder = 2
     OnClick = ListBox1Click

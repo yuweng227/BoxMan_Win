@@ -1,6 +1,6 @@
 object main: Tmain
-  Left = 808
-  Top = 157
+  Left = 866
+  Top = 137
   Width = 732
   Height = 532
   Caption = 'BoxMan'
@@ -169,7 +169,7 @@ object main: Tmain
         Alignment = taRightJustify
         Bevel = pbNone
         Text = #31227#21160
-        Width = 28
+        Width = 32
       end
       item
         Alignment = taCenter
@@ -180,7 +180,7 @@ object main: Tmain
         Alignment = taRightJustify
         Bevel = pbNone
         Text = #25512#21160
-        Width = 28
+        Width = 32
       end
       item
         Alignment = taCenter
@@ -191,7 +191,7 @@ object main: Tmain
         Alignment = taRightJustify
         Bevel = pbNone
         Text = #26631#23610
-        Width = 28
+        Width = 32
       end
       item
         Text = ' '
@@ -756,11 +756,11 @@ object main: Tmain
       Caption = '-'
     end
     object N21: TMenuItem
-      Caption = #21453#21521#28436#31034
+      Caption = #36827#33267#23614
       OnClick = N21Click
     end
     object N22: TMenuItem
-      Caption = #27491#21521#28436#31034
+      Caption = #36864#33267#39318
       OnClick = N22Click
     end
   end
@@ -816,10 +816,11 @@ object main: Tmain
     end
     object N26: TMenuItem
       Caption = '-'
+      Visible = False
     end
     object N27: TMenuItem
       Caption = #23548#20837#31572#26696
-      OnClick = N27Click
+      Visible = False
     end
   end
   object pmState: TPopupMenu
@@ -919,7 +920,7 @@ object main: Tmain
       OnClick = N15Click
     end
     object N16: TMenuItem
-      Caption = #33267#39318
+      Caption = #36864#33267#39318
       OnClick = N16Click
     end
   end
@@ -936,7 +937,7 @@ object main: Tmain
       OnClick = N18Click
     end
     object N19: TMenuItem
-      Caption = #33267#23614
+      Caption = #36827#33267#23614
       OnClick = N19Click
     end
   end

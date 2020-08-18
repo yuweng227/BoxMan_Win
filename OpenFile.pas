@@ -2,9 +2,11 @@ unit OpenFile;
 
 interface
 
+{$WARN UNIT_PLATFORM OFF}
+
 uses
   Windows, Messages, SysUtils, Variants, Classes, Graphics, Controls, Forms, LogFile,
-  Dialogs, StdCtrls, ExtCtrls, FileCtrl, Registry, Buttons;
+  Dialogs, StdCtrls, ExtCtrls, Registry, Buttons, FileCtrl;
 
 type
   TMyOpenFile = class(TForm)
@@ -109,6 +111,8 @@ begin
   Caption := '打开关卡文档';
   Button1.Caption := '打开(&O)';
   Button2.Caption := '取消';
+  SpeedButton1.Caption := '我的文档';
+  SpeedButton2.Caption := '桌面';
   CheckBox1.Caption := '若关卡有答案，则同时导入';
 end;
 

@@ -180,7 +180,7 @@ begin
             Label4.Caption := '元格尺寸: ' + IntToStr(size) + '像素';
         end;
         
-        FreeAndNil(pic);
+        if pic <> nil then FreeAndNil(pic);
     except
       Button2.Enabled := False;  // 皮肤文档错误， OK 按钮无效
       Label4.Caption := ' ';
@@ -575,7 +575,7 @@ begin
 
     end;
 
-    FreeAndNil(pic);
+    if pic <> nil then FreeAndNil(pic);
   except
     exit;
   end;
@@ -588,42 +588,42 @@ end;
 procedure TLoadSkinForm.FormDestroy(Sender: TObject);
 begin
   // 释放内存
-  FreeAndNil(FloorPic);
-  FreeAndNil(GoalPic);
-  FreeAndNil(ManPic);
-  FreeAndNil(ManGoalPic);
-  FreeAndNil(BoxPic);
-  FreeAndNil(BoxGoalPic);
+  if FloorPic <> nil then FreeAndNil(FloorPic);
+  if GoalPic <> nil then FreeAndNil(GoalPic);
+  if ManPic <> nil then FreeAndNil(ManPic);
+  if ManGoalPic <> nil then FreeAndNil(ManGoalPic);
+  if BoxPic <> nil then FreeAndNil(BoxPic);
+  if BoxGoalPic <> nil then FreeAndNil(BoxGoalPic);
 
-  FreeAndNil(FloorPic2);
-  FreeAndNil(GoalPic2);
-  FreeAndNil(ManPic2);
-  FreeAndNil(ManGoalPic2);
-  FreeAndNil(BoxPic2);
-  FreeAndNil(BoxGoalPic2);
+  if FloorPic2 <> nil then FreeAndNil(FloorPic2);
+  if GoalPic2 <> nil then FreeAndNil(GoalPic2);
+  if ManPic2 <> nil then FreeAndNil(ManPic2);
+  if ManGoalPic2 <> nil then FreeAndNil(ManGoalPic2);
+  if BoxPic2 <> nil then FreeAndNil(BoxPic2);
+  if BoxGoalPic2 <> nil then FreeAndNil(BoxGoalPic2);
 
-  FreeAndNil(WallPic);
-  FreeAndNil(WallPic_lurd);
+  if WallPic <> nil then FreeAndNil(WallPic);
+  if WallPic_lurd <> nil then FreeAndNil(WallPic_lurd);
 
-  FreeAndNil(WallPic_lr);
-  FreeAndNil(WallPic_l);
-  FreeAndNil(WallPic_r);
+  if WallPic_lr <> nil then FreeAndNil(WallPic_lr);
+  if WallPic_l <> nil then FreeAndNil(WallPic_l);
+  if WallPic_r <> nil then FreeAndNil(WallPic_r);
 
-  FreeAndNil(WallPic_ud);
-  FreeAndNil(WallPic_u);
-  FreeAndNil(WallPic_d);
+  if WallPic_ud <> nil then FreeAndNil(WallPic_ud);
+  if WallPic_u <> nil then FreeAndNil(WallPic_u);
+  if WallPic_d <> nil then FreeAndNil(WallPic_d);
 
-  FreeAndNil(WallPic_lu);
-  FreeAndNil(WallPic_ld);
-  FreeAndNil(WallPic_ru);
-  FreeAndNil(WallPic_rd);
+  if WallPic_lu <> nil then FreeAndNil(WallPic_lu);
+  if WallPic_ld <> nil then FreeAndNil(WallPic_ld);
+  if WallPic_ru <> nil then FreeAndNil(WallPic_ru);
+  if WallPic_rd <> nil then FreeAndNil(WallPic_rd);
 
-  FreeAndNil(WallPic_lur);
-  FreeAndNil(WallPic_ldr);
-  FreeAndNil(WallPic_uld);
-  FreeAndNil(WallPic_urd);
+  if WallPic_lur <> nil then FreeAndNil(WallPic_lur);
+  if WallPic_ldr <> nil then FreeAndNil(WallPic_ldr);
+  if WallPic_uld <> nil then FreeAndNil(WallPic_uld);
+  if WallPic_urd <> nil then FreeAndNil(WallPic_urd);
 
-  FreeAndNil(WallPic_top);
+  if WallPic_top <> nil then FreeAndNil(WallPic_top);
 
 end;
 

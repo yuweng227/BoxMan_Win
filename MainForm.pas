@@ -260,7 +260,6 @@ type
     procedure List_SolutionMouseDown(Sender: TObject; Button: TMouseButton;
       Shift: TShiftState; X, Y: Integer);
     procedure SpeedButton1Click(Sender: TObject);
-    procedure N27Click(Sender: TObject);
 
   private
     // 当前地图参数
@@ -345,7 +344,7 @@ const
   SpeedInf: array[0..4] of string = ('最快', '较快', '中速', '较慢', '最慢');
   
   AppName = 'BoxMan';
-  AppVer = ' V1.8';
+  AppVer = ' V1.9';
 
 var
   main: Tmain;
@@ -387,7 +386,7 @@ implementation
 
 uses
   DateUtils, LogFile, MyInf, Submit, IDHttp, superobject, ShowSolutionList, OpenFile,
-  LoadSkin, PathFinder, LurdAction, BrowseLevels, CRC_32, Actions, myTest, ImportSolution;
+  LoadSkin, PathFinder, LurdAction, BrowseLevels, CRC_32, Actions, myTest;
 
 var
   myPathFinder: TPathFinder;
@@ -426,7 +425,6 @@ begin
   IniFile := TIniFile.Create(AppPath + AppName + '.ini');
 
   try
-
     mySettings.myTop := IniFile.ReadInteger('Settings', 'Top', 100);            // 上次退出时，窗口的位置及大小
     mySettings.myLeft := IniFile.ReadInteger('Settings', 'Left', 100);
     mySettings.myWidth := IniFile.ReadInteger('Settings', 'Width', 800);
@@ -479,7 +477,7 @@ begin
     if (tmpTrun < 0) or (tmpTrun > 7) then
       tmpTrun := 0;                                                             // 默认关卡旋转
   finally
-    FreeAndNil(IniFile);
+    if IniFile <> nil then FreeAndNil(IniFile);
   end;
 
 end;
@@ -527,7 +525,7 @@ begin
     end;
 
   finally
-    FreeAndNil(IniFile);
+    if IniFile <> nil then FreeAndNil(IniFile);
   end;
 end;
 
@@ -597,7 +595,7 @@ begin
   mmo_Inf.Lines.Add('作者:');
   mmo_Inf.Lines.Add('-----');
   mmo_Inf.Lines.Add(curMapNode.Author);
-  
+
   s := StringReplace(curMapNode.Comment, #10, '', [rfReplaceAll]);
   s := StringReplace(s, #13, '', [rfReplaceAll]);
   s := StringReplace(s, #9, '', [rfReplaceAll]);
@@ -615,17 +613,19 @@ begin
           mmo_Inf.Lines.Add(ss.Strings[I]);
         end;
      finally
-        FreeAndNil(ss);
+        if ss <> nil then FreeAndNil(ss);
      end;
   end;
 
   myPathFinder.PathFinder(curMapNode.Cols, curMapNode.Rows);
 
   InitlizeMap();
+
   pnl_Trun.Caption := MapTrun[curMapNode.Trun];
   Caption := AppName + AppVer + ' - ' + ExtractFileName(ChangeFileExt(mySettings.MapFileName, EmptyStr)) + ' ~ [' + inttostr(curMap.CurrentLevel) + '/???]';
   Caption := Caption + '，尺寸: ' + IntToStr(curMapNode.Cols) + '×' + IntToStr(curMapNode.Rows) + '，箱子: ' + IntToStr(curMapNode.Boxs) + '，目标: ' + IntToStr(curMapNode.Goals);
   ed_sel_Map.Text := IntToStr(curMap.CurrentLevel);
+
 end;
 
 // 读取关卡文档，并加载指定序号的地图
@@ -714,7 +714,7 @@ begin
           mmo_Inf.Lines.Add(ss.Strings[I]);
         end;
      finally
-        FreeAndNil(ss);
+        if ss <> nil then FreeAndNil(ss);
      end;
   end;
   myPathFinder.PathFinder(curMapNode.Cols, curMapNode.Rows);
@@ -1052,6 +1052,10 @@ var
 begin
   if curMapNode = nil then
     exit;
+
+  if mySettings.isBK and (IsManAccessibleTips_BK or IsBoxAccessibleTips_BK) then map_Image.Cursor := crDrag
+  else if (not mySettings.isBK) and (IsManAccessibleTips or IsBoxAccessibleTips) then map_Image.Cursor := crDrag
+  else map_Image.Cursor := crDefault;
 
   map_Image.Visible := false;
 
@@ -1688,6 +1692,7 @@ begin
   end;
 
   map_Image.Visible := true;
+  
   ShowStatusBar();
 end;
 
@@ -1700,8 +1705,6 @@ begin
 
 {$IFDEF DEBUG}
    LogFileInit('BoxMan.log');
-   Writeln(myLogFile, 'Enter FormCreate...');
-   Flush(myLogFile);
 {$ENDIF}
 
 {$IFDEF LASTACT}
@@ -1738,6 +1741,7 @@ begin
   sb_Help.Hint         := '帮助：【F1】';
 
   StatusBar1.Panels[0].Text := '移动';
+  StatusBar1.Panels[2].Text := '推动';
   StatusBar1.Panels[4].Text := '标尺';
 
   PageControl.Pages[0].Caption := '答案';
@@ -1784,8 +1788,8 @@ begin
   pmBoardBK.Items[13].Caption  := '-';
   pmBoardBK.Items[14].Caption  := '录制动作   【F9】';
   pmBoardBK.Items[15].Caption := '-';
-  pmBoardBK.Items[16].Caption := '反向演示   【退格键】';
-  pmBoardBK.Items[17].Caption := '正向演示   【空格键】';
+  pmBoardBK.Items[16].Caption := '退至首   【退格键】';
+  pmBoardBK.Items[17].Caption := '进至尾   【空格键】';
 
   pm_Up_Bt.Items[0].Caption := '上一关              【PgUp】';
   pm_Up_Bt.Items[1].Caption := '第一关              【Ctrl + PgUp】';
@@ -1797,11 +1801,11 @@ begin
 
   pm_UnDo_Bt.Items[0].Caption := '撤销单步      【A】';
   pm_UnDo_Bt.Items[1].Caption := '撤销          【Z】';
-  pm_UnDo_Bt.Items[2].Caption := '至首          【Home】';
+  pm_UnDo_Bt.Items[2].Caption := '退至首          【Home】';
 
   pm_ReDo_Bt.Items[0].Caption := '重做单步      【S】';
   pm_ReDo_Bt.Items[1].Caption := '重做          【X】';
-  pm_ReDo_Bt.Items[2].Caption := '至尾          【End】';
+  pm_ReDo_Bt.Items[2].Caption := '进至尾          【End】';
 
 
   // 一些最原始的默认设置
@@ -1827,17 +1831,7 @@ begin
   AppPath := ExtractFilePath(Application.ExeName);      //GetCurrentDir + '\';   //
   BoxManDBpath := AppPath + 'BoxMan.db';
 
-{$IFDEF DEBUG}
-   Writeln(myLogFile, 'Step 0');
-   Flush(myLogFile);
-{$ENDIF}
-
   sldb := TSQLiteDatabase.Create(AnsiToUtf8(BoxManDBpath));
-
-{$IFDEF DEBUG}
-   Writeln(myLogFile, 'Step 1');
-   Flush(myLogFile);
-{$ENDIF}
 
   // 检查答案库和状态库是否存在，不存在则创建之
   try
@@ -1857,28 +1851,18 @@ begin
 
         sldb.execsql(sSQL);
 
-      end;
-      sldb.execsql('DROP INDEX sol_Index');
-      sldb.execsql('CREATE INDEX sol_Index ON Tab_Solution(XSB_CRC32, Goals, Sol_CRC32);');
+        sldb.execsql('CREATE INDEX sol_Index ON Tab_Solution(XSB_CRC32, Goals, Sol_CRC32);');
 
-{$IFDEF DEBUG}
-   Writeln(myLogFile, 'Step 2');
-   Flush(myLogFile);
-{$ENDIF}
+      end;
+//      try
+//        sldb.execsql('DROP INDEX sol_Index');
+//      except
+//      end;
+//      sldb.execsql('CREATE INDEX sol_Index ON Tab_Solution(XSB_CRC32, Goals, Sol_CRC32);');
+
 
     except
-
-{$IFDEF DEBUG}
-   Writeln(myLogFile, 'Step 3');
-   Flush(myLogFile);
-{$ENDIF}
-
     end;
-
-{$IFDEF DEBUG}
-   Writeln(myLogFile, 'Step 4');
-   Flush(myLogFile);
-{$ENDIF}
 
     try
       if not sldb.TableExists('Tab_State') then begin
@@ -1902,30 +1886,18 @@ begin
         sldb.execsql(sSQL);
 
       end;
-      sldb.execsql('DROP INDEX act_Index');
+      try
+        sldb.execsql('DROP INDEX act_Index');
+      except
+      end;
       sldb.execsql('CREATE INDEX act_Index ON Tab_State(XSB_CRC32, XSB_CRC_TrunNum, Goals)');
 
-{$IFDEF DEBUG}
-   Writeln(myLogFile, 'Step 5');
-   Flush(myLogFile);
-{$ENDIF}
-
     except
-
-{$IFDEF DEBUG}
-   Writeln(myLogFile, 'Step 6');
-   Flush(myLogFile);
-{$ENDIF}
 
     end;
   finally
     sldb.Free;
   end;
-
-{$IFDEF DEBUG}
-   Writeln(myLogFile, 'Step 7');
-   Flush(myLogFile);
-{$ENDIF}
 
   // 程序窗口最小尺寸限制
   Constraints.MinHeight := minWindowsHeight;
@@ -1979,19 +1951,9 @@ begin
   LoadMapThread := TLoadMapThread.Create(true);
   LoadMapThread.isRunning := False;
 
-{$IFDEF DEBUG}
-   Writeln(myLogFile, 'Step 8');
-   Flush(myLogFile);
-{$ENDIF}
-
   // 先用比较轻便的方式，打开上次的关卡
   if FileExists(mySettings.MapFileName) then begin
      curMapNode := QuicklyLoadMap(mySettings.MapFileName, curMap.CurrentLevel);
-
-{$IFDEF DEBUG}
-   Writeln(myLogFile, 'Step 9');
-   Flush(myLogFile);
-{$ENDIF}
 
      if curMapNode.Map.Count > 2 then begin
 
@@ -2002,32 +1964,16 @@ begin
 
         ResetSolvedLevel();
 
-{$IFDEF DEBUG}
-   Writeln(myLogFile, 'Step 10');
-   Flush(myLogFile);
-{$ENDIF}
-
         // 运行后台线程，加载地图
         LoadMapThread.Resume;
 
      end else StatusBar1.Panels[7].Text := '加载上次的 ' + IntToStr(curMap.CurrentLevel) + ' 号关卡时，遇到错误 - ' + mySettings.MapFileName;
   end;                          
 
-
-{$IFDEF DEBUG}
-   Writeln(myLogFile, 'Step 11');
-   Flush(myLogFile);
-{$ENDIF}
-
   SetButton();             // 设置按钮状态
   pnl_Speed.Caption := SpeedInf[mySettings.mySpeed];
 
   KeyPreview := true;
-
-{$IFDEF DEBUG}
-   Writeln(myLogFile, 'Exit FormCreate...');
-   Flush(myLogFile);
-{$ENDIF}
 
 end;
 
@@ -2253,12 +2199,6 @@ end;
 // 取得录制的动作
 function GetRecording(isBK: Boolean; pos: Integer): string;
 begin
-
-{$IFDEF DEBUG}
-   Writeln(myLogFile, 'Enter GetRecording...');
-   Flush(myLogFile);
-{$ENDIF}
-
    Result := '';
 
    if isBK then begin
@@ -2272,12 +2212,6 @@ begin
          Result := Copy(StrPas(@UndoList), Pos, UnDoPos-pos+1);
       end else main.StatusBar1.Panels[7].Text := '仅支持录制“开始点”后面的动作！';
    end;
-
-{$IFDEF DEBUG}
-   Writeln(myLogFile, 'Exit GetRecording...');
-   Flush(myLogFile);
-{$ENDIF}
-
 end;
 
 // 自动执行“寄存器”动作
@@ -2291,12 +2225,6 @@ var
   ch: Char;
 
 begin
-
-{$IFDEF DEBUG}
-   Writeln(myLogFile, 'Enter DoAct...');
-   Flush(myLogFile);
-{$ENDIF}
-
   if isMoving then IsStop := True
   else IsStop := False;
 
@@ -2376,11 +2304,6 @@ begin
      end;
   end;
 
-{$IFDEF DEBUG}
-   Writeln(myLogFile, 'Step 1');
-   Flush(myLogFile);
-{$ENDIF}
-
   // 加载到了动作
   if not err then begin
       len := ActionForm.MemoAct.Lines.Count;
@@ -2397,11 +2320,6 @@ begin
           Act := Act + str;
       end;
 
-{$IFDEF DEBUG}
-   Writeln(myLogFile, 'Step 2');
-   Flush(myLogFile);
-{$ENDIF}
-
       // 解析动作字符串
       M_X := -1;
       M_Y := -1;
@@ -2412,19 +2330,22 @@ begin
              str := copy(str, i+1, j-i-1);
              delete(str, 1, j);
              p := TStringList.Create;
-             p.CommaText := str;
 
-             if p.Count = 2 then begin
-                try
-                  M_X := strToInt(p[0])-1;
-                  M_Y := strToInt(p[1])-1;
-                except
-                  M_X := -1;
-                  M_Y := -1;
-                end;
+             try
+               p.CommaText := str;
+
+               if p.Count = 2 then begin
+                  try
+                    M_X := strToInt(p[0])-1;
+                    M_Y := strToInt(p[1])-1;
+                  except
+                    M_X := -1;
+                    M_Y := -1;
+                  end;
+               end;
+             finally
+               if p <> nil then FreeAndNil(p);
              end;
-
-             FreeAndNil(p);
           end else begin
              k := Max(i, j);
 
@@ -2435,11 +2356,6 @@ begin
 
           if i > 0 then Act := copy(Act, 1, i-1);
       end;
-
-{$IFDEF DEBUG}
-   Writeln(myLogFile, 'Step 3');
-   Flush(myLogFile);
-{$ENDIF}
 
       // 执行动作 - 按现场旋转，当前点，执行一次
       // 若为逆推模式，先检查一下人的位置情况
@@ -2465,18 +2381,8 @@ begin
          end;
       end;
 
-{$IFDEF DEBUG}
-   Writeln(myLogFile, 'Step 4');
-   Flush(myLogFile);
-{$ENDIF}
-
       // 将解析到的动作送人redo队列中
       GetLurd(Act, mySettings.isBK);
-
-{$IFDEF DEBUG}
-   Writeln(myLogFile, 'Step 5');
-   Flush(myLogFile);
-{$ENDIF}
 
       // 按现场旋转转换 redo 中的动作
       if mySettings.isBK then begin
@@ -2511,11 +2417,6 @@ begin
          end;
       end;
 
-{$IFDEF DEBUG}
-   Writeln(myLogFile, 'Step 6');
-   Flush(myLogFile);
-{$ENDIF}
-
       // 执行一次
       if mySettings.isBK then begin
          ReDo_BK(ReDoPos_BK);
@@ -2525,23 +2426,26 @@ begin
 
   end;
 
-{$IFDEF DEBUG}
-   Writeln(myLogFile, 'Exit DoAct...');
-   Flush(myLogFile);
-{$ENDIF}
-
 end;
 
 // 键盘按下
 procedure Tmain.FormKeyDown(Sender: TObject; var Key: Word; Shift: TShiftState);
 begin
-
-{$IFDEF DEBUG}
-   Writeln(myLogFile, 'Enter FormKeyDown...' + inttostr(Key));
-   Flush(myLogFile);
-{$ENDIF}
-
   case Key of
+    VK_PRIOR:               // Page Up键，  上一关
+      begin
+        if isMoving then IsStop := True
+        else IsStop := False;
+
+        pl_Ground.SetFocus;
+      end;
+    VK_NEXT:                // Page Domw键，下一关
+      begin
+        if isMoving then IsStop := True
+        else IsStop := False;
+
+        pl_Ground.SetFocus;
+    end;
     VK_LEFT:
       begin
         if isMoving then IsStop := True
@@ -2652,23 +2556,11 @@ begin
       if not mySettings.isOddEven then
          bt_OddEvenMouseDown(Self, mbLeft, [], -1, -1);
   end;
-
-{$IFDEF DEBUG}
-   Writeln(myLogFile, 'Exit FormKeyDown...');
-   Flush(myLogFile);
-{$ENDIF}
-
 end;
 
 // 键盘抬起
 procedure Tmain.FormKeyUp(Sender: TObject; var Key: Word; Shift: TShiftState);
 begin
-
-{$IFDEF DEBUG}
-   Writeln(myLogFile, 'Enter FormKeyUp...' + inttostr(Key));
-   Flush(myLogFile);
-{$ENDIF}
-
   case Key of
     69:
       bt_OddEvenMouseUp(Self, mbLeft, [], -1, -1);       // E， 奇偶格效果
@@ -2684,8 +2576,8 @@ begin
       DoAct(5);
     VK_PRIOR:               // Page Up键，  上一关
       begin
-        if isMoving then IsStop := True
-        else IsStop := False;
+//        if isMoving then IsStop := True
+//        else IsStop := False;
 
         if (ssShift in Shift) or (ssCtrl in Shift) then begin
             N8.Click;
@@ -2695,8 +2587,8 @@ begin
       end;
     VK_NEXT:                // Page Domw键，下一关
       begin
-        if isMoving then IsStop := True
-        else IsStop := False;
+//        if isMoving then IsStop := True
+//        else IsStop := False;
 
         if (ssShift in Shift) or (ssCtrl in Shift) then begin
             N10.Click;
@@ -2856,13 +2748,6 @@ begin
         end;
       end;
   end;
-
-{$IFDEF DEBUG}
-   Writeln(myLogFile, 'Exit FormKeyUp...');
-   Flush(myLogFile);
-{$ENDIF}
-
-//  StatusBar1.Panels[7].Text := IntToStr(ord(Key));
 end;
 
 // 关卡重新开始
@@ -3071,12 +2956,6 @@ var
   MapClickPos: TPoint;
   myCell, pos, x2, y2, k: Integer;
 begin
-
-{$IFDEF DEBUG}
-   Writeln(myLogFile, 'Enter map_ImageMouseDown...');
-   Flush(myLogFile);
-{$ENDIF}
-
   if curMap.CellSize = 0 then Exit;
   
   IsStop := true;
@@ -3154,11 +3033,6 @@ begin
     myCell := map_Board_BK[pos]
   else
     myCell := map_Board[pos];
-
-{$IFDEF DEBUG}
-   Writeln(myLogFile, 'Step 1...');
-   Flush(myLogFile);
-{$ENDIF}
 
   case Button of
     mbleft:             // 单击 -- 指左键
@@ -3410,21 +3284,7 @@ begin
       end;
   end;
 
-{$IFDEF DEBUG}
-   Writeln(myLogFile, 'Step 2...');
-   Flush(myLogFile);
-{$ENDIF}
-
-  if IsManAccessibleTips or IsManAccessibleTips_BK or IsBoxAccessibleTips or IsBoxAccessibleTips_BK then map_Image.Cursor := crDrag
-  else map_Image.Cursor := crDefault;
-
   DrawMap();
-
-{$IFDEF DEBUG}
-   Writeln(myLogFile, 'Exit map_ImageMouseDown...');
-   Flush(myLogFile);
-{$ENDIF}
-
 end;
 
 procedure Tmain.map_ImageMouseMove(Sender: TObject; Shift: TShiftState; X,
@@ -3433,17 +3293,11 @@ var
   x2, y2: Integer;
 
 begin
-
-{$IFDEF DEBUG}
-   Writeln(myLogFile, 'Enter map_ImageMouseMove...');
-   Flush(myLogFile);
-{$ENDIF}
-
   if curMap.CellSize = 0 then Exit;
 
   x2 := X div curMap.CellSize;
   y2 := Y div curMap.CellSize;
-  
+
   if curMapNode.Cols > 0 then
     StatusBar1.Panels[5].Text := ' ' + GetCur(x2, y2) + ' - [ ' + IntToStr(x2 + 1) + ', ' + IntToStr(y2 + 1) + ' ]';       // 标尺
 
@@ -3459,12 +3313,6 @@ begin
 
       DrawMap();
   end;
-
-{$IFDEF DEBUG}
-   Writeln(myLogFile, 'Exit map_ImageMouseMove...');
-   Flush(myLogFile);
-{$ENDIF}
-
 end;
 
 procedure Tmain.map_ImageMouseUp(Sender: TObject; Button: TMouseButton;
@@ -3474,12 +3322,6 @@ var
   x2, y2, i, j, i1, j1, i2, j2: Integer;
 
 begin
-
-{$IFDEF DEBUG}
-   Writeln(myLogFile, 'Enter map_ImageMouseUp...');
-   Flush(myLogFile);
-{$ENDIF}
-
   if curMap.CellSize = 0 then Exit;
 
   if isDelSelect then begin
@@ -3550,11 +3392,6 @@ begin
       RightBottomPos.X := MapClickPos.x;
       RightBottomPos.Y := MapClickPos.y;
 
-{$IFDEF DEBUG}
-   Writeln(myLogFile, 'Step 1...');
-   Flush(myLogFile);
-{$ENDIF}
-
       j1 := Max(0, Min(LeftTopPos.X, RightBottomPos.X));
       i1 := Max(0, Min(LeftTopPos.Y, RightBottomPos.Y));
       j2 := Min(curMapNode.Cols-1, Max(LeftTopPos.X, RightBottomPos.X));
@@ -3573,21 +3410,8 @@ begin
           end;
       end;
 
-{$IFDEF DEBUG}
-   Writeln(myLogFile, 'Step 2...');
-   Flush(myLogFile);
-{$ENDIF}
-
       DrawMap();
-
-//      Caption := '[' + IntToStr(LeftTopPos.X) + ', ' + IntToStr(LeftTopPos.Y) + '] -- [' + IntToStr(RightBottomPos.X) + ', ' + IntToStr(RightBottomPos.Y) + ']';
   end;
-
-{$IFDEF DEBUG}
-   Writeln(myLogFile, 'Exit map_ImageMouseUp...');
-   Flush(myLogFile);
-{$ENDIF}
-
 end;
 
 // 游戏延时
@@ -3646,12 +3470,6 @@ var
   actNode: ^TStateNode;
   act, act_BK: string;
 begin
-
-{$IFDEF DEBUG}
-   Writeln(myLogFile, 'Enter SaveState...');
-   Flush(myLogFile);
-{$ENDIF}
-
   Result := False;
 
   if (PushTimes = 0) and (PushTimes_BK = 0) then
@@ -3691,11 +3509,6 @@ begin
   end;
   actNode := nil;
 
-{$IFDEF DEBUG}
-   Writeln(myLogFile, 'Step 1...');
-   Flush(myLogFile);
-{$ENDIF}
-
   if i = size then
   begin           // 无重复
     if UnDoPos < MaxLenPath then
@@ -3724,11 +3537,6 @@ begin
       actNode.Man_Y := y+1;
     end;
 
-{$IFDEF DEBUG}
-   Writeln(myLogFile, 'Step 2...');
-   Flush(myLogFile);
-{$ENDIF}
-
     sldb := TSQLiteDatabase.Create(AnsiToUtf8(BoxManDBpath));
 
     try
@@ -3756,11 +3564,6 @@ begin
            sldb.ExecSQL(sSQL);
 
            sldb.Commit;
-
-{$IFDEF DEBUG}
-   Writeln(myLogFile, 'Step 3...');
-   Flush(myLogFile);
-{$ENDIF}
 
            actNode.id := sldb.GetLastInsertRowID;
 
@@ -3801,12 +3604,6 @@ begin
             sldb.BeginTransaction;
             sldb.ExecSQL('UPDATE Tab_State set Act_DateTime = ''' + FormatDateTime(' yyyy-mm-dd hh:nn', actNode.DateTime) + ''' WHERE ID = ' + inttostr(actNode.id));
             sldb.Commit;
- 
-{$IFDEF DEBUG}
-   Writeln(myLogFile, 'Step 4...');
-   Flush(myLogFile);
-{$ENDIF}
-
           end;
           StatusBar1.Panels[7].Text := '状态有重复，已调整存储次序！';
         Finally
@@ -3825,12 +3622,16 @@ begin
   if pl_Side.Visible then List_State.SetFocus;
   mySettings.isLurd_Saved := True;
   Result := True;
+end;
 
-{$IFDEF DEBUG}
-   Writeln(myLogFile, 'Exit SaveState...');
-   Flush(myLogFile);
-{$ENDIF}
+// 将本系统中的日期时间字符串，转换为“日期时间”
+function MyStrToDate(str: string; SysFrset: TFormatSettings): TDateTime;
+var
+  s: string;
+begin
+  s := Copy(str, 1, 4) + '-' + Copy(str, 6, 2) + '-' + Copy(str, 9, 8) + ':00.000';
 
+  Result := StrToDateTime(s, SysFrset);
 end;
 
 // 加载状态
@@ -3842,17 +3643,11 @@ var
   actNode: ^TStateNode;
   myDateTime: string;
   SysFrset: TFormatSettings;
-  fs: string;
 begin
-
-{$IFDEF DEBUG}
-   Writeln(myLogFile, 'Enter LoadState...');
-   Flush(myLogFile);
-{$ENDIF}
-
   Result := False;
 
-  StateList.Clear;
+//  StateList.Clear;
+  MyListClear(StateList);
   List_State.Clear;
 
   try
@@ -3865,18 +3660,19 @@ begin
 
       // 检查当前系统的日期分隔符
       GetLocaleFormatSettings(GetUserDefaultLCID, SysFrset);
-      fs := SysFrset.DateSeparator;
 
       try
          // 加载状态
         if sltb.Count > 0 then begin
+          SysFrset.ShortDateFormat:='yyyy-MM-dd';
+          SysFrset.DateSeparator:='-';
+          SysFrset.LongTimeFormat:='hh:mm:ss.zzz';
           sltb.MoveFirst;
           while not sltb.EOF do begin
             New(actNode);
             actNode.id := sltb.FieldAsInteger(sltb.FieldIndex['ID']);
             myDateTime := sltb.FieldAsString(sltb.FieldIndex['Act_DateTime']);
-            if fs = '/' then actNode.DateTime := StrToDateTime(StringReplace(myDateTime, '-', '/', [rfReplaceAll]))
-            else actNode.DateTime := StrToDateTime(myDateTime);
+            actNode.DateTime := MyStrToDate(Trim(myDateTime), SysFrset);
             actNode.Moves := sltb.FieldAsInteger(sltb.FieldIndex['Moves']);
             actNode.Pushs := sltb.FieldAsInteger(sltb.FieldIndex['Pushs']);
             actNode.CRC32 := sltb.FieldAsInteger(sltb.FieldIndex['Act_CRC32']);
@@ -3895,11 +3691,6 @@ begin
       finally
         sltb.Free;
       end;
-{$IFDEF DEBUG}
-   Writeln(myLogFile, 'Step 1...');
-   Flush(myLogFile);
-{$ENDIF}
-
     Finally
       actNode := nil;
       sldb.free;
@@ -3910,12 +3701,6 @@ begin
   end;
 
   Result := True;
-
-{$IFDEF DEBUG}
-   Writeln(myLogFile, 'Exit LoadState...');
-   Flush(myLogFile);
-{$ENDIF}
-
 end;
 
 // 新增答案 - n=1，正推过关；n=2，正逆相合或逆推过关
@@ -3928,12 +3713,6 @@ var
   solNode: ^TSoltionNode;
   
 begin
-
-{$IFDEF DEBUG}
-   Writeln(myLogFile, 'Enter SaveSolution...');
-   Flush(myLogFile);
-{$ENDIF}
-
   Result := False;
   curMapNode.Solved := True;
 
@@ -3945,11 +3724,6 @@ begin
         end;
      end;
   end;
-
-{$IFDEF DEBUG}
-   Writeln(myLogFile, 'Step 1...');
-   Flush(myLogFile);
-{$ENDIF}
 
   // 计算答案 CRC
   if n = 1 then begin      // 正推过关
@@ -3976,11 +3750,6 @@ begin
      end;
   end;
 
-{$IFDEF DEBUG}
-   Writeln(myLogFile, 'Step 2...');
-   Flush(myLogFile);
-{$ENDIF}
-
   // 查重
   i := 0;
   size := SoltionList.Count;
@@ -3992,11 +3761,6 @@ begin
     inc(i);
   end;
   solNode := nil;
-
-{$IFDEF DEBUG}
-   Writeln(myLogFile, 'Step 3...');
-   Flush(myLogFile);
-{$ENDIF}
 
   // 无重复，存入答案库
   if i = size then
@@ -4044,10 +3808,6 @@ begin
               SoltionList.Add(solNode);
               List_Solution.Items.Add(IntToStr(p) + '/' + IntToStr(m) + #10 + FormatDateTime(' yyyy-mm-dd hh:nn', solNode.DateTime));
            end;
-{$IFDEF DEBUG}
-   Writeln(myLogFile, 'Step 4...');
-   Flush(myLogFile);
-{$ENDIF}
         end;
       Finally
         sldb.Free;
@@ -4066,12 +3826,6 @@ begin
   if i < size then List_Solution.Selected[i] := True
   else List_Solution.Selected[List_Solution.Count - 1] := True;
   if pl_Side.Visible then List_Solution.SetFocus;
-
-{$IFDEF DEBUG}
-   Writeln(myLogFile, 'Exit SaveSolution...');
-   Flush(myLogFile);
-{$ENDIF}
-
 end;
 
 // 加载答案
@@ -4083,16 +3837,10 @@ var
   solNode: ^TSoltionNode;
   str, xsbStr, myDateTime: string;
   SysFrset: TFormatSettings;
-  fs: string;
 begin
-
-{$IFDEF DEBUG}
-   Writeln(myLogFile, 'Enter LoadSolution...');
-   Flush(myLogFile);
-{$ENDIF}
-
   Result := False;
-  SoltionList.Clear;
+//  SoltionList.Clear;
+  MyListClear(SoltionList);
   List_Solution.Clear;
 
   sldb := TSQLiteDatabase.Create(AnsiToUtf8(BoxManDBpath));
@@ -4101,7 +3849,6 @@ begin
   try
     // 检查当前系统的日期分隔符
     GetLocaleFormatSettings(GetUserDefaultLCID, SysFrset);
-    fs := SysFrset.DateSeparator;
     try
       sSQL := 'select * from Tab_Solution where XSB_CRC32 = ' + IntToStr(curMapNode.CRC32) + ' and Goals = ' + IntToStr(curMapNode.Goals) + ' order by Moves, Pushs';
 
@@ -4109,20 +3856,21 @@ begin
 
       try
         if sltb.Count > 0 then begin
+          SysFrset.ShortDateFormat:='yyyy-MM-dd';
+          SysFrset.DateSeparator:='-';
+          SysFrset.LongTimeFormat:='hh:mm:ss.zzz';
            // 读取答案
           sltb.MoveFirst;
           while not sltb.EOF do begin
             New(solNode);
             solNode.id := sltb.FieldAsInteger(sltb.FieldIndex['ID']);
             myDateTime := sltb.FieldAsString(sltb.FieldIndex['Sol_DateTime']);
-            if fs = '/' then solNode.DateTime := StrToDateTime(StringReplace(myDateTime, '-', '/', [rfReplaceAll]))
-            else solNode.DateTime := StrToDateTime(myDateTime);
+            solNode.DateTime := MyStrToDate(Trim(myDateTime), SysFrset);
             solNode.Moves := sltb.FieldAsInteger(sltb.FieldIndex['Moves']);
             solNode.Pushs := sltb.FieldAsInteger(sltb.FieldIndex['Pushs']);
             solNode.CRC32 := sltb.FieldAsInteger(sltb.FieldIndex['Sol_CRC32']);
             str           := sltb.FieldAsString(sltb.FieldIndex['Sol_Text']);
             xsbStr        := sltb.FieldAsString(sltb.FieldIndex['XSB_Text']);
-
             // 答案验证
             if isSolution(curMapNode, PChar(str)) then begin
                SoltionList.Add(solNode);
@@ -4144,25 +3892,12 @@ begin
       sldb.Free;
       solNode := nil;
     end;
-
-{$IFDEF DEBUG}
-   Writeln(myLogFile, 'Step 1...');
-   Flush(myLogFile);
-{$ENDIF}
-
   except
-    FreeAndNil(solNode);
     StatusBar1.Panels[7].Text := '答案库出错，关卡答案未能正确加载！';
     Exit;
   end;
 
   Result := True;
-
-{$IFDEF DEBUG}
-   Writeln(myLogFile, 'Exit LoadSolution...');
-   Flush(myLogFile);
-{$ENDIF}
-
 end;
 
 // 加载指定关卡的所有答案
@@ -4175,12 +3910,6 @@ var
   Sol_Moves, Sol_Pushs: Integer;
 
 begin
-
-{$IFDEF DEBUG}
-   Writeln(myLogFile, 'Enter GetSolution...');
-   Flush(myLogFile);
-{$ENDIF}
-
   Result := '';
 
   sldb := TSQLiteDatabase.Create(AnsiToUtf8(BoxManDBpath));
@@ -4215,22 +3944,10 @@ begin
     finally
       sldb.Free;
     end;
-
-{$IFDEF DEBUG}
-   Writeln(myLogFile, 'Step 1...');
-   Flush(myLogFile);
-{$ENDIF}
-
   except
     StatusBar1.Panels[7].Text := '答案库出错，关卡的答案不能正确加载！';
     Exit;
   end;
-
-{$IFDEF DEBUG}
-   Writeln(myLogFile, 'Exit GetSolution...');
-   Flush(myLogFile);
-{$ENDIF}
-
 end;
 
 // 重做一步 -- 正推
@@ -4241,12 +3958,6 @@ var
   isMeet, IsCompleted: Boolean;
 
 begin
-
-{$IFDEF DEBUG}
-   Writeln(myLogFile, 'Enter ReDo...');
-   Flush(myLogFile);
-{$ENDIF}
-
   StatusBar1.Panels[7].Text := '';
 
   isSelectMod := False;
@@ -4402,12 +4113,6 @@ begin
   isNoDelay := false;                                                           // 是否为无延时动作 -- 至首、至尾功能用
   isKeyPush := false;                                                           // 是否正在演示中 -- 空格键和退格键控制的
   isMoving  := False;
-
-{$IFDEF DEBUG}
-   Writeln(myLogFile, 'Exit ReDo...');
-   Flush(myLogFile);
-{$ENDIF}
-
 end;
 
 // 撤销一步 -- 正推
@@ -4416,12 +4121,6 @@ var
   ch: Char;
   pos1, pos2: Integer;
 begin
-
-{$IFDEF DEBUG}
-   Writeln(myLogFile, 'Enter UnDo...');
-   Flush(myLogFile);
-{$ENDIF}
-
   StatusBar1.Panels[7].Text := '';
 
   isSelectMod := False;
@@ -4545,12 +4244,6 @@ begin
   isNoDelay := false;                                                           // 是否为无延时动作 -- 至首、至尾功能用
   isKeyPush := false;                                                           // 是否正在演示中 -- 空格键和退格键控制的
   isMoving  := False;
-
-{$IFDEF DEBUG}
-   Writeln(myLogFile, 'Exit UnDo...');
-   Flush(myLogFile);
-{$ENDIF}
-
 end;
 
 // 重做一步 -- 逆推
@@ -4561,12 +4254,6 @@ var
   isOK, isMeet, IsCompleted: Boolean;
   
 begin
-
-{$IFDEF DEBUG}
-   Writeln(myLogFile, 'Enter ReDo_BK...');
-   Flush(myLogFile);
-{$ENDIF}
-
   StatusBar1.Panels[7].Text := '';
   
   isSelectMod := False;
@@ -4765,12 +4452,6 @@ begin
   isNoDelay := false;                                                           // 是否为无延时动作 -- 至首、至尾功能用
   isKeyPush := false;                                                           // 是否正在演示中 -- 空格键和退格键控制的
   isMoving  := False;
-
-{$IFDEF DEBUG}
-   Writeln(myLogFile, 'Exit ReDo_BK...');
-   Flush(myLogFile);
-{$ENDIF}
-
 end;
 
 // 撤销一步 -- 逆推
@@ -4780,12 +4461,6 @@ var
   pos1, pos2: Integer;
 
 begin
-
-{$IFDEF DEBUG}
-   Writeln(myLogFile, 'Enter UnDo_BK...');
-   Flush(myLogFile);
-{$ENDIF}
-
   StatusBar1.Panels[7].Text := '';
 
   isSelectMod := False;
@@ -4897,12 +4572,6 @@ begin
   isNoDelay := false;                                                           // 是否为无延时动作 -- 至首、至尾功能用
   isKeyPush := false;                                                           // 是否正在演示中 -- 空格键和退格键控制的
   isMoving  := False;
-
-{$IFDEF DEBUG}
-   Writeln(myLogFile, 'Exit UnDo_BK...');
-   Flush(myLogFile);
-{$ENDIF}
-
 end;
 
 // 上一关
@@ -4920,6 +4589,8 @@ begin
      Exit;
   end;
 
+  pl_Ground.SetFocus;
+  
   if curMap.CurrentLevel > 1 then
   begin
     if not mySettings.isLurd_Saved then
@@ -4971,6 +4642,8 @@ begin
      Exit;
   end;
 
+  pl_Ground.SetFocus;
+  
   if not mySettings.isLurd_Saved then
   begin    // 有新的动作尚未保存
     bt := MessageBox(Handle, '是否保存最新的推动？', '警告', MB_ICONWARNING + MB_YESNOCANCEL);
@@ -5074,6 +4747,11 @@ begin
   if isMoving then IsStop := True
   else IsStop := False;
 
+  // 加载地图文档的后台线程
+  if LoadMapThread.isRunning then begin
+     isStopThread := True;
+  end;
+
   if not mySettings.isXSB_Saved then
   begin    // 有新的动作尚未保存
     bt := MessageBox(Handle, '是否保存导入的关卡？', '警告', MB_ICONWARNING + MB_YESNOCANCEL);
@@ -5153,7 +4831,7 @@ begin
           while LoadMapThread.isRunning do begin
              if not isStopThread then isStopThread := True;
           end;
-          FreeAndNil(LoadMapThread);
+          if LoadMapThread <> nil then FreeAndNil(LoadMapThread);
           LoadMapThread := TLoadMapThread.Create(False);
 
           if not AnsiSameText(mySettings.MapFileName, 'BoxMan.xsb') then begin
@@ -5205,17 +4883,26 @@ end;
 
 procedure Tmain.FormDestroy(Sender: TObject);
 begin
-  FreeAndNil(myPathFinder);
-  FreeAndNil(LoadMapThread);
-  FreeAndNil(mySettings.LaterList);
+  if myPathFinder <> nil then FreeAndNil(myPathFinder);
+  if LoadMapThread <> nil then FreeAndNil(LoadMapThread);
+  if mySettings.LaterList <> nil then FreeAndNil(mySettings.LaterList);
 
-  FreeAndNil(BrowseForm.Map_Icon);
+  if BrowseForm.Map_Icon <> nil then FreeAndNil(BrowseForm.Map_Icon);
 
-  FreeAndNil(MapList);         // 地图列表
-  FreeAndNil(SoltionList);     // 答案列表
-  FreeAndNil(StateList);       // 状态列表
+  if MapList <> nil then begin                          // 地图列表
+     MyListClear(MapList);
+     FreeAndNil(MapList);         
+  end;
+  if SoltionList <> nil then begin                      // 答案列表
+     MyListClear(SoltionList);
+     FreeAndNil(SoltionList);
+  end;
+  if StateList <> nil then begin                        // 状态列表
+     MyListClear(StateList);
+     FreeAndNil(StateList);
+  end;
 
-  FreeAndNil(MaskPic);         // 选择单元格掩图
+  if MaskPic <> nil then FreeAndNil(MaskPic);         // 选择单元格掩图
 
 end;
 
@@ -5227,12 +4914,6 @@ var
   boxRC: array[0..1] of Integer;
   flg: Boolean;
 begin
-
-{$IFDEF DEBUG}
-   Writeln(myLogFile, 'Enter GetStep...');
-   Flush(myLogFile);
-{$ENDIF}
-
   if is_BK then
     len := UnDoPos_BK
   else
@@ -5340,12 +5021,6 @@ begin
     result := len - n  // 最后一个动作不是推，但前面有推的动作时
   else
     result := len;  // 剩余的全部动作
-
-{$IFDEF DEBUG}
-   Writeln(myLogFile, 'Exit GetStep...');
-   Flush(myLogFile);
-{$ENDIF}
-
 end;
 
 // 解析正推 unDo 动作节点 -- 每推一个箱子为一个动作
@@ -5356,12 +5031,6 @@ var
   boxRC: array[0..1] of Integer;
   flg: Boolean;
 begin
-
-{$IFDEF DEBUG}
-   Writeln(myLogFile, 'Enter GetStep2...');
-   Flush(myLogFile);
-{$ENDIF}
-
   if is_BK then
     len := ReDoPos_BK
   else
@@ -5461,12 +5130,6 @@ begin
     result := len - n  // 最后一个动作不是推，但前面有推的动作时
   else
     result := len;
-
-{$IFDEF DEBUG}
-   Writeln(myLogFile, 'Exit GetStep2...');
-   Flush(myLogFile);
-{$ENDIF}
-
 end;
 
 procedure Tmain.pnl_TrunMouseUp(Sender: TObject; Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
@@ -5779,12 +5442,6 @@ procedure Tmain.FormCloseQuery(Sender: TObject; var CanClose: Boolean);
 var
   bt: LongWord;
 begin
-
-{$IFDEF DEBUG}
-   Writeln(myLogFile, 'Enter FormCloseQuery...');
-   Flush(myLogFile);
-{$ENDIF}
-
   if isMoving then begin
      IsStop := True;
      CanClose := False;
@@ -5823,12 +5480,6 @@ begin
     else
       CanClose := False;
   end;
-
-{$IFDEF DEBUG}
-   Writeln(myLogFile, 'Exit FormCloseQuery...');
-   Flush(myLogFile);
-{$ENDIF}
-
 end;
 
 procedure Tmain.List_SolutionDrawItem(Control: TWinControl; Index: Integer; Rect: TRect; State: TOwnerDrawState);
@@ -6045,12 +5696,6 @@ var
   actNode: ^TStateNode;
   
 begin
-
-{$IFDEF DEBUG}
-   Writeln(myLogFile, 'Enter GetStateFromDB...');
-   Flush(myLogFile);
-{$ENDIF}
-
   Result := False;
 
   if index < 0 then Exit;
@@ -6085,12 +5730,6 @@ begin
   end;
 
   Result := True;
-
-{$IFDEF DEBUG}
-   Writeln(myLogFile, 'Exit GetStateFromDB...');
-   Flush(myLogFile);
-{$ENDIF}
-
 end;
 
 // 从答案库加载一条答案
@@ -6102,12 +5741,6 @@ var
   solNode: ^TSoltionNode;
 
 begin
-
-{$IFDEF DEBUG}
-   Writeln(myLogFile, 'Enter GetSolutionFromDB...');
-   Flush(myLogFile);
-{$ENDIF}
-
     Result := False;
 
     if index < 0 then Exit;
@@ -6139,12 +5772,6 @@ begin
     end;
 
     Result := True;
-
-{$IFDEF DEBUG}
-   Writeln(myLogFile, 'Exit GetSolutionFromDB...');
-   Flush(myLogFile);
-{$ENDIF}
-
 end;
 
 // 状态 -- 正推 Lurd 到剪切板
@@ -6309,7 +5936,8 @@ begin
       sldb.ExecSQL(sSQL);
       sldb.Commit;
 
-      StateList.Clear;
+//      StateList.Clear;
+      MyListClear(StateList);
       List_State.Clear;
     finally
       sldb.Free;
@@ -6631,7 +6259,8 @@ begin
       sldb.ExecSQL(sSQL);
       sldb.Commit;
 
-      SoltionList.Clear;
+//      SoltionList.Clear;
+      MyListClear(SoltionList);
       List_Solution.Clear;
     finally
       sldb.Free;
@@ -6768,43 +6397,19 @@ end;
 procedure Tmain.FormMouseWheelDown(Sender: TObject; Shift: TShiftState;
   MousePos: TPoint; var Handled: Boolean);
 begin
-
-{$IFDEF DEBUG}
-   Writeln(myLogFile, 'Enter FormMouseWheelDown...');
-   Flush(myLogFile);
-{$ENDIF}
-
   if isMoving then IsStop := True
   else N15.Click;          // z，撤销
   Handled := True;
   Delay(10);
-
-{$IFDEF DEBUG}
-   Writeln(myLogFile, 'Exit FormMouseWheelDown...');
-   Flush(myLogFile);
-{$ENDIF}
-
 end;
 
 procedure Tmain.FormMouseWheelUp(Sender: TObject; Shift: TShiftState;
   MousePos: TPoint; var Handled: Boolean);
 begin
-
-{$IFDEF DEBUG}
-   Writeln(myLogFile, 'Enter FormMouseWheelUp...');
-   Flush(myLogFile);
-{$ENDIF}
-
   if isMoving then IsStop := True
   else N18.Click;          // x，重做
   Handled := True;
   Delay(10);
-
-{$IFDEF DEBUG}
-   Writeln(myLogFile, 'Exit FormMouseWheelUp...');
-   Flush(myLogFile);
-{$ENDIF}
-
 end;
 
 // GET 请求
@@ -6978,7 +6583,7 @@ begin
           while LoadMapThread.isRunning do begin
              if not isStopThread then isStopThread := True;
           end;
-          FreeAndNil(LoadMapThread);
+          if LoadMapThread <> nil then FreeAndNil(LoadMapThread);
           LoadMapThread := TLoadMapThread.Create(False);
 
           StatusBar1.Panels[7].Text := '';
@@ -6996,6 +6601,11 @@ var
 begin
   if isMoving then IsStop := True
   else IsStop := False;
+
+  // 加载地图文档的后台线程
+  if LoadMapThread.isRunning then begin
+     isStopThread := True;
+  end;
 
   size := mySettings.LaterList.Count;
   pm_Later.Items.Clear;
@@ -7020,9 +6630,10 @@ begin
   ItemL1.OnClick := MenuItemClick;
   pm_Later.Items.Add(ItemL1);
 
-  SetCursorPos(Left + 60, Top + 55);
-  mouse_event(MOUSEEVENTF_RIGHTDOWN, 0, 0, 0, 0);
-  mouse_event(MOUSEEVENTF_RIGHTUP, 0, 0, 0, 0);
+  pm_Later.Popup(mouse.CursorPos.X,mouse.CursorPos.y);
+//  SetCursorPos(Left + 60, Top + 55);
+//  mouse_event(MOUSEEVENTF_RIGHTDOWN, 0, 0, 0, 0);
+//  mouse_event(MOUSEEVENTF_RIGHTUP, 0, 0, 0, 0);
 end;
 
 procedure Tmain.bt_SaveClick(Sender: TObject);
@@ -7763,19 +7374,6 @@ begin
       end;
   end;
   TestForm.Show;
-end;
-
-procedure Tmain.N27Click(Sender: TObject);
-begin
-  // 后台线程正在运行
-  if LoadMapThread.isRunning then begin
-     MessageBox(Handle, PChar('后台线程忙，请稍后再试！'), '提醒', MB_ICONINFORMATION + MB_OK);
-     Exit;
-  end;
-
-  if isMoving then IsStop := True;
-
-  ImportForm.ShowModal;
 end;
 
 end.

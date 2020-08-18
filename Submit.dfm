@@ -62,6 +62,7 @@ object MySubmit: TMySubmit
     Top = 44
     Width = 217
     Height = 21
+    ImeName = #20013#25991'('#31616#20307') - '#25628#29399#25340#38899#36755#20837#27861
     TabOrder = 2
   end
   object Edit2: TEdit
@@ -69,6 +70,7 @@ object MySubmit: TMySubmit
     Top = 76
     Width = 217
     Height = 21
+    ImeName = #20013#25991'('#31616#20307') - '#25628#29399#25340#38899#36755#20837#27861
     TabOrder = 3
   end
   object ComboBox1: TComboBox
@@ -76,6 +78,7 @@ object MySubmit: TMySubmit
     Top = 12
     Width = 217
     Height = 21
+    ImeName = #20013#25991'('#31616#20307') - '#25628#29399#25340#38899#36755#20837#27861
     ItemHeight = 13
     TabOrder = 4
     OnChange = ComboBox1Change
@@ -328,6 +331,7 @@ object MySubmit: TMySubmit
     Top = 112
     Width = 33
     Height = 25
+    ImeName = #20013#25991'('#31616#20307') - '#25628#29399#25340#38899#36755#20837#27861
     ItemHeight = 13
     Items.Strings = (
       '00'

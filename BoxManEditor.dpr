@@ -6,7 +6,8 @@ uses
   EditorInf_ in 'EditorInf_.pas' {EditorInfForm_},
   Recog_ in 'Recog_.pas' {RecogForm_},
   LoadSkin in 'LoadSkin.pas' {LoadSkinForm},
-  EditorHelp in 'EditorHelp.pas' {EditorHelpForm};
+  EditorHelp in 'EditorHelp.pas' {EditorHelpForm},
+  TrialUnit in 'TrialUnit.pas' {TrialForm};
 
 {$R *.res}
 
@@ -23,6 +24,7 @@ begin
   Application.CreateForm(TRecogForm_, RecogForm_);
   Application.CreateForm(TLoadSkinForm, LoadSkinForm);
   Application.CreateForm(TEditorHelpForm, EditorHelpForm);
+  Application.CreateForm(TTrialForm, TrialForm);
   Application.Run;
 
   // 避免关闭程序出现“runtime error 216 at xxxxxxx"的错误提示

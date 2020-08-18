@@ -55,6 +55,9 @@ type
     N7: TMenuItem;
     bt_Skin: TSpeedButton;
     PopupMenu2: TPopupMenu;
+    PopupMenu3: TPopupMenu;
+    N8: TMenuItem;
+    sb_Trial: TSpeedButton;
     procedure SetSelect;
     procedure img_WallClick(Sender: TObject);
     procedure img_BoxClick(Sender: TObject);
@@ -77,7 +80,7 @@ type
     procedure DrawGrid1MouseWheelUp(Sender: TObject; Shift: TShiftState;
       MousePos: TPoint; var Handled: Boolean);
     procedure FormShow(Sender: TObject);
-    function MapNormalize: Integer;
+    function MapNormalize(isMinimum: Boolean): Integer;
     procedure sb_Xsb_OKClick(Sender: TObject);             // 地图标准化，包括：简单标准化 -- 保留关卡的墙外造型
     function LoadMapsFromClipboard: boolean;
     procedure sb_LoadClick(Sender: TObject);
@@ -137,7 +140,11 @@ type
       Y: Integer);
     procedure bt_SkinMouseMove(Sender: TObject; Shift: TShiftState; X,
       Y: Integer);
-    procedure FormDestroy(Sender: TObject);  private                     // 读取关卡 -- 从剪切板加载 XSB
+    procedure FormDestroy(Sender: TObject);
+    procedure N8Click(Sender: TObject);
+    procedure sb_TrialMouseMove(Sender: TObject; Shift: TShiftState; X,
+      Y: Integer);
+    procedure sb_TrialClick(Sender: TObject);  private                     // 读取关卡 -- 从剪切板加载 XSB
     procedure SetUnDoReDo(isReDo: Boolean = false);                             // Set UnDo
     function LurdToXSB(mStr: String): boolean;                                  // 用答案倒推关卡
     function isLurd(str: String): boolean;                                      // 是否 Lurd 字符串
@@ -184,7 +191,7 @@ var
 implementation
 
 uses
-  EditorInf_, Recog_, LoadSkin, EditorHelp;
+  EditorInf_, Recog_, LoadSkin, EditorHelp, TrialUnit;
   
 {$R *.dfm}
 {$R MyCursor.res}
@@ -392,6 +399,7 @@ begin
   N4.Caption := '上移一行';
   N6.Caption := '参考图';
   N7.Caption := '小参考图';
+  N8.Caption := '最小标准化';
 
   sb_SaveToFile.Hint := '保存到文档【Ctrl + S】';
   sb_Save.Hint := '复制 - 送入剪切板【Ctrl + C】';
@@ -400,10 +408,11 @@ begin
   sb_ReDo.Hint := '重做【Shift + Z】';
   sb_Clear.Hint := '清空重来';
   sb_Inf.Hint := '地图说明信息';
-  sb_Xsb_OK.Hint := '地图标准化';
+  sb_Xsb_OK.Hint := '地图标准化【右键: 最小标准化】';
   sb_Help.Hint := '帮助【F1]';
   sb_LoadPic.Hint := '截图识别';
-  bt_Skin.Hint := '更换皮肤【F2】';    
+  bt_Skin.Hint := '更换皮肤【F2】'; 
+  sb_Trial.Hint := '试炼场【F5/F6】';  
 
   img_Wall.Hint := '绘制 -- 『墙壁』';
   img_Box.Hint := '绘制 -- 『箱子』';
@@ -437,6 +446,8 @@ begin
 
   N6.Checked := False;
   N7.Checked := False;
+
+  CellSize := 60;
 
   KeyPreview := true;
 end;
@@ -689,7 +700,7 @@ begin
 end;
 
 // 地图标准化，包括：简单标准化 -- 保留关卡的墙外造型
-function TEditorForm_.MapNormalize: Integer;
+function TEditorForm_.MapNormalize(isMinimum: Boolean): Integer;
 const
   dr4 : array[0..3] of Integer = (  0, 0, -1, 1 );         // 四邻常量：左、右、上、下
   dc4 : array[0..3] of Integer = ( -1, 1,  0, 0 );
@@ -788,7 +799,7 @@ begin
   for i := 1 to MaxSize do begin
     for j := 1 to MaxSize do begin
       if not Mark[i, j] then begin     // 可达区域之外
-        if (MapBoard_OK[i, j] in [ '*', '$', '#' ]) then MapBoard_OK[i, j] := '#'  // 墙外造型
+        if (MapBoard_OK[i, j] in [ '*', '$', '#' ]) and (not isMinimum) then MapBoard_OK[i, j] := '#'  // 墙外造型
         else MapBoard_OK[i, j] := '-';
       end;
     end;
@@ -844,8 +855,8 @@ var
   n: Integer;
 begin
   StatusBar1.Panels[8].Text := '';
-  
-  n := MapNormalize;
+
+  n := MapNormalize(False);
 
   case n of
     0: begin
@@ -859,6 +870,31 @@ begin
        MessageBox(Handle, '箱子数与目标数不符！', '错误', MB_ICONERROR + MB_OK)
     end;
     3: begin        
+       MessageBox(Handle, '尚未封闭的地图！', '错误', MB_ICONERROR + MB_OK)
+    end;
+  end;
+end;
+
+procedure TEditorForm_.N8Click(Sender: TObject);
+var
+  n: Integer;
+begin
+  StatusBar1.Panels[8].Text := '';
+
+  n := MapNormalize(True);
+
+  case n of
+    0: begin
+       DrawGrid1.Invalidate;
+       MessageBox(Handle, '标准化成功！', '信息', MB_ICONINFORMATION + MB_OK);
+    end;
+    1: begin
+       MessageBox(Handle, '仓管员数不正确！', '错误', MB_ICONERROR + MB_OK)
+    end;
+    2: begin
+       MessageBox(Handle, '箱子数与目标数不符！', '错误', MB_ICONERROR + MB_OK)
+    end;
+    3: begin
        MessageBox(Handle, '尚未封闭的地图！', '错误', MB_ICONERROR + MB_OK)
     end;
   end;
@@ -1041,7 +1077,7 @@ begin
       end;
     end;
 
-    FreeAndNil(data_Text);
+    if data_Text <> nil then FreeAndNil(data_Text);
   end;
   
   // 仅仅解析第一个 XSB 即可
@@ -1457,7 +1493,7 @@ begin
          end;
       end;
   end;
-  FreeAndNil(MyXSB);
+  if MyXSB <> nil then FreeAndNil(MyXSB);
 end;
 
 // UnDo
@@ -2053,9 +2089,174 @@ end;
 
 procedure TEditorForm_.FormDestroy(Sender: TObject);
 begin
-  FreeAndNil(MapNode.Map);
-  FreeAndNil(UnDoList);
-  FreeAndNil(ReDoList);  
+  if MapNode.Map <> nil then FreeAndNil(MapNode.Map);
+  if UnDoList <> nil then FreeAndNil(UnDoList);
+  if ReDoList <> nil then FreeAndNil(ReDoList);
+end;
+
+procedure TEditorForm_.sb_TrialMouseMove(Sender: TObject;
+  Shift: TShiftState; X, Y: Integer);
+begin
+  StatusBar1.Panels[8].Text := sb_Trial.Hint;
+end;
+
+procedure TEditorForm_.sb_TrialClick(Sender: TObject);
+const
+  dr4 : array[0..3] of Integer = (  0, 0, -1, 1 );         // 四邻常量：左、右、上、下
+  dc4 : array[0..3] of Integer = ( -1, 1,  0, 0 );
+var
+  i, j, k, mr, mc, nRen, nPos, p, tail: Integer;
+  mr2, mc2: Integer;
+  pt: array[0..MaxSize*MaxSize] of Integer;
+  Mark: array[1..MaxSize, 1..MaxSize] of Boolean;
+  left, top, right, bottom: Integer;
+  flg: Boolean;
+
+begin
+  mr := manPos.Y;
+  mc := manPos.X;
+  
+  if (mr < 0) or (mc < 0) then begin
+     MessageBox(Handle, '仓管员数不正确！', '错误', MB_ICONERROR + MB_OK);           // 没有仓管员
+     Exit;
+  end;
+
+  nRen := 0;
+  for i := 1 to MaxSize do begin
+    for j := 1 to MaxSize do begin
+      if (MapBoard[i, j] < 0) or (MapBoard[i, j] > 6) then MapBoard_OK[i, j] := '-'
+      else MapBoard_OK[i, j] := XSB[MapBoard[i, j]];
+      if MapBoard_OK[i, j] in [ '@', '+' ] then begin
+         mr := i;
+         mc := j;
+         inc(nRen);
+      end;
+    end;
+  end;
+
+  if nRen <> 1 then Exit;               // 仓管员 <> 1
+
+  // 为方便，在临时地图四周加上墙壁框
+  for i := 0 to MaxSize+1 do begin
+    MapBoard_OK[i,         0        ] := '#';
+    MapBoard_OK[i,         MaxSize+1] := '#';
+    MapBoard_OK[0,         i        ] := '#';
+    MapBoard_OK[MaxSize+1, i        ] := '#';
+  end;
+
+  // 是否可达格子标记
+  for i := 1 to MaxSize do begin
+    for j := 1 to MaxSize do begin
+      Mark[i][j] := false;
+    end;
+  end;
+
+  p := 0; tail := 0;
+  Mark[mr, mc] := True;
+  pt[0] := (mr shl 16) or mc;
+  while (p <= tail) do begin
+    nPos := pt[p];
+    mr := (nPos shr 16) and $FFFF;
+    mc := nPos and $FFFF;;
+
+    // 向周边探索，检查是否可达
+    for k := 0 to 3 do begin
+      mr2 := mr + dr4[k];
+      mc2 := mc + dc4[k];
+
+      if (MapBoard_OK[mr2, mc2] = '#') or Mark[mr2, mc2] then Continue;
+
+      if (mr2 = 1) or (mc2 = 1) or (mr2 = MaxSize) or (mc2 = MaxSize) then begin
+         MessageBox(Handle, '尚未封闭的地图！', '错误', MB_ICONERROR + MB_OK);    // 未封口的地图
+         Exit;
+      end;
+
+      Inc(tail);
+      pt[tail] := (mr2 shl 16) or mc2;;   // 新的可达格子
+      Mark[mr2, mc2] := True;             // 可达标记
+    end;
+    Inc(p);
+  end;
+
+  for i := 1 to MaxSize do begin
+    for j := 1 to MaxSize do begin
+      if (MapBoard[i, j] < 0) or (MapBoard[i, j] > 6) then MapBoard_OK[i, j] := '-'
+      else MapBoard_OK[i, j] := XSB[MapBoard[i, j]];
+    end;
+  end;
+  
+  flg := True;
+  top := 1;
+  while flg and (top <= MaxSize) do begin
+      j := 1;
+      while j <= MaxSize do begin
+          if Mark[top, j] then begin
+             flg := False;
+          end;
+          inc(j);
+      end;
+      if flg then inc(top);
+  end;
+  if flg then Exit;
+
+  flg := True;
+  bottom := MaxSize;
+  while flg and (bottom >= top) do begin
+      j := 1;
+      while j <= MaxSize do begin
+          if Mark[bottom, j] then begin
+             flg := False;
+          end;
+          inc(j);
+      end;
+      if flg then dec(bottom);
+  end;
+
+  flg := True;
+  left := 1;
+  while flg and (left <= MaxSize) do begin
+      i := 1;
+      while i <= MaxSize do begin
+          if Mark[i, left] then begin
+             flg := False;
+          end;
+          inc(i);
+      end;
+      if flg then inc(left);
+  end;
+  
+  flg := True;
+  right := MaxSize;
+  while flg and (right >= left) do begin
+      i := 1;
+      while i <= MaxSize do begin
+          if Mark[i, right] then begin
+             flg := False;
+          end;
+          inc(i);
+      end;
+      if flg then dec(right);
+  end;
+
+  Dec(top);
+  Dec(left);
+  Inc(bottom);
+  Inc(right);
+  TrialForm.isBK        := False;
+  TrialForm.isGoThrough := True;
+  TrialForm.isOddEven   := True;
+  TrialForm.mapRows     := bottom - top  + 1;
+  TrialForm.mapCols     := right  - left + 1;
+
+  TrialForm.myPathFinder.PathFinder(TrialForm.mapCols, TrialForm.mapRows);
+
+  for i := top to bottom do begin
+      for j := left to right do begin
+          TrialForm.map_Board[(i-top) * TrialForm.mapCols + j-left] := MapBoard_OK[i, j];
+      end;
+  end;
+    
+  TrialForm.Show;
 end;
 
 end.

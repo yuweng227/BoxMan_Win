@@ -50,6 +50,8 @@ function MapNormalize(var mapNode: PMapNode): Boolean;         // 地图标准化，包
 
 function isSolution(mapNode: PMapNode; sol: PChar): Boolean;   // 答案验证
 
+procedure MyListClear(var _List_: TList);                      // 清空关卡列表，并释放内存
+
 var
   isStopThread: Boolean;                              // 是否终止后台线程
   LoadMapThread: TLoadMapThread;                     // 后台加载地图文档线程
@@ -97,6 +99,26 @@ const
   ManCell = 6;
   ManGoalCell = 7;
 
+var
+  pt: array[0..9999] of Integer;        // 在“关卡标准化功能中，用数组替代“队列”
+
+// 清空关卡列表，并释放内存
+procedure MyListClear(var _List_: TList);
+var
+  i, len: Integer;
+begin
+  if _List_ = nil then exit;
+  
+  len := _List_.Count;
+  for i := len-1 downto 0 do begin
+      if _List_.Items[i] <> nil then begin
+         Dispose(_List_.Items[i]);
+         _List_.Items[i] := nil;
+      end;
+  end;
+  _List_.Clear;
+end;
+
 // 取得子串最后出现的位置
 function LastPos(const SubStr, Str: ansistring): Integer;
 var
@@ -129,7 +151,7 @@ begin
   // 检查是否是空行 -- 仅有空格和跳格符
   while k <= n do
   begin
-    if (str[k] <> #20) and (str[k] <> #8) or (str[k] = '') then
+    if (str[k] <> #20) and (str[k] <> #9) or (str[k] = '') then
       Break;
     Inc(k);
   end;
@@ -139,7 +161,7 @@ begin
   k := 1;
   while k <= n do
   begin
-    if not (str[k] in [' ', '_', '-', '#', '.', '$', '*', '@', '+']) then
+    if not (str[k] in [ #9, ' ', '_', '-', '#', '.', '$', '*', '@', '+']) then
       Break;
     Inc(k);
   end;
@@ -684,9 +706,8 @@ begin
         data_Text := Split(XSB_Text);
      end else Exit;
   end else data_Text := Split(text);     // 从字符串加载
-  
 
-  MapList.Clear;
+  MyListClear(MapList);
   tmpList := TList.Create;
   mapSolution := TStringList.Create;
 
@@ -876,19 +897,17 @@ begin
     Result := true;
   end;
 
-  FreeAndNil(tmpList);
-  FreeAndNil(mapSolution);
+  if tmpList <> nil then FreeAndNil(tmpList);
+  if mapSolution <> nil then FreeAndNil(mapSolution);
 
 end;
 
 // 地图标准化，包括：简单标准化 -- 保留关卡的墙外造型；精准标准化 -- 不保留关卡的墙外造型，同时计算 CRC 等
 function MapNormalize(var mapNode: PMapNode): Boolean;
 var
-  i, j, k, t, mr, mc, Rows, Cols, nLen, nRen, nRows, nCols: Integer;
+  i, j, k, t, mr, mc, Rows, Cols, nLen, nRen, nRows, nCols, p, tail, pos: Integer;
   ch: Char;
   mr2, mc2, left, top, right, bottom, nBox, nDst, mTop, mLeft, mBottom, mRight: Integer;
-  P: TList;
-  Pos, F: ^TPoint;
   s1: string;
   key8: array[0..7] of Integer;
 begin
@@ -967,18 +986,13 @@ begin
   nBox := 0;
   nDst := 0;
 
-  P := TList.Create;
-  New(Pos);
-  Pos.x := mc;
-  Pos.y := mr;
-  P.add(Pos);
+  p := 0; tail := 0;
+  pos := (mc shl 16) or mr;
+  pt[0] := pos;
   Mark[mr][mc] := true;
-  while P.Count > 0 do
-  begin // 走完后，Mark[][]为 true 的，为墙内
-    F := P.Items[0];
-    mr := F.Y;
-    mc := F.X;
-    P.Delete(0);
+  while p <= tail do begin // 走完后，Mark[][]为 true 的，为墙内
+    mr := pt[p] and $00FF;
+    mc := pt[p] shr 16;
 
     case MapArray[mr, mc] of
       '$':
@@ -995,13 +1009,13 @@ begin
           Inc(nDst);
         end;
     end;
-    for k := 0 to 3 do
-    begin   // 仓管员向四个方向走
+    for k := 0 to 3 do begin   // 仓管员向四个方向走
       mr2 := mr + dr4[k];
       mc2 := mc + dc4[k];
       if (mr2 < 0) or (mr2 >= Rows) or (mc2 < 0) or (mc2 >= Cols) or    // 出界
-        (Mark[mr2, mc2]) or (MapArray[mr2, mc2] = '#') then
-        continue;  // 已访问或遇到墙
+         (Mark[mr2, mc2]) or (MapArray[mr2, mc2] = '#') then             // 已访问或遇到墙
+          continue;
+
       // 调整四至
       if left > mc2 then
         left := mc2;
@@ -1012,14 +1026,13 @@ begin
       if bottom < mr2 then
         bottom := mr2;
 
-      New(Pos);
-      Pos.x := mc2;
-      Pos.y := mr2;
-      P.add(Pos);
       Mark[mr2][mc2] := true;  //标记为已访问
+      pos := (mc2 shl 16) or mr2;
+      Inc(tail);
+      pt[tail] := pos;
     end;
+    Inc(p);
   end;
-  FreeAndNil(P);
 
   mapNode.Goals := nDst;
 
@@ -1335,8 +1348,6 @@ begin
       Break;
   end;
   main.LoadSolution;
-  main.Caption := AppName + AppVer + ' - ' + ExtractFileName(ChangeFileExt(main.mySettings.MapFileName, EmptyStr)) + ' ~ [' + inttostr(main.curMap.CurrentLevel) + '/' + inttostr(MapCount) + ']';
-  main.Caption := main.Caption + '，尺寸: ' + IntToStr(curMapNode.Cols) + '×' + IntToStr(curMapNode.Rows) + '，箱子: ' + IntToStr(curMapNode.Boxs) + '，目标: ' + IntToStr(curMapNode.Goals);
 end;
 
 // 在后台线程中加载地图文档
@@ -1354,15 +1365,13 @@ var
   mapSolution: TStringList;        // 关卡答案
   tmpMapList: TList;               // 临时关卡列表
   R: TRect;
-//  MapIcon: TBitmap;                // 关卡图标
 
 begin
 
   isRunning := True;
   isStopThread := False;
 
-  MapList.Clear;
-
+  MyListClear(MapList);
   FileName := main.mySettings.MapFileName;
   is_zhouzhuan := AnsiSameText(FileName, 'BoxMan.xsb');    // 是否解析的周转库文档
 
@@ -1403,8 +1412,9 @@ begin
             begin   // 前面有解析过的关卡 XSB，则把当前关卡加入关卡集列表
                     // 做关卡的标准化，计算CRC等
 
-              Inc(MapCount);      
-              synchronize(UpdateCaption);     // 更新主窗口标题
+              Inc(MapCount);
+              main.Caption := AppName + AppVer + ' - ' + ExtractFileName(ChangeFileExt(main.mySettings.MapFileName, EmptyStr)) + ' ~ [' + inttostr(main.curMap.CurrentLevel) + '/' + inttostr(MapCount) + ']';
+              main.Caption := main.Caption + '，尺寸: ' + IntToStr(curMapNode.Cols) + '×' + IntToStr(curMapNode.Rows) + '，箱子: ' + IntToStr(curMapNode.Boxs) + '，目标: ' + IntToStr(curMapNode.Goals);
 
               if MapNormalize(mapNode) then
               begin
@@ -1542,7 +1552,7 @@ begin
 
     finally
       CloseFile(txtFile);                //关闭打开的文件
-      FreeAndNil(mapSolution);
+      if mapSolution <> nil then FreeAndNil(mapSolution);
     end;
 
     if (not isStopThread) and (tmpMapList.Count > 0) then
@@ -1552,11 +1562,6 @@ begin
       BrowseForm.ImageList1.Clear;
       BrowseForm.ListView1.Items.Clear;
 
-//      MapIcon := TBitmap.Create;                // 关卡图标
-//      MapIcon.Width := BrowseForm.ImageList1.Width;
-//      MapIcon.Height := BrowseForm.ImageList1.Height;
-//      MapIcon.Canvas.Brush.Color := BrowseForm.BK_Color;
-//      R := Rect(0, 0, MapIcon.Width, MapIcon.Height);
       R := Rect(0, 0, BrowseForm.Map_Icon.Width, BrowseForm.Map_Icon.Height);
       size := tmpMapList.Count;
       try
@@ -1572,27 +1577,21 @@ begin
             BrowseForm.ListView1.Items[k].Caption := mapNode.Title;
 
           BrowseForm.ListView1.Items[k].ImageIndex := -1;       // 先默认没有图标
-
-          // 画图标
-//          MapIcon.Canvas.FillRect(R);
-//          BrowseForm.DrawIcon(MapIcon.Canvas, mapNode);
-//          BrowseForm.ImageList1.Add(MapIcon, nil);
-//          BrowseForm.ListView1.Items[k].ImageIndex := BrowseForm.ImageList1.Count-1;
-
         end;
       finally
         mapNode := nil;
-//        FreeAndNil(MapIcon);
       end;
 
       MapList := tmpMapList;
       tmpMapList := nil;
 
       MapCount := MapList.Count;
+      main.Caption := AppName + AppVer + ' - ' + ExtractFileName(ChangeFileExt(main.mySettings.MapFileName, EmptyStr)) + ' ~ [' + inttostr(main.curMap.CurrentLevel) + '/' + inttostr(MapCount) + ']';
+      main.Caption := main.Caption + '，尺寸: ' + IntToStr(curMapNode.Cols) + '×' + IntToStr(curMapNode.Rows) + '，箱子: ' + IntToStr(curMapNode.Boxs) + '，目标: ' + IntToStr(curMapNode.Goals);
       synchronize(UpdateCaption);     // 更新主窗口标题
     end;
 
-    FreeAndNil(tmpMapList);
+    if tmpMapList <> nil then FreeAndNil(tmpMapList);
 
   end;
 

@@ -32,6 +32,7 @@ object MyOpenFile: TMyOpenFile
       Height = 289
       Align = alClient
       BevelInner = bvNone
+      ImeName = #20013#25991'('#31616#20307') - '#25628#29399#25340#38899#36755#20837#27861
       ItemHeight = 18
       Mask = '*.txt;*.xsb'
       TabOrder = 0
@@ -44,6 +45,7 @@ object MyOpenFile: TMyOpenFile
       Height = 289
       Align = alLeft
       FileList = FileListBox1
+      ImeName = #20013#25991'('#31616#20307') - '#25628#29399#25340#38899#36755#20837#27861
       ItemHeight = 18
       TabOrder = 1
       OnChange = DirectoryListBox1Change
@@ -85,6 +87,7 @@ object MyOpenFile: TMyOpenFile
       Font.Height = -16
       Font.Name = #23435#20307
       Font.Style = []
+      ImeName = #20013#25991'('#31616#20307') - '#25628#29399#25340#38899#36755#20837#27861
       ParentFont = False
       TabOrder = 0
     end
