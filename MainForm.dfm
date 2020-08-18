@@ -1,6 +1,6 @@
 object main: Tmain
-  Left = 243
-  Top = 185
+  Left = 218
+  Top = 413
   Width = 769
   Height = 533
   Caption = 'BoxMan'
@@ -305,6 +305,7 @@ object main: Tmain
         Font.Height = -12
         Font.Name = #23435#20307
         Font.Style = []
+        ImeMode = imClose
         ImeName = #20013#25991'('#31616#20307') - '#25628#29399#25340#38899#36755#20837#27861
         MaxLength = 2
         ParentFont = False
@@ -626,6 +627,7 @@ object main: Tmain
       Height = 19
       BevelInner = bvNone
       Ctl3D = False
+      ImeMode = imClose
       ImeName = #20013#25991'('#31616#20307') - '#25628#29399#25340#38899#36755#20837#27861
       MaxLength = 5
       ParentCtl3D = False

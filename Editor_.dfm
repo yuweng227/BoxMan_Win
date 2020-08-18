@@ -1,6 +1,6 @@
 object EditorForm_: TEditorForm_
-  Left = 464
-  Top = 180
+  Left = 435
+  Top = 184
   Width = 800
   Height = 561
   Caption = #20851#21345#32534#36753#22120' v20.01'

@@ -367,7 +367,7 @@ const
   SpeedInf: array[0..4] of string = ('最快', '较快', '中速', '较慢', '最慢');
   
   AppName = 'BoxMan';
-  AppVer = ' V2.4';
+  AppVer = ' V2.5';
 
 var
   main: Tmain;
@@ -2732,6 +2732,7 @@ begin
       if not mySettings.isOddEven then
          bt_OddEvenMouseDown(Self, mbLeft, [], -1, -1);
   end;
+  Edit1.SetFocus;  // 一个辅助控件，控制输入焦点用的
   Key := 0;
 end;
 
@@ -3340,6 +3341,8 @@ begin
                   begin                      // 逆推中，调整人的定位
                     IsManAccessibleTips_BK := False;
                     IsBoxAccessibleTips_BK := False;
+                    ReDoPos_BK := 0;
+                    UnDoPos_BK := 0;
                     if ManPos_BK >= 0 then
                     begin
                       if map_Board_BK[ManPos_BK] = ManCell then
@@ -3568,6 +3571,7 @@ var
 
 begin
   Edit1.SetFocus;  // 一个辅助控件，控制输入焦点用的
+
   if (not curMapNode.isEligible) then begin
      Msg.Left := Left + ((Width - Msg.Width + pl_Side.Width) div 2);
      Msg.Top :=  Top + ((Height - Msg.Height) div 2);
@@ -7803,7 +7807,7 @@ begin
     StatusBar1.Panels[7].Text := '从剪切板加载 Lurd！';
     if mySettings.isBK and (ManPos_BK_0_2 >= 0) then begin   // 处理人的位置
       myCell := map_Board_OG[ManPos_BK_0_2];
-      if (myCell = FloorCell) or (myCell = BoxCell) then begin
+      if (myCell = FloorCell) or (myCell = BoxCell) or (myCell = ManCell) then begin
         for i := 0 to curMap.MapSize - 1 do begin
           if map_Board_OG[i] = BoxCell then
             map_Board_BK[i] := GoalCell
@@ -7812,7 +7816,7 @@ begin
           else if map_Board_OG[i] = ManCell then
             map_Board_BK[i] := FloorCell
           else if map_Board_OG[i] = ManGoalCell then
-            map_Board_BK[i] := GoalCell
+            map_Board_BK[i] := BoxCell
           else
             map_Board_BK[i] := map_Board_OG[i];
         end;
