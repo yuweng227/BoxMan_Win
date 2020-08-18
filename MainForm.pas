@@ -37,7 +37,7 @@ type
     isIM: boolean;             // 瞬移是否开启
     isBK: boolean;             // 是否逆推模式
     isSameGoal: boolean;       // 逆推时，使用正推目标位
-    isJijing: boolean;         // 即景目标位
+    isJijing: boolean;         // 互动双推
     isNumber: boolean;         // 是否开启“双击编号”功能
     isXSB_Saved: boolean;      // 当从剪切板导入的 XSB 是否保存过了
     isLurd_Saved: boolean;     // 推关卡的动作是否保存过了
@@ -367,7 +367,7 @@ const
   SpeedInf: array[0..4] of string = ('最快', '较快', '中速', '较慢', '最慢');
   
   AppName = 'BoxMan';
-  AppVer = ' V2.6';
+  AppVer = ' V2.7';
 
 var
   main: Tmain;
@@ -627,7 +627,7 @@ begin
     mySettings.isBK := False;                                                   // 是否逆推模式
     mySettings.isXSB_Saved := True;                                             // 当从剪切板导入的 XSB 是否保存过了
     mySettings.isLurd_Saved := True;                                            // 推关卡的动作是否保存过了
-    mySettings.isJijing := False;                                               // 即景目标位
+    mySettings.isJijing := False;                                               // 互动双推
     mySettings.isOddEven := False;                                              // 奇偶格效果
     pmGoal.Checked := mySettings.isSameGoal;                                    // 固定的目标位
     N29.Checked := mySettings.isNumber;                                         // 双击编号
@@ -1020,7 +1020,7 @@ begin
   end;
 
   curMap.ManPosition := ManPos;              // 地图中人的原始位置，将在逆推状态时，以此提示
-  mySettings.isJijing := False;              // 即景目标位
+  mySettings.isJijing := False;              // 互动双推
   pmJijing.Checked := False; 
   mySettings.isBK := False;                  // 默认正推模式
   mySettings.isShowNoVisited := False;
@@ -1156,7 +1156,7 @@ begin
   for i := 0 to curMap.MapSize-1 do begin
       if mySettings.isBK then begin         // 逆推
         if map_Selected_BK[i] then begin
-           if mySettings.isJijing then begin                 // 即景模式
+           if mySettings.isJijing then begin                 // 互动双推模式
              if map_Board_BK[i] in [ BoxCell, BoxGoalCell ] then boxNum := boxNum+1;
              if map_Board[i] in [ BoxCell, BoxGoalCell ] then GoalNum := GoalNum+1;
              if (map_Board_BK[i] in [ BoxCell, BoxGoalCell ]) and (map_Board[i] in [ BoxCell, BoxGoalCell ]) then BoxGoalNum := BoxGoalNum+1;
@@ -1172,7 +1172,7 @@ begin
         end;
       end else begin
         if map_Selected[i] then begin
-           if mySettings.isJijing then begin                 // 即景模式   
+           if mySettings.isJijing then begin                 // 互动双推模式   
              if map_Board[i] in [ BoxCell, BoxGoalCell ] then boxNum := boxNum+1;
              if map_Board_BK[i] in [ BoxCell, BoxGoalCell ] then GoalNum := GoalNum+1;
              if (map_Board[i] in [ BoxCell, BoxGoalCell ]) and (map_Board_BK[i] in [ BoxCell, BoxGoalCell ]) then BoxGoalNum := BoxGoalNum+1;
@@ -1299,7 +1299,7 @@ begin
       begin            // 逆推
         myCell := map_Board_BK[pos];
         if mySettings.isJijing then
-        begin  // 即景目标位
+        begin  // 互动双推
           case map_Board[pos] of
             BoxCell, BoxGoalCell:
               case myCell of
@@ -1349,7 +1349,7 @@ begin
       begin
         myCell := map_Board[pos];             // 正推
         if mySettings.isJijing then
-        begin     // 即景目标位
+        begin     // 互动双推
           case map_Board_BK[pos] of
             BoxCell, BoxGoalCell:
               case myCell of
@@ -1371,7 +1371,7 @@ begin
             end;
           end;
         end;
-      end;
+      end;                                                                    
 
       map_Image.Canvas.CopyMode := SRCCOPY;
       case myCell of
@@ -1485,7 +1485,7 @@ begin
            map_Image.Canvas.Brush.Color := clBlack
         else
            map_Image.Canvas.Brush.Color := clInactiveCaptionText;
-          
+
         map_Image.Canvas.FillRect(R);
       end;
 
@@ -1499,7 +1499,7 @@ begin
         map_Image.Canvas.Font.Color := clWhite;
         map_Image.Canvas.Font.Style := [];
         if mySettings.isJijing then
-           map_Image.Canvas.TextOut(0, 0, '逆推模式 - 即景')
+           map_Image.Canvas.TextOut(0, 0, '逆推模式 - 互动双推')
         else
            map_Image.Canvas.TextOut(0, 0, '逆推模式');
 
@@ -1591,13 +1591,13 @@ begin
         end;
 
         if mySettings.isJijing then
-        begin    // 即景
+        begin    // 互动双推
           map_Image.Canvas.Brush.Style := bsClear;
           map_Image.Canvas.Font.Name := '微软雅黑';
           map_Image.Canvas.Font.Size := 16;
           map_Image.Canvas.Font.Color := clWhite;
           map_Image.Canvas.Font.Style := [];
-          map_Image.Canvas.TextOut(0, 0, '即景');
+          map_Image.Canvas.TextOut(0, 0, '互动双推');
         end;
 
         // 箱子编号
@@ -1961,7 +1961,7 @@ begin
   pmState.Items[6].Caption := '删除全部';
 
   pmBoardBK.Items[0].Caption := '固定的目标位   【Ctrl + G】';
-  pmBoardBK.Items[1].Caption := '即景目标位      【Ctrl + J】';
+  pmBoardBK.Items[1].Caption := '互动双推         【Ctrl + J】';
   pmBoardBK.Items[2].Caption := '-';
   pmBoardBK.Items[3].Caption := '双击编号   【Ctrl + N】';
   pmBoardBK.Items[4].Caption := '-';
@@ -2133,7 +2133,9 @@ begin
   New(curMapNode);
 
   txtList := TStringList.Create;     // 准备缓存关卡文档的各行
-  
+       
+  curMapNode.Cols := 0;              // 避免没有地图时出现报错窗口
+
   // 先用比较轻便的方式，打开上次的关卡
   if FileExists(mySettings.MapFileName) then begin
 
@@ -2154,7 +2156,7 @@ begin
 
      end else StatusBar1.Panels[7].Text := '加载上次的 ' + IntToStr(curMap.CurrentLevel) + ' 号关卡时，遇到错误 - ' + mySettings.MapFileName;
   end;
-
+        
   SetButton();             // 设置按钮状态
   pnl_Speed.Caption := SpeedInf[mySettings.mySpeed];
 
@@ -2873,7 +2875,7 @@ begin
       end else begin
         bt_GoThrough.Click;
       end;
-    74:                // Ctrl + J， 即景目标位
+    74:                // Ctrl + J， 互动双推
       if ssCtrl in Shift then begin
          pmJijing.Click;
       end;
@@ -5950,7 +5952,7 @@ begin
   ShowStatusBar();
 end;
 
-// 即景目标位切换按钮
+// 互动双推切换按钮
 procedure Tmain.pmJijingClick(Sender: TObject);
 begin
   isSelectMod := False;

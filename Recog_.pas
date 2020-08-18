@@ -771,10 +771,12 @@ begin
 
        Map_RowHeight.MaxValue := Map_Bottom.Value - Map_Top.Value;
        Map_ColWidth.MaxValue := Map_Right.Value - Map_Left.Value;
+       
        if Map_ColWidth.MaxValue < 50 then Map_ColWidth.Value := Map_ColWidth.MaxValue
        else Map_RowHeight.Value := 50;
        if Map_ColWidth.MaxValue < 50 then Map_ColWidth.Value := Map_ColWidth.MaxValue
        else Map_ColWidth.Value  := 50;
+
        PicRows := (Map_Bottom.Value-Map_Top.Value) div Map_RowHeight.Value;
        PicCols := (Map_Right.Value-Map_Left.Value) div Map_ColWidth.Value;
        StatusBar1.Panels[1].Text := IntToStr(PicRows+1);
