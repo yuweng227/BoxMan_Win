@@ -40,7 +40,7 @@ end;
 
 function Calcu_CRC_32_2(const Data: PChar; Len: Integer): LongWord;
 var
-  i, j: integer;
+  i: integer;
   tmp, long_c, crc: longWord;
   aByte: Byte;
 

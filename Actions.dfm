@@ -1,9 +1,9 @@
 object ActionForm: TActionForm
-  Left = 222
-  Top = 54
+  Left = 249
+  Top = 184
   BorderStyle = bsDialog
   Caption = #21160#20316#32534#36753
-  ClientHeight = 513
+  ClientHeight = 514
   ClientWidth = 751
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
@@ -19,22 +19,22 @@ object ActionForm: TActionForm
   PixelsPerInch = 96
   TextHeight = 13
   object Label1: TLabel
-    Left = 288
-    Top = 424
+    Left = 267
+    Top = 425
     Width = 60
     Height = 13
     Caption = #37325#22797#27425#25968#65306
   end
   object Label2: TLabel
-    Left = 472
+    Left = 584
     Top = 424
     Width = 36
     Height = 13
     Caption = #21152#36733#65306
   end
   object Label3: TLabel
-    Left = 472
-    Top = 468
+    Left = 424
+    Top = 424
     Width = 36
     Height = 13
     Caption = #23384#20837#65306
@@ -63,10 +63,10 @@ object ActionForm: TActionForm
     end
   end
   object Button1: TButton
-    Left = 640
-    Top = 456
-    Width = 75
-    Height = 33
+    Left = 646
+    Top = 462
+    Width = 81
+    Height = 25
     Cursor = crHandPoint
     Caption = #25191#34892'(&R)'
     Default = True
@@ -74,9 +74,9 @@ object ActionForm: TActionForm
     OnClick = Button1Click
   end
   object Button2: TButton
-    Left = 640
-    Top = 416
-    Width = 75
+    Left = 528
+    Top = 462
+    Width = 87
     Height = 25
     Cursor = crHandPoint
     Caption = #21462#28040'(&C)'
@@ -84,11 +84,13 @@ object ActionForm: TActionForm
     TabOrder = 2
   end
   object Run_CurPos: TCheckBox
-    Left = 160
+    Left = 144
     Top = 424
     Width = 110
     Height = 17
     Caption = #20174#24403#21069#28857#25191#34892
+    Checked = True
+    State = cbChecked
     TabOrder = 3
   end
   object Run_CurTru: TCheckBox
@@ -100,9 +102,9 @@ object ActionForm: TActionForm
     TabOrder = 4
   end
   object Rep_Times: TSpinEdit
-    Left = 354
-    Top = 418
-    Width = 95
+    Left = 332
+    Top = 421
+    Width = 63
     Height = 22
     AutoSize = False
     MaxLength = 1
@@ -113,8 +115,8 @@ object ActionForm: TActionForm
   end
   object Left_Trun: TButton
     Left = 16
-    Top = 464
-    Width = 75
+    Top = 462
+    Width = 97
     Height = 25
     Cursor = crHandPoint
     Caption = #24038#26059'(&L)'
@@ -122,9 +124,9 @@ object ActionForm: TActionForm
     OnClick = Left_TrunClick
   end
   object Right_Trun: TButton
-    Left = 120
-    Top = 464
-    Width = 75
+    Left = 138
+    Top = 462
+    Width = 97
     Height = 25
     Cursor = crHandPoint
     Caption = #21491#26059'(&R)'
@@ -132,8 +134,8 @@ object ActionForm: TActionForm
     OnClick = Right_TrunClick
   end
   object H_Mirror: TButton
-    Left = 224
-    Top = 464
+    Left = 261
+    Top = 462
     Width = 97
     Height = 25
     Cursor = crHandPoint
@@ -142,8 +144,8 @@ object ActionForm: TActionForm
     OnClick = H_MirrorClick
   end
   object V_Mirror: TButton
-    Left = 352
-    Top = 464
+    Left = 384
+    Top = 462
     Width = 97
     Height = 25
     Cursor = crHandPoint
@@ -152,7 +154,7 @@ object ActionForm: TActionForm
     OnClick = V_MirrorClick
   end
   object LoadBox: TComboBox
-    Left = 512
+    Left = 624
     Top = 420
     Width = 105
     Height = 22
@@ -169,11 +171,12 @@ object ActionForm: TActionForm
       #23492#23384#22120' 2'
       #23492#23384#22120' 3'
       #23492#23384#22120' 4'
-      #25991#26723)
+      #25991#26723
+      #19978#27425#25191#34892#21069#30340#21160#20316)
   end
   object SaveBox: TComboBox
-    Left = 512
-    Top = 464
+    Left = 464
+    Top = 420
     Width = 105
     Height = 22
     Style = csOwnerDrawFixed
@@ -190,7 +193,7 @@ object ActionForm: TActionForm
   end
   object StatusBar1: TStatusBar
     Left = 0
-    Top = 494
+    Top = 495
     Width = 751
     Height = 19
     Panels = <

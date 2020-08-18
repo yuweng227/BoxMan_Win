@@ -3,7 +3,7 @@ unit Actions;
 interface
 
 uses
-  Windows, Messages, SysUtils, Variants, Classes, Graphics, Controls, Forms,
+  Windows, Messages, SysUtils, Variants, Classes, Graphics, Controls, Forms, StrUtils,
   Dialogs, StdCtrls, ExtCtrls, Spin, Clipbrd, Math, ComCtrls;
 
 type
@@ -40,7 +40,8 @@ type
     procedure LoadBoxSelect(Sender: TObject);
     procedure SaveBoxSelect(Sender: TObject);
     procedure SaveToFile();         // 保存动作到文档
-    procedure LoadFromFile();       // 从文档加载动作
+    procedure LoadFromFile();
+    procedure Button3Click(Sender: TObject);       // 从文档加载动作
 
   private
     { Private declarations }
@@ -86,8 +87,31 @@ var
   i, j, k, len: Integer;
   str: string;
   p: TStrings;
+  MyTextFile: TextFile; 
 
 begin
+  // 保存当前点之前的动作，以备“后悔”时使用
+  if isBK and (UnDoPos_BK < MaxLenPath) then begin
+     UndoList_BK[UnDoPos_BK+1] := #0;
+     str  := PChar(@UndoList_BK);
+  end else if (not isBK) and (UnDoPos < MaxLenPath) then begin
+     UndoList[UnDoPos+1] := #0;
+     str  := PChar(@UndoList);
+  end else str := '';
+
+  if str <> '' then begin
+     if not DirectoryExists(ExePath+'temp') then ForceDirectories(ExePath+'temp');
+     AssignFile(MyTextFile, ExePath + '\temp\reg0.txt');
+     Rewrite(MyTextFile);
+     try
+       Writeln(MyTextFile, str);
+       Flush(MyTextFile);
+     finally
+      CloseFile(MyTextFile);
+     end;
+  end;
+
+  // 以下为“执行”功能
   len := MemoAct.Lines.Count;
 
   Act := '';
@@ -282,10 +306,10 @@ begin
   Left_Trun.Caption := '左旋(&L)';
   Right_Trun.Caption := '右旋(&R)';
   H_Mirror.Caption := '左右翻转(&H)';
-  V_Mirror.Caption := '上下翻转(&H)';
-  Button1.Caption := '执行(&R)';
+  V_Mirror.Caption := '上下翻转(&V)';
+  Button1.Caption := '执行(&E)';
   Button2.Caption := '取消(&C)';
-  LoadBox.Items.Text := '剪切板'#13#10'已做动作'#13#10'后续动作'#13#10'寄存器 1'#13#10'寄存器 2'#13#10'寄存器 3'#13#10'寄存器 4'#13#10'文档';
+  LoadBox.Items.Text := '剪切板'#13#10'已做动作'#13#10'后续动作'#13#10'寄存器 1'#13#10'寄存器 2'#13#10'寄存器 3'#13#10'寄存器 4'#13#10'文档'#13#10'上次执行前的动作';
   SaveBox.Items.Text := '剪切板'#13#10'寄存器 1'#13#10'寄存器 2'#13#10'寄存器 3'#13#10'寄存器 4'#13#10'文档';
 
   KeyPreview := true;
@@ -374,7 +398,7 @@ begin
            str  := PChar(@RedoList);
         end else str := '';
 
-        MemoAct.Lines.Add(str);
+        MemoAct.Lines.Add(reversestring(str));
       end;
     3:
       try
@@ -406,6 +430,15 @@ begin
       end;
     7:                              // 文档
       LoadFromFile();
+    8:
+      try
+         MemoAct.Lines.LoadFromFile(ExePath + '\temp\reg0.txt');
+//         Run_CurPos.Checked := false;
+         StatusBar1.Panels[0].Text := '成功加载到上次执行前的动作！';
+      except
+         StatusBar1.Panels[0].Text := '加载上次前的动作失败！';
+      end;
+
   end;
 end;
 
@@ -417,6 +450,7 @@ begin
   0:                              // 剪切板
       begin
         Clipboard.SetTextBuf(PChar(MemoAct.Lines.Text));
+        StatusBar1.Panels[0].Text := '已存入剪切板！';
       end;
   1:
     try
@@ -452,6 +486,17 @@ begin
     end;
   5:                              // 文档
     SaveToFile();
+  end;
+end;
+
+procedure TActionForm.Button3Click(Sender: TObject);
+begin
+  try
+     MemoAct.Lines.LoadFromFile(ExePath + '\temp\reg0.txt');
+     Run_CurPos.Checked := false;
+     StatusBar1.Panels[0].Text := '成功加载到上次执行前的动作！';
+  except
+     StatusBar1.Panels[0].Text := '加载上次前的动作失败！';
   end;
 end;
 

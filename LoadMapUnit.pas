@@ -36,7 +36,11 @@ type                  // 关卡节点 -- 关卡集中的各个关卡
 
 function GetXSB(): string;                                     // 取得关卡 XSB
 
+function GetXSB_2(): string;                                   // 取得现场 XSB
+
 procedure XSBToClipboard();                                    // XSB 送入剪切板
+
+procedure XSBToClipboard_2();                                  // 现场 XSB 送入剪切板
 
 function LoadMapsFromText(text: string): boolean;         // 加载关卡 -- 从剪切板或文本字符串
 
@@ -73,6 +77,8 @@ var
   aMap5: array[0..99, 0..99] of Char;
   aMap6: array[0..99, 0..99] of Char;
   aMap7: array[0..99, 0..99] of Char;
+
+  xbsChar: array[0..7] of Char = ( '_', '#', '-', '.', '$', '*', '@', '+' );
 
 implementation
 
@@ -475,6 +481,7 @@ var
   num, n: Integer;                 // XSB的解析控制
 
 begin
+
   try
     AssignFile(txtFile, FileName);
     Reset(txtFile);
@@ -557,8 +564,7 @@ begin
       end
       else if (AnsiStartsText('comment-end', line2)) or (AnsiStartsText('comment_end', line2)) then
       begin  // 匹配"注释"块结束
-        is_Comment := False;
-        ;      // 结束"注释"块
+        is_Comment := False;   // 结束"注释"块
       end
       else if (AnsiStartsText('comment', line2)) then
       begin  //匹配"注释"块开始
@@ -576,8 +582,7 @@ begin
             Result.Comment := line;     // 单行"注释"
         end
         else
-          is_Comment := True;
-        ;                            // 多行"注释"块
+          is_Comment := True;          // 多行"注释"块
 
         if is_XSB then
           is_XSB := false;      // 结束关卡SXB的解析
@@ -652,12 +657,14 @@ var
   is_XSB: Boolean;                 // 是否正在解析关卡XSB
   is_Solution: Boolean;            // 是否答案行
   is_Comment: Boolean;             // 是否正在解析关卡说明信息
-  num, n, k: Integer;        // XSB的解析控制
+  num, n, k, size: Integer;        // XSB的解析控制
   mapNode: PMapNode;               // 解析出的当前关卡节点指针
   mapSolution: TStringList;        // 关卡答案
   XSB_Text: string;
   data_Text: TStringList;
   tmpList: TList;
+  R: TRect;
+
 begin
   Result := False;
 
@@ -830,9 +837,33 @@ begin
       tmpList.Delete(num);
   end;
 
-
   if tmpList.Count > 0 then
   begin
+    // 生成关卡列表项
+    BrowseForm.ImageList1.Clear;
+    BrowseForm.ListView1.Items.Clear;
+
+    R := Rect(0, 0, BrowseForm.Map_Icon.Width, BrowseForm.Map_Icon.Height);
+    size := tmpList.Count;
+    try
+      for k := 0 to size - 1 do
+      begin
+        mapNode := tmpList[k];
+
+        BrowseForm.ListView1.Items.add;
+
+        if mapNode.Title = '' then
+          BrowseForm.ListView1.Items[k].Caption := '【№: ' + IntToStr(k + 1) + '】'
+        else
+          BrowseForm.ListView1.Items[k].Caption := mapNode.Title;
+
+        BrowseForm.ListView1.Items[k].ImageIndex := -1;       // 先默认没有图标
+
+      end;
+    finally
+      mapNode := nil;
+    end;
+
     MapList := tmpList;
     tmpList := nil;
     Result := true;
@@ -1211,7 +1242,7 @@ function GetXSB(): string;
 var
   i: Integer;
 begin
-  Result := '';
+  Result := #10;
 
   if curMapNode.Map.Count > 0 then
   begin
@@ -1228,6 +1259,34 @@ begin
       Result := Result + 'Comment: ' + curMapNode.Comment + #10;
       Result := Result + 'Comment_end: ' + #10;
     end;
+    Result := Result + #10;
+  end;
+end;
+
+// 取得现场 XSB
+function GetXSB_2(): string;
+var
+  i, j, myCell, pos: Integer;
+
+begin
+  Result := #10;
+
+  if curMapNode.Map.Count > 0 then
+  begin
+    for i := 0 to curMapNode.Rows - 1 do
+    begin
+      for j := 0 to curMapNode.Cols - 1 do
+      begin
+        pos := i * curMapNode.Cols + j;
+        if main.mySettings.isBK then             // 逆推
+           myCell := main.map_Board_BK[pos]
+        else
+           myCell := main.map_Board[pos];
+
+        Result := Result + xbsChar[myCell];
+      end;
+      Result := Result + #10;
+    end;
   end;
 end;
 
@@ -1237,6 +1296,15 @@ begin
   if curMapNode.Map.Count > 0 then
   begin
     Clipboard.SetTextBuf(PChar(GetXSB()));
+  end;
+end;
+
+// XSB 送入剪切板
+procedure XSBToClipboard_2();
+begin
+  if curMapNode.Map.Count > 0 then
+  begin
+    Clipboard.SetTextBuf(PChar(GetXSB_2()));
   end;
 end;
 

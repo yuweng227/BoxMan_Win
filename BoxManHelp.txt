@@ -4,6 +4,8 @@ Ctrl + Q  £ºÍË³ö
 
 +¡¢-      £ºÔöËÙ¡¢¼õËÙ
 
+H £ºÏÔÊ¾»òÒþ²Ø×ó²à±ßÀ¸
+
 E £ºÆæÅ¼¸ñÐ§¹û¿ª¹Ø
 I £ºË²ÒÆ¿ª¹Ø
 B £ºÕýÄæÍÆÄ£Ê½ÇÐ»»
@@ -49,22 +51,28 @@ Ctrl + S£º±£´æ¹Ø¿¨×´Ì¬£»µ«ÊÇ£¬µ±¹Ø¿¨ XSB ÉÐÎ´±£´æÊ±£¨´Ó¼ôÇÐ°åµ¼ÈëµÄ¹Ø¿¨ XSB£©£¬¸
 
 Ctrl + K£º½«µ¼ÈëµÄ¹Ø¿¨±£´æµ½¹Ø¿¨ÖÜ×ª¿â(BoxMan.xsb) -- ËùÓÐµ¼Èë¹Ø¿¨
 
-Ctrl + V£º´Ó¼ôÇÐ°å¼ÓÔØ XSB           -- ÔÊÐí¶à¸ö¹Ø¿¨
-Ctrl + C£ºµ±Ç°¹Ø¿¨µÄ XSB ËÍÈë¼ôÇÐ°å  -- ½öÒ»¸ö¹Ø¿¨
+Ctrl + V      £º´Ó¼ôÇÐ°å¼ÓÔØ XSB           -- ÔÊÐí¶à¸ö¹Ø¿¨
+Ctrl + C      £ºµ±Ç°¹Ø¿¨µÄ XSB ËÍÈë¼ôÇÐ°å  -- ½öÒ»¸ö¹Ø¿¨
+Ctrl + Alt + C£º¹Ø¿¨ÏÖ³¡µÄ XSB ËÍÈë¼ôÇÐ°å  -- ½öÒ»¸ö¹Ø¿¨
 
-Ctrl + L£º´Ó¼ôÇÐ°å¼ÓÔØ Lurd -- Çø·ÖÕýÄæÍÆ
-Ctrl + M£ºLurd ËÍÈë¼ôÇÐ°å   -- °üÀ¨ÕýÄæÍÆ
+Ctrl + L      £º´Ó¼ôÇÐ°å¼ÓÔØ Lurd          -- Çø·ÖÕýÄæÍÆ
+Ctrl + M      £ºÒÑ×ö¶¯×÷ Lurd ËÍÈë¼ôÇÐ°å   -- °üÀ¨ÕýÄæÍÆ
+Ctrl + Alt + M£ººóÐø¶¯×÷ Lurd ËÍÈë¼ôÇÐ°å   -- Çø·ÖÕýÄæÍÆ
 
 Ctrl + ÍÏ¶¯Êó±ê×ó¼ü£ºÔö¼ÓÑ¡Çø -- ÊýÏä×Ó
 Alt  + ÍÏ¶¯Êó±ê×ó¼ü£ºÏû¼õÑ¡Çø -- ÊýÏä×Ó
 
 Ë«»÷Ïä×Ó   £ºÏä×Ó±àºÅ 1--9
 Ë«»÷Í¨µÀ   £ºÎ»ÖÃ±àÂë A--Z
+
+Ë«»÷Ç½±Ú   £ºÌáÊ¾Î´·ÃÎÊ¹ýµÄ¸ñ×Ó
  
 Ë«»÷´°¿Ú×ó²àµÄ¡°´ð°¸¡±»ò¡°×´Ì¬¡±   £º¿ìËÙ´ò¿ª¡°´ð°¸¡±»ò¡°×´Ì¬¡±
 Ë«»÷´°¿Úµ×²¿¡°×´Ì¬À¸¡±×îÓÒ±ßÒ»À¸   £º¶¯×÷µÄ¿ìËÙ¶¨Î»
 
 Ðý×ªºÍËÙ¶ÈÌáÊ¾ÉÏÊó±ê×óÓÒ¼ü £ºÔö¼õ±ä»¯
+
+ÓÒ¼ü²Ëµ¥£ºÓÎÏ·Ö÷´°¿Ú¡¢×ó²à±ßÀ¸¡¢ÉÏÒ»¹Ø/ÏÂÒ»¹Ø°´Å¥¡¢³·Ïú/ÖØ×ö°´Å¥µÈ£¬¾ùÌá¹©ÁËÓÒ¼ü²Ëµ¥¹¦ÄÜ
 
 
 === Æ¤·ôËµÃ÷ ===

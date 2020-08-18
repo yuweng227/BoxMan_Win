@@ -20,24 +20,13 @@ var
     BoxPath: array[1..MaxLenPath] of Char;              // 保存人推箱子动作的临时数组
 
 type
-  BlockNode = record         // 计算图块用节点
-      bc_Num: Integer;
-  end;
-
-type
   PathNode2 = record         // 路径节点
       box_R, box_C: Integer;
       dir, dir2: ShortInt;   // 用以指向父节点和父节点的父节点
   end;
 
 type
-  BoxManNode = record        // 箱子和人的组合节点
-      boxPos: Integer;
-      manPos: Integer;
-  end;
-
-type
-  BoxManNode2 = record      // 箱子和人的组合节点，优先队列用节点
+  BoxManNode2 = class      // 箱子和人的组合节点，优先队列用节点
       boxPos: Integer;
       manPos: Integer;
       H, G, T, D: Integer;  // 评估值、累计步数、累计转弯次数、父节点方向
@@ -68,7 +57,6 @@ type
 
       procedure FindBlock(level: array of Integer; boxPos: Integer);      // 地图分块
       procedure boxReachable(isBK: Boolean; boxPos, manPos: Integer);     // 计算箱子的可达位置
-//      function  isCut(pos: Integer): Boolean;                             // 查看是否为割点
       function  isBoxReachable(pos: Integer): Boolean;                    // 查看“位置”箱子是否可达
       function  isBoxReachable_BK(pos: Integer): Boolean;                 // 查看“位置”箱子是否可达 -- 逆推
       function  boxTo(isBK: Boolean; boxPos, toPos, manPos: Integer): Integer;  // 计算箱子到达 toPos 的路径，并由 list 带回
@@ -108,7 +96,7 @@ var
 
   depth, b_count: Integer;                            // depth: DFS 深度；b_count: 计数“块 ”，块序号将从 -1递减标注
   depth_tag, low_tag: array[0..99, 0..99] of Integer;
-  block: array[0..99, 0..99] of TList;
+  block: array[0..99, 0..99, 0..4] of Integer;
 
 // 初始化
 procedure TPathFinder.PathFinder(w, h: Integer);
@@ -637,13 +625,12 @@ const
 var
     boxR, boxC: Integer;
     i, j, k: Integer;
-    bcNode: ^BlockNode;
 
     // 循环法为“块”内的节点做标识
     procedure BlockrSign(r, c: Integer);
     var
       rr, cc, p, tail, k: Integer;
-      bcNode: ^BlockNode;
+
     begin
         // 将坐标用一个 int 存储
         ptBlock[0] := r * mapWidth + c;
@@ -652,9 +639,9 @@ var
         while p <= tail do begin
             rr := ptBlock[p] div mapWidth;
             cc := ptBlock[p] mod mapWidth;
-            New(bcNode);
-            bcNode.bc_Num := b_count;
-            block[rr, cc].Add(bcNode);
+            inc(block[rr, cc, 0]);
+            block[rr, cc, block[rr, cc, 0]] := b_count;
+
             for k := 0 to 3 do begin
                 if (children[rr, cc] and mByte[k]) > 0 then begin
                     Inc(tail);
@@ -670,8 +657,7 @@ var
     procedure CutVertex(row, col: Integer);
     var
        i: Integer;
-       bcNode: ^BlockNode;
-       
+
     begin
         mark[row, col] := true;                        // 已访问标记
 
@@ -696,9 +682,9 @@ var
                     if tmpBoxPos <> row * mapWidth +  col then begin
                         if not cut[row, col] then cut[row, col] := true;
                         // 标记“块”
-                        New(bcNode);
-                        bcNode.bc_Num := b_count;
-                        block[row, col].Add(bcNode);                   // 标记割点自身
+                        Inc(block[i, j, 0]);
+                        block[i, j, block[i, j, 0]] := b_count;        // 标记割点自身
+
                         BlockrSign((row + dr4[i]), col + dc4[i]);      // 标记此割点的子树
                         Dec(b_count);                                  // 块号减一
                         children[row, col] := children[row, col] and (not mByte[i]);  // 移除此“割点”及其子树
@@ -730,8 +716,7 @@ begin
             children[i, j]  := 0;
             depth_tag[i, j] := 0;
             low_tag[i, j]   := 0;
-            FreeAndNil(block[i, j]);
-            block[i, j] := TList.Create;
+            block[i, j, 0] := 0;
         end;
     end;
 
@@ -745,9 +730,9 @@ begin
     for k := 0 to 3 do begin
         if (children[boxR, boxC] and mByte[k]) > 0 then begin
             Inc(j);
-            New(bcNode);
-            bcNode.bc_Num := b_count;
-            block[boxR, boxC].Add(bcNode);
+            Inc(block[boxR, boxC, 0]);
+            block[boxR, boxC, block[boxR, boxC, 0]] := b_count;
+
             BlockrSign(boxR + dr4[k], boxC + dc4[k]);
             Dec(b_count);
         end;
@@ -758,20 +743,13 @@ begin
     end;
 end;
 
-// 测试用 -- 查看是否为割点
-//function TPathFinder.isCut (pos: Integer): Boolean;
-//begin
-//   Result := cut[pos div mapWidth, pos mod mapWidth];
-//end;
-
 // 计算箱子的可达位置
 procedure TPathFinder.boxReachable(isBK: Boolean; boxPos, manPos: Integer);
 var
-    i, j, k, r, c, newR, newC, mToR, mToC, box_R, box_C, man_R, man_C, Q_Pos: Integer;
+    i, j, k, r, c, newR, newC, mToR, mToC, box_R, box_C, man_R, man_C, Q_Pos, Q_Size, F, Box_F, Man_F: Integer;
     curMark: Byte;
-    Q: TList;
-    f: ^BoxManNode;
-    
+    Q: array[0..9999] of Integer;
+
 begin
     if isBK then curMark := $0F     // 逆推时，保留正推标志         
     else curMark := $F0;            // 正推时，保留逆推标志
@@ -791,23 +769,23 @@ begin
     else curMark := $01;            // 正推时，保留逆推标志
 
     // 初始位置检测
-    Q := TList.Create;
-    New(f);
-    f.boxPos := boxPos;               // 初始位置入队列，待查其四邻
-    f.manPos := manPos;
-    Q.Add(f);
-    Q_Pos := 1;
+    F        := (boxPos shl 16) or manPos;
+    Q_Pos    := 0;
+    Q_Size   := 1;
+    Q[Q_Pos] := F;
 
     boxMark[boxPos div mapWidth, boxPos mod mapWidth] := boxMark[boxPos div mapWidth, boxPos mod mapWidth] or curMark;  // 被点箱子
 
-    while Q_Pos <= Q.Count do begin
-        f := Q.Items[Q_Pos-1];    // 出队列
+    while (Q_Size < 10000) and (Q_Pos < Q_Size) do begin
+        F := Q[Q_Pos];    // 出队列
         inc(Q_Pos);
+        Box_F := F shr 16;
+        Man_F := F and $FFFF;
 
-        box_R := f.boxPos div mapWidth;
-        box_C := f.boxPos mod mapWidth;
-        man_R := f.manPos div mapWidth;
-        man_C := f.manPos mod mapWidth;
+        box_R := Box_F div mapWidth;
+        box_C := Box_F mod mapWidth;
+        man_R := Man_F div mapWidth;
+        man_C := Man_F mod mapWidth;
 
         for k := 0 to 3 do begin  // 检查f的四邻
             if mark0[box_R, box_C, k] then continue;  // 该节点的此方向（反）已推
@@ -834,26 +812,23 @@ begin
                    ('-' <> tmpMap[newR, newC]) or ('-' <> tmpMap[mToR, mToC]) then continue;
             end;
             if manTo2b(isBK, box_R, box_C, man_R, man_C, mToR, mToC) then begin                  // 人能否过来
-                New(f);
-                f.boxPos := newR * mapWidth + newC;
-                if isBK then f.manPos := (newR + dr4[k]) * mapWidth + newC + dc4[k]
-                else f.manPos := box_R * mapWidth + box_C;
-                Q.Add(f);                                                                        // 新可达点入列待查
+                // 新可达点入列待查
+                if isBK then F := ((newR * mapWidth + newC) shl 16) or ((newR + dr4[k]) * mapWidth + newC + dc4[k])
+                else F := ((newR * mapWidth + newC) shl 16) or (box_R * mapWidth + box_C);
+                Q[Q_Size] := F;
+                inc(Q_Size);
                 boxMark[newR, newC] := boxMark[newR, newC] or curMark;                           // 新的可达点
                 mark0[box_R, box_C, k] := true;                                                  // 该节点的此方向（反）已推
             end;
         end;
     end;
-    
-    FreeAndNil(Q);
 end;
 
 // 查看两点 firR, firC 和 secR, setC 是否人可达；boxR, boxC 为被点击的箱子的位置，其 boxR < 0 时，则不查看它
 function TPathFinder.manTo2b(isBK: Boolean; boxR, boxC, firR, firC, secR, secC: Integer): Boolean;
 var
-    i, j, len1, len2: Integer;
-    b1, b2: ^BlockNode;
-    
+    i, j: Integer;
+
 begin
     if (firR = secR ) and (firC = secC) then begin Result := true; Exit; end;
 
@@ -861,18 +836,14 @@ begin
     if (secR < 0) or (secC < 0) or (secR >= mapHeight) or (secC >= mapWidth) or ('-' <> tmpMap[secR, secC]) then begin Result := false; Exit; end;
 
     Result := False;
-    len1 := block[firR, firC].Count;      //点1 占据的图块数
 
-    if (not cut[boxR, boxC]) and (len1 > 0) then begin
+    if (not cut[boxR, boxC]) and (block[firR, firC, block[firR, firC, 0]] > 0) then begin
         Result := true;
         Exit;   // 被点击的箱子不在割点上
     end else begin
-        len2 := block[secR, secC].Count;  //点2 占据的图块数
-        for i := 0 to len1-1 do begin  //两点在同一块内，必定可达
-            for j := 0 to len2-1 do begin
-                b1 := block[firR, firC].Items[i];
-                b2 := block[secR, secC].Items[j];
-                if (b1.bc_Num = b2.bc_Num) then begin
+        for i := 1 to block[firR, firC, block[firR, firC, 0]] do begin  //两点在同一块内，必定可达
+            for j := 1 to block[secR, secC, block[secR, secC, 0]] do begin
+                if ( block[firR, firC, i] = block[secR, secC, j]) then begin
                    Result := true;
                    Exit;
                 end;
@@ -1012,21 +983,23 @@ function TPathFinder.boxTo(isBK: Boolean; boxPos, toPos, manPos: Integer): Integ
 var
   i, j, k, boxR, boxC, toR, toC, manR, manC, newR, newC, mFromR, mFromC, mToR, mToC, r, c, box_R, box_C, man_R, man_C, H, G, T, DD, TT, GG, len, size: Integer;
   isFound: Boolean;
-  PQ, list1, list2: TList;
-  f: ^BoxManNode2;
+  PQ:  TObjectList;
+  list1, list2: array[0..49999] of Integer;
+  size1, size2, Node: Integer;
+  Node_box_R, Node_box_C, Node_dir, Node_dir2: Integer;
+  f: BoxManNode2;
   mDir, mDir0: ShortInt;
-  aNode, aNode1: ^PathNode2;
   tmpMap2: array[0..1] of Integer;
   ch: Char;
 
   // 以此模拟优先队列
-  procedure AddNode2(bpos, mpos, H, G, T, k: Integer; var myList: TList);
+  procedure AddNode2(bpos, mpos, H, G, T, k: Integer; var myList: TObjectList);
   var
-     x, y: ^BoxManNode2;
+     x, y: BoxManNode2;
      i, size: Integer;
 
   begin
-      New(x);
+      x := BoxManNode2.Create;
       x.boxPos := bpos;
       x.manPos := mpos;
       x.H := H;
@@ -1038,7 +1011,7 @@ var
 
       i := 0;
       while i < size do begin
-          y := myList.items[i];
+          y := BoxManNode2(myList.items[i]);
 
           if x.T > y.T then begin             // 先比较转弯数
              Break;
@@ -1081,10 +1054,8 @@ begin
     manR := manPos div mapWidth;
     manC := manPos mod mapWidth;
 
-    list1 := TList.Create;
-    list2 := TList.Create;
-    PQ := TList.Create;
-    New(f);
+    PQ := TObjectList.Create;
+    f := BoxManNode2.Create;
     f.boxPos := boxPos;                         // 初始位置入队列，待查其四邻
     f.manPos := manPos;
     f.H := abs(boxR - toR) + abs(boxC - toC);
@@ -1093,10 +1064,12 @@ begin
     f.D := -1;
     PQ.Add(f);
 
+    size1 := 0;
+    size2 := 0;
     size := PQ.Count;
     while not isFound and (size > 0) do begin
         size := PQ.Count;
-        f := PQ.Items[size-1];                       // 出队列
+        f := BoxManNode2(PQ.Items[size-1]);                       // 出队列
         box_R := f.boxPos div mapWidth;
         box_C := f.boxPos mod mapWidth;
         man_R := f.manPos div mapWidth;
@@ -1137,12 +1110,8 @@ begin
                 if isBK then AddNode2(newR * mapWidth + newC, (newR + dr4[k]) * mapWidth + newC + dc4[k], H, G, T, k, PQ)
                 else AddNode2(newR * mapWidth + newC, box_R * mapWidth + box_C, H, G, T, k, PQ);
 
-                new(aNode);                                     // 当前路径节点
-                aNode.box_R := newR;
-                aNode.box_C := newC;
-                aNode.dir   := k;                               // 父节点
-                aNode.dir2  := DD;                              // 父节点的父节点
-                list1.Add(aNode);
+                list1[size1] := (DD shl 24) or (k shl 16) or (newC shl 8) or newR;  // k - 父节点，DD - 父节点的父节点
+                Inc(size1);
 
                 if (newR = toR) and (newC = toC) then begin     // 到达目标点
                     isFound := true;
@@ -1160,34 +1129,26 @@ begin
 
         mDir0 := -1;
 
-        aNode1 := nil;
+        while size1 > 0 do begin  // 取得纯箱子移动的路径送入 list2
+            Dec(size1);
+            Node := list1[size1];
 
-        size := list1.Count;
-        while size > 0 do begin  // 取得纯箱子移动的路径送入 list2
-            Dec(size);
-            aNode := list1.items[size];
+            Node_box_R :=  Node and $FF;
+            Node_box_C := (Node shr 8 ) and $FF;
+            Node_dir   := (Node shr 16) and $FF;
+            Node_dir2  := (Node shr 24) and $FF;
 
-            if aNode1 = nil then New(aNode1);
-            
-            aNode1.box_R := aNode.box_R;
-            aNode1.box_C := aNode.box_C;
-            aNode1.dir   := aNode.dir;
-            aNode1.dir2  := aNode.dir2;
+            if (Node_box_R <> mToR) or (Node_box_C <> mToC) or (mDir0 >= 0) and (mDir0 <> Node_dir) then continue;
 
-            if (aNode1.box_R <> mToR) or (aNode1.box_C <> mToC) or (mDir0 >= 0) and (mDir0 <> aNode1.dir) then continue;
+            list2[size2] := Node;
+            Inc(size2);
 
-            list2.Add(aNode1);
+            mToR  := Node_box_R - dr4[Node_dir];
+            mToC  := Node_box_C - dc4[Node_dir];
 
-            mToR  := aNode1.box_R - dr4[aNode1.dir];
-            mToC  := aNode1.box_C - dc4[aNode1.dir];
-
-            mDir0 := aNode1.dir2;               // 父节点的父节点
-
-            aNode1 := nil;
+            mDir0 := Node_dir2;               // 父节点的父节点
         end;
 
-        FreeAndNil(list1);
-        
         mDir0 := -1;
         
         // 箱子和人推动前的位置
@@ -1196,11 +1157,9 @@ begin
         mFromR := manR;
         mFromC := manC;
 
-        size := list2.Count;
-        while size > 0 do begin         // 加入人移动的路径
-            Dec(size);
-            aNode := list2.items[size];
-            mDir := aNode.dir;
+        while size2 > 0 do begin         // 加入人移动的路径
+            Dec(size2);
+            mDir := (list2[size2] shr 16) and $FF;
             if isBK then begin                 // 逆推
                 mToR := newR + dr4[mDir];
                 mToC := newC + dc4[mDir];
@@ -1247,7 +1206,6 @@ begin
                 newC   := newC + dc4[mDir];
             end;
         end;
-        FreeAndNil(list2);
     end;
 end;
 

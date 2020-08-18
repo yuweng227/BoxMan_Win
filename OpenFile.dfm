@@ -1,6 +1,6 @@
 object MyOpenFile: TMyOpenFile
-  Left = 388
-  Top = 117
+  Left = 702
+  Top = 148
   BorderStyle = bsDialog
   Caption = #25171#24320#20851#21345#25991#26723
   ClientHeight = 362
@@ -17,61 +17,76 @@ object MyOpenFile: TMyOpenFile
   OnShow = FormShow
   PixelsPerInch = 96
   TextHeight = 13
-  object FileListBox1: TFileListBox
-    Left = 201
-    Top = 0
-    Width = 383
-    Height = 321
+  object Panel3: TPanel
+    Left = 0
+    Top = 32
+    Width = 584
+    Height = 289
     Align = alClient
-    BevelInner = bvNone
-    ItemHeight = 18
-    Mask = '*.txt;*.xsb'
+    BevelOuter = bvNone
     TabOrder = 0
-    OnDblClick = FileListBox1DblClick
+    object FileListBox1: TFileListBox
+      Left = 217
+      Top = 0
+      Width = 367
+      Height = 289
+      Align = alClient
+      BevelInner = bvNone
+      ItemHeight = 18
+      Mask = '*.txt;*.xsb'
+      TabOrder = 0
+      OnDblClick = FileListBox1DblClick
+    end
+    object DirectoryListBox1: TDirectoryListBox
+      Left = 0
+      Top = 0
+      Width = 217
+      Height = 289
+      Align = alLeft
+      FileList = FileListBox1
+      ItemHeight = 18
+      TabOrder = 1
+      OnChange = DirectoryListBox1Change
+    end
   end
   object Panel1: TPanel
     Left = 0
     Top = 0
-    Width = 201
-    Height = 321
-    Align = alLeft
+    Width = 584
+    Height = 32
+    Align = alTop
     BevelOuter = bvLowered
+    Color = clInactiveCaption
     TabOrder = 1
-    object Panel3: TPanel
-      Left = 1
-      Top = 1
-      Width = 199
-      Height = 33
-      Align = alTop
-      BevelOuter = bvNone
-      TabOrder = 0
-      object DriveComboBox1: TDriveComboBox
-        Left = 6
-        Top = 8
-        Width = 185
-        Height = 19
-        DirList = DirectoryListBox1
-        TabOrder = 0
-      end
+    object SpeedButton1: TSpeedButton
+      Left = 176
+      Top = 5
+      Width = 81
+      Height = 22
+      Caption = #25105#30340#25991#26723
+      OnClick = SpeedButton1Click
     end
-    object Panel4: TPanel
-      Left = 1
-      Top = 34
-      Width = 199
-      Height = 286
-      Align = alClient
-      BevelOuter = bvNone
-      TabOrder = 1
-      object DirectoryListBox1: TDirectoryListBox
-        Left = 0
-        Top = 0
-        Width = 199
-        Height = 286
-        Align = alClient
-        FileList = FileListBox1
-        ItemHeight = 18
-        TabOrder = 0
-      end
+    object SpeedButton2: TSpeedButton
+      Left = 280
+      Top = 5
+      Width = 81
+      Height = 22
+      Caption = #26700#38754
+      OnClick = SpeedButton2Click
+    end
+    object DriveComboBox1: TDriveComboBox
+      Left = 6
+      Top = 4
+      Width = 147
+      Height = 22
+      DirList = DirectoryListBox1
+      Font.Charset = DEFAULT_CHARSET
+      Font.Color = clWindowText
+      Font.Height = -16
+      Font.Name = #23435#20307
+      Font.Style = []
+      ParentFont = False
+      TabOrder = 0
     end
   end
   object Panel2: TPanel
@@ -80,7 +95,7 @@ object MyOpenFile: TMyOpenFile
     Width = 584
     Height = 41
     Align = alBottom
-    Color = clSkyBlue
+    Color = clInactiveCaption
     TabOrder = 2
     object Button1: TButton
       Left = 458

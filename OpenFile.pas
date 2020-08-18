@@ -3,24 +3,28 @@ unit OpenFile;
 interface
 
 uses
-  Windows, Messages, SysUtils, Variants, Classes, Graphics, Controls, Forms,
-  Dialogs, StdCtrls, ExtCtrls, FileCtrl;
+  Windows, Messages, SysUtils, Variants, Classes, Graphics, Controls, Forms, LogFile,
+  Dialogs, StdCtrls, ExtCtrls, FileCtrl, Registry, Buttons;
 
 type
   TMyOpenFile = class(TForm)
     FileListBox1: TFileListBox;
-    Panel1: TPanel;
-    Panel3: TPanel;
-    DriveComboBox1: TDriveComboBox;
-    Panel4: TPanel;
-    DirectoryListBox1: TDirectoryListBox;
     Panel2: TPanel;
     Button1: TButton;
     Button2: TButton;
     CheckBox1: TCheckBox;
+    Panel3: TPanel;
+    Panel1: TPanel;
+    SpeedButton1: TSpeedButton;
+    SpeedButton2: TSpeedButton;
+    DriveComboBox1: TDriveComboBox;
+    DirectoryListBox1: TDirectoryListBox;
     procedure FormCreate(Sender: TObject);
     procedure FileListBox1DblClick(Sender: TObject);
     procedure FormShow(Sender: TObject);
+    procedure DirectoryListBox1Change(Sender: TObject);
+    procedure SpeedButton1Click(Sender: TObject);
+    procedure SpeedButton2Click(Sender: TObject);
   private
     { Private declarations }
   public
@@ -117,6 +121,54 @@ procedure TMyOpenFile.FormShow(Sender: TObject);
 begin
   CheckBox1.Checked := False;
   FileListBox1.Update;
+end;
+
+// 通过注册表，取得“我的文档”和“桌面”文件夹
+function GetShellFolders(strDir: string): string;
+const
+  regPath = '\Software\Microsoft\Windows\CurrentVersion\Explorer\Shell Folders';
+var
+  Reg: TRegistry;
+  strFolders: string;
+begin
+  Reg := TRegistry.Create;
+  try
+    Reg.RootKey := HKEY_CURRENT_USER;
+    if Reg.OpenKey(regPath, false) then begin
+      strFolders := Reg.ReadString(strDir);
+    end;
+  finally
+    Reg.Free;
+  end;
+  result := strFolders;
+end;
+      
+// 获取“桌面”文件夹
+function GetDeskeptPath: string;
+begin
+  Result := GetShellFolders('Desktop'); //是取得桌面文件夹的路径
+end;
+      
+// 获取“我的文档”文件夹
+function GetMyDoumentpath: string;
+begin
+  Result := GetShellFolders('Personal'); //我的文档
+end;
+
+procedure TMyOpenFile.DirectoryListBox1Change(Sender: TObject);
+begin
+  DriveComboBox1.Drive := DirectoryListBox1.Directory[1];
+  FileListBox1.Update;
+end;
+
+procedure TMyOpenFile.SpeedButton1Click(Sender: TObject);
+begin
+  DirectoryListBox1.Directory := GetMyDoumentpath;
+end;
+
+procedure TMyOpenFile.SpeedButton2Click(Sender: TObject);
+begin
+  DirectoryListBox1.Directory := GetDeskeptPath;
 end;
 
 end.

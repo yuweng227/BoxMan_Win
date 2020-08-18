@@ -1,5 +1,11 @@
 unit MainForm;
 
+//{$DEFINE TEST}
+
+//  {$IFDEF TEST}
+//     Writeln(myLogFile, '');
+//  {$ENDIF}
+
 interface
 
 uses
@@ -30,6 +36,8 @@ type
     isXSB_Saved: boolean;            // 当从剪切板导入的 XSB 是否保存过了
     isLurd_Saved: boolean;            // 推关卡的动作是否保存过了
     isOddEven: Boolean;            // 是否显示奇偶特效
+    isLeftBar: Boolean;            // 是否显示左侧边栏
+    isShowNoVisited: Boolean;          // 是否标识未曾访问过的格子
     LaterList: TStringList;           // 最近推过的关卡集
     SubmitCountry: string;             // 提交--国家或地区
     SubmitName: string;             // 提交--姓名
@@ -57,7 +65,6 @@ type
     pl_Main: TPanel;
     pl_Side: TPanel;
     pl_Tools: TPanel;
-    ImageList1: TImageList;
     PageControl: TPageControl;
     Tab_Solution: TTabSheet;
     Tab_Snapshot: TTabSheet;
@@ -137,6 +144,14 @@ type
     N23: TMenuItem;
     F91: TMenuItem;
     XSB0: TMenuItem;
+    bt_LeftBar: TSpeedButton;
+    N24: TMenuItem;
+    Lurd1: TMenuItem;
+    Lurd2: TMenuItem;
+    Lurd3: TMenuItem;
+    XSB4: TMenuItem;
+    N25: TMenuItem;
+    sa_ClraeAll: TMenuItem;
 
     procedure FormCreate(Sender: TObject);
     procedure FormResize(Sender: TObject);
@@ -180,6 +195,7 @@ type
     procedure sa_XSB_Lurd_FileClick(Sender: TObject);
     procedure sa_DeleteClick(Sender: TObject);
     procedure sa_DeleteAllClick(Sender: TObject);
+    procedure sa_ClraeAllClick(Sender: TObject);
     procedure so_LurdClick(Sender: TObject);
     procedure so_XSB_LurdClick(Sender: TObject);
     procedure so_XSB_LurdAllClick(Sender: TObject);
@@ -228,6 +244,12 @@ type
     procedure ed_sel_MapChange(Sender: TObject);
     procedure F91Click(Sender: TObject);
     procedure XSB0Click(Sender: TObject);
+    procedure bt_LeftBarClick(Sender: TObject);
+    procedure Lurd1Click(Sender: TObject);
+    procedure Lurd2Click(Sender: TObject);
+    procedure Lurd3Click(Sender: TObject);
+    procedure XSB4Click(Sender: TObject);
+    procedure Board_Visited;       // 计算访问过的格子
 
   private
     // 当前地图参数
@@ -239,14 +261,13 @@ type
     IsBoxAccessibleTips_BK: boolean;           // 是否显示箱子的逆推可达提示
 
     map_Board_OG: array[0..9999] of integer;   // 原始地图
-    map_Board_BK: array[0..9999] of integer;   // 逆推地图
-    map_Board: array[0..9999] of integer;      // 正推地图
     BoxNum_Board: array[0..9999] of integer;   // 箱子编号
     PosNum_Board: array[0..9999] of integer;   // 位置编号
     BoxNum_Board_BK: array[0..9999] of integer;// 箱子编号 - 逆推
     PosNum_Board_BK: array[0..9999] of integer;// 位置编号 - 逆推
     map_Selected: array[0..9999] of Boolean;   // 选中的单元格
     map_Selected_BK: array[0..9999] of Boolean;// 选中的单元格 - 逆推
+    map_Board_Visited: array[0..9999] of Boolean;   // 访问过的格子
     BoxNumber: integer;                        // 箱子数
     GoalNumber: integer;                       // 目标点数
     ManPos: integer;                           // 人的位置 -- 正推
@@ -296,6 +317,9 @@ type
     mySettings: TSetting;                             // 程序配置项变量
     curMap: TMapState;                                // 当前的地图配置
 
+    map_Board_BK: array[0..9999] of integer;   // 逆推地图
+    map_Board: array[0..9999] of integer;      // 正推地图
+    
   end;
 
 const
@@ -306,7 +330,7 @@ const
   MapTrun: array[0..7] of string = ('0转', '1转', '2转', '3转', '4转', '5转', '6转', '7转');
   SpeedInf: array[0..4] of string = ('最快', '较快', '中速', '较慢', '最慢');
   AppName = 'BoxMan';
-  AppVer = ' V1.3';
+  AppVer = ' V1.4';
 
 var
   main: Tmain;
@@ -406,6 +430,7 @@ begin
     mySettings.isGoThrough := IniFile.ReadBool('Settings', '穿越', true);    // 穿越开关
     mySettings.isIM := IniFile.ReadBool('Settings', '瞬移', false);    // 瞬移开关
     mySettings.isSameGoal := IniFile.ReadBool('Settings', '正推目标位', false);  // 逆推时，使用正推目标位
+    mySettings.isLeftBar := IniFile.ReadBool('Settings', '左侧边栏', true);  // 是否开启左侧边栏    
     mySettings.SkinFileName := IniFile.ReadString('Settings', '皮肤', '');       // 当前皮肤文档名
     mySettings.MapFileName := IniFile.ReadString('Settings', '关卡文档', '');       // 当前关卡文档名
     curMap.CurrentLevel := IniFile.ReadInteger('Settings', '关卡序号', 1);        // 上次推的关卡序号
@@ -471,6 +496,7 @@ begin
     IniFile.WriteBool('Settings', '穿越', mySettings.isGoThrough);          // 穿越开关
     IniFile.WriteBool('Settings', '瞬移', mySettings.isIM);                 // 瞬移开关
     IniFile.WriteBool('Settings', '正推目标位', mySettings.isSameGoal);     // 逆推时，使用正推目标位
+    IniFile.WriteBool('Settings', '左侧边栏', mySettings.isLeftBar);        // 是否开启左侧边栏
     IniFile.WriteString('Settings', '皮肤', mySettings.SkinFileName);       // 当前皮肤文档名
     IniFile.WriteString('Settings', '关卡文档', mySettings.MapFileName);    // 当前关卡文档名 -- 适应关卡文档与程序在同一目录下的情况
     IniFile.WriteInteger('Settings', '关卡序号', curMap.CurrentLevel);      // 当前关卡序号
@@ -494,6 +520,8 @@ procedure Tmain.ReadQuicklyMap();
 var
   i, j, CurCell, Rows, Cols, len: integer;
   ch: Char;
+  s: string;
+  ss: TStringList;
   
 begin
   Rows := curMapNode.Map.Count;
@@ -544,6 +572,36 @@ begin
   end;
 
   curMap.MapSize := curMapNode.Cols * curMapNode.Rows;
+  mmo_Inf.Lines.Clear;
+  mmo_Inf.Lines.Add('标题:');
+  mmo_Inf.Lines.Add('-----');
+  mmo_Inf.Lines.Add(curMapNode.Title);
+  mmo_Inf.Lines.Add('');
+  mmo_Inf.Lines.Add('');
+  mmo_Inf.Lines.Add('作者:');
+  mmo_Inf.Lines.Add('-----');
+  mmo_Inf.Lines.Add(curMapNode.Author);
+  
+  s := StringReplace(curMapNode.Comment, #10, '', [rfReplaceAll]);
+  s := StringReplace(s, #13, '', [rfReplaceAll]);
+  s := StringReplace(s, #9, '', [rfReplaceAll]);
+  if Trim(s) <> '' then begin
+     mmo_Inf.Lines.Add('');
+     mmo_Inf.Lines.Add('');
+     mmo_Inf.Lines.Add('说明:');
+     mmo_Inf.Lines.Add('-----');
+     ss := TStringList.Create;
+     try
+        ss.Delimiter := #10;
+        ss.DelimitedText := curMapNode.Comment;
+        for I:= 0 to ss.Count-1 do
+        begin
+          mmo_Inf.Lines.Add(ss.Strings[I]);
+        end;
+     finally
+        FreeAndNil(ss);
+     end;
+  end;
 
   myPathFinder.PathFinder(curMapNode.Cols, curMapNode.Rows);
 
@@ -551,7 +609,7 @@ begin
   pnl_Trun.Caption := MapTrun[curMapNode.Trun];
   Caption := AppName + AppVer + ' - ' + ExtractFileName(ChangeFileExt(mySettings.MapFileName, EmptyStr)) + ' ~ [' + inttostr(curMap.CurrentLevel) + '/???]';
   Caption := Caption + '，尺寸: ' + IntToStr(curMapNode.Cols) + '×' + IntToStr(curMapNode.Rows) + '，箱子: ' + IntToStr(curMapNode.Boxs) + '，目标: ' + IntToStr(curMapNode.Goals);
-
+  ed_sel_Map.Text := IntToStr(curMap.CurrentLevel);
 end;
 
 // 读取关文档，并加载指定序号的地图
@@ -784,6 +842,7 @@ begin
   keyPressing := false;
   curMap.ManPosition := ManPos;              // 地图中人的原始位置，将在逆推状态时，以此提示
   mySettings.isBK := False;                  // 默认正推模式
+  mySettings.isShowNoVisited := False;
   OldBoxPos := -1;                           // 被点击的箱子的位置 -- 正推
   OldBoxPos_BK := -1;                        // 被点击的箱子的位置 -- 逆推
 
@@ -805,7 +864,8 @@ begin
   end;
 
   Caption := Caption + '，尺寸: ' + IntToStr(curMapNode.Cols) + '×' + IntToStr(curMapNode.Rows) + '，箱子: ' + IntToStr(curMapNode.Boxs) + '，目标: ' + IntToStr(curMapNode.Goals);
-
+  ed_sel_Map.Text := IntToStr(curMap.CurrentLevel);
+  
   ShowStatusBar();   // 底行状态栏
   myPathFinder.setThroughable(mySettings.isGoThrough);    // 穿越开关
 
@@ -1161,7 +1221,7 @@ begin
         map_Image.Canvas.FillRect(R);
       end;
 
-      // “逆推模式”下，提示人的正推初始位置
+      // 是否“逆推模式”
       if mySettings.isBK then
       begin
 //        map_Image.Canvas.Brush.Color := clBlack;
@@ -1245,6 +1305,16 @@ begin
       end
       else                                                                      // 正推
       begin
+        // 标识出未访问的格子
+        if mySettings.isShowNoVisited and (not map_Board_Visited[pos]) and (map_Board[pos] in [ FloorCell, GoalCell, BoxCell, BoxGoalCell, ManCell, ManGoalCell ]) then begin
+           map_Image.Canvas.Pen.Color := clWhite;
+           map_Image.Canvas.Pen.Width := 2;
+           map_Image.Canvas.MoveTo(R.Left+5, R.Top+5);
+           map_Image.Canvas.LineTo(R.Right-5, R.Bottom-5);
+           map_Image.Canvas.MoveTo(R.Right-5, R.Top+5);
+           map_Image.Canvas.LineTo(R.Left+5, R.Bottom-5);
+        end;
+
         if mySettings.isJijing then
         begin    // 即景
 //          map_Image.Canvas.Brush.Color := clBlack;
@@ -1524,7 +1594,11 @@ var
   res: TResourceStream;
   
 begin
-//  LogFileInit('');
+  {$IFDEF TEST}
+     LogFileInit('');
+  {$ENDIF}
+  
+  bt_LeftBar.Hint      := '显示或隐藏左侧边栏: 【H】';
 
   bt_GoThrough.Caption := '穿越';
   bt_IM.Caption        := '瞬移';
@@ -1577,21 +1651,28 @@ begin
   pmState.Items[4].Caption := '-';
   pmState.Items[5].Caption := '删除';
   pmState.Items[6].Caption := '删除全部';
+  pmState.Items[7].Caption := '-';
+  pmState.Items[8].Caption := '清理非本关卡的全部状态';
 
   pmBoardBK.Items[0].Caption := '固定的目标位';
   pmBoardBK.Items[1].Caption := '即景目标位';
   pmBoardBK.Items[2].Caption := '-';
-  pmBoardBK.Items[3].Caption := '加载剪切板中的关卡XSB';
-  pmBoardBK.Items[4].Caption := '关卡XSB送入剪切板';
-  pmBoardBK.Items[5].Caption := '关卡XSB保存到文档';
-  pmBoardBK.Items[6].Caption := '加入周转库(BoxMan.xsb)';
-  pmBoardBK.Items[7].Caption := '-';
-  pmBoardBK.Items[8].Caption  := '重新开始   【Esc】';
-  pmBoardBK.Items[9].Caption  := '-';
-  pmBoardBK.Items[10].Caption  := '录制动作   【F9】';
-  pmBoardBK.Items[11].Caption := '-';
-  pmBoardBK.Items[12].Caption := '反向演示   【退格键】';
-  pmBoardBK.Items[13].Caption := '正向演示   【空格键】';
+  pmBoardBK.Items[3].Caption := '导入关卡XSB - 剪切板';
+  pmBoardBK.Items[4].Caption := '导出关卡XSB - 剪切板';
+  pmBoardBK.Items[5].Caption := '导出现场XSB - 剪切板';
+  pmBoardBK.Items[6].Caption := '导出关卡XSB - 文档';
+  pmBoardBK.Items[7].Caption := '关卡送入周转库(BoxMan.xsb)';
+  pmBoardBK.Items[8].Caption := '-';
+  pmBoardBK.Items[9].Caption := '导入动作Lurd - 剪切板 - 正逆推';
+  pmBoardBK.Items[10].Caption := '导出已做动作Lurd - 剪切板 - 正逆推';
+  pmBoardBK.Items[11].Caption := '导出后续动作Lurd - 剪切板';
+  pmBoardBK.Items[12].Caption := '-';
+  pmBoardBK.Items[13].Caption  := '重新开始   【Esc】';
+  pmBoardBK.Items[14].Caption  := '-';
+  pmBoardBK.Items[15].Caption  := '录制动作   【F9】';
+  pmBoardBK.Items[16].Caption := '-';
+  pmBoardBK.Items[17].Caption := '反向演示   【退格键】';
+  pmBoardBK.Items[18].Caption := '正向演示   【空格键】';
 
   pm_Up_Bt.Items[0].Caption := '上一关              【PgUp】';
   pm_Up_Bt.Items[1].Caption := '第一关              【Ctrl + PgUp】';
@@ -1700,7 +1781,6 @@ begin
 
         mySettings.isXSB_Saved := True;
         ReadQuicklyMap();
-        ed_sel_Map.Text := IntToStr(curMap.CurrentLevel);
 
         ResetSolvedLevel();
         // 运行后台线程，加载地图
@@ -1792,18 +1872,22 @@ begin
   FreeAndNil(MaskPic);         // 选择单元格掩图
 
   application.terminate;
-  
-//  LogFileClose();
+
+  {$IFDEF TEST}
+     LogFileClose();       
+  {$ENDIF}
 end;
 
 // 是否过关 -- 正推
 function Tmain.IsComplete(): Boolean;
 var
-  i: integer;
+  i, size: integer;
+
 begin
   result := true;
 
-  for i := 1 to curMap.MapSize do
+  size := curMap.MapSize;
+  for i := 0 to size-1 do
   begin
     if (map_Board[i] = BoxCell) or (map_Board[i] = GoalCell) then
     begin
@@ -1816,12 +1900,13 @@ end;
 // 是否过关 -- 逆推
 function Tmain.IsComplete_BK(): Boolean;
 var
-  i: integer;
+  i, size: integer;
 
 begin
   result := true;
 
-  for i := 1 to curMap.MapSize do
+  size := curMap.MapSize;
+  for i := 0 to size-1 do
   begin
     if (map_Board_BK[i] = BoxCell) or (map_Board_BK[i] = GoalCell) then
     begin
@@ -1836,13 +1921,15 @@ function Tmain.IsMeets(ch: Char): Boolean;
 var
   i, len, n: integer;
   flg: Boolean;
+
 begin
   Result := False;
 
   if (MoveTimes_BK < 1) or (ch in [ 'l', 'r', 'u', 'd' ]) then
     Exit;        // 没有逆推动作时，不做此项检查
 
-  for i := 1 to curMap.MapSize do
+  len := curMap.MapSize;
+  for i := 0 to len-1 do
   begin
     if ((map_Board[i] = BoxCell) or (map_Board[i] = BoxGoalCell)) and (map_Board_BK[i] <> BoxCell) and (map_Board_BK[i] <> BoxGoalCell) then
     begin
@@ -1912,6 +1999,10 @@ procedure Tmain.FormKeyPress(Sender: TObject; var Key: Char);
 begin
 //  StatusBar1.Panels[7].Text := IntToStr(ord(Key));
   case Ord(Key) of
+    104, 72:
+      begin                      // H，显示或隐藏侧边栏
+        bt_LeftBar.Click;
+      end;
     45:
       begin                      // -，减速
         if mySettings.mySpeed < 4 then
@@ -2005,28 +2096,6 @@ begin
   end;
 end;
 
-// F5 -- 测试
-//procedure MyTest();
-//var
-//  i, size: Integer;
-//  MapNode : PMapNode;                   // 关卡节点
-//
-//begin
-//  LogFileInit(AppPath);    // 初始化 Log 文件
-//  MapNode := curMapNode;
-//
-//  size := MapList.Count;
-//  for i := 0 to size-1 do begin
-//      curMapNode := MapList[i];
-//      Write(myLogFile, GetXsb());
-//      Write(myLogFile, #10);
-//  end;
-//
-//  curMapNode := MapNode;
-//  LogFileClose();              // 关闭 Log 文件
-//  showmessage('OK');
-//end;
-
 // 对于键盘的上下左右按键，根据关卡的当前旋转状态转换动作字符
 function getTrun_Act(n: Integer; act: Char): Char;
 begin
@@ -2074,6 +2143,8 @@ var
 begin
   if isMoving then IsStop := True
   else IsStop := False;
+
+  if (curMapNode = nil) or (curMapNode.Map.Count = 0) then Exit;
 
   err := True;
   ActionForm.MemoAct.Lines.Clear;
@@ -2266,9 +2337,6 @@ end;
 
 // 键盘按下
 procedure Tmain.FormKeyDown(Sender: TObject; var Key: Word; Shift: TShiftState);
-var
-  i, myCell: Integer;
-
 begin
 //  StatusBar1.Panels[7].Text := IntToStr(ord(Key));
   case Key of
@@ -2458,65 +2526,21 @@ begin
       end;
     76:                // Ctrl + L， 从剪切板加载 Lurd
       if (not keyPressing) and (ssCtrl in Shift) then begin
-        if isMoving then IsStop := True
-        else IsStop := False;
-
-        keyPressing := true;
-        if LoadLurdFromClipboard(mySettings.isBK) then begin
-          StatusBar1.Panels[7].Text := '从剪切板加载 Lurd！';
-          if mySettings.isBK and (ManPos_BK_0_2 >= 0) then begin   // 处理人的位置
-            myCell := map_Board_OG[ManPos_BK_0_2];
-            if (myCell = FloorCell) or (myCell = GoalCell) then begin
-              for i := 0 to curMap.MapSize - 1 do begin
-                if map_Board_OG[i] = BoxCell then
-                  map_Board_BK[i] := GoalCell
-                else if map_Board_OG[i] = GoalCell then
-                  map_Board_BK[i] := BoxCell
-                else if map_Board_OG[i] = ManCell then
-                  map_Board_BK[i] := FloorCell
-                else if map_Board_OG[i] = ManGoalCell then
-                  map_Board_BK[i] := GoalCell
-                else
-                  map_Board_BK[i] := map_Board_OG[i];
-              end;
-              ManPos_BK_0 := ManPos_BK_0_2;
-              ManPos_BK := ManPos_BK_0_2;
-              if map_Board_BK[ManPos_BK] = FloorCell then
-                map_Board_BK[ManPos_BK] := ManCell
-              else
-                map_Board_BK[ManPos_BK] := ManGoalCell;
-              UnDoPos_BK := 0;
-              MoveTimes_BK := 0;
-              PushTimes_BK := 0;
-              LastSteps := -1;              // 正推最后一次点推前的步数
-              IsManAccessibleTips_BK := false;           // 是否显示人的逆推可达提示
-              IsBoxAccessibleTips_BK := false;           // 是否显示箱子的逆推可达提示
-//              mySettings.isLurd_Saved := True;            // 推关卡的动作是否保存过了
-              curMap.isYanShi := False;
-              DrawMap();         // 画地图
-              SetButton();       // 设置按钮状态
-              ShowStatusBar();   // 底行状态栏
-              StatusBar1.Panels[5].Text := ' ' + GetCur(ManPos_BK mod curMapNode.Cols, ManPos_BK div curMapNode.Cols) + ' - [ ' + IntToStr(ManPos_BK mod curMapNode.Cols + 1) + ', ' + IntToStr(ManPos_BK div curMapNode.Cols + 1) + ' ]';       // 标尺
-            end;
-          end;
-          if mySettings.isBK then begin
-            if ManPos_BK >= 0 then ReDo_BK(ReDoPos_BK);
-          end else ReDo(ReDoPos);
-        end;
+         Lurd1.Click;
       end;
     77:                // Ctrl + M， Lurd 送入剪切板
       if (not keyPressing) and (ssCtrl in Shift) then begin
-        if isMoving then IsStop := True
-        else IsStop := False;
-
-        keyPressing := true;
-        if LurdToClipboard(ManPos_BK_0 mod curMapNode.Cols, ManPos_BK_0 div curMapNode.Cols) then
-          StatusBar1.Panels[7].Text := 'Lurd 送入剪切板！';
+         Lurd2.Click;
+      end;
+    78:                 // Ctrl + Alt + N， 后续动作 Lurd 送入剪切板
+      if (not keyPressing) and (ssCtrl in Shift) and (ssAlt in Shift) then begin
+         Lurd3.Click;
       end;
     67:                 // Ctrl + C， XSB 送入剪切板
       if ssCtrl in Shift then
       begin
-        XSB2.Click;
+        if ssAlt in Shift then XSB4.Click       // 现场
+        else XSB2.Click;                        // 原始 xsb
       end;
     86:                // Ctrl + V， 从剪切板加载 XSB
       if (ssCtrl in Shift) then begin
@@ -2586,6 +2610,68 @@ begin
   Result := chr(x mod 26 + 65) + IntToStr(y + 1);
 end;
 
+// 计算访问过的格子
+procedure Tmain.Board_Visited;
+var
+  i, p, p1: Integer;
+  act: Char;
+   
+begin
+  for i := 0 to curMap.MapSize-1 do
+      map_Board_Visited[i] := False;
+
+  p := curMap.ManPosition;
+  map_Board_Visited[p] := True;
+  
+  for i := 1 to UnDoPos do begin
+      act := UndoList[i];
+      case act of
+        'l': begin
+           p := p-1;
+           map_Board_Visited[p] := True;
+        end;
+        'r': begin
+           p := p+1;
+           map_Board_Visited[p] := True;
+        end;
+        'u': begin
+           p := p - curMapNode.Cols;
+           map_Board_Visited[p] := True;
+        end;
+        'd': begin
+           p := p + curMapNode.Cols;
+           map_Board_Visited[p] := True;
+        end;
+        'L': begin
+           p := p-1;
+           p1 := p-1;
+           map_Board_Visited[p] := True;
+           map_Board_Visited[p1] := True;
+        end;
+        'R': begin
+           p := p+1;
+           p1 := p+1;
+           map_Board_Visited[p] := True;
+           map_Board_Visited[p1] := True;
+        end;
+        'U': begin
+           p := p - curMapNode.Cols;
+           p1 := p - curMapNode.Cols;
+           map_Board_Visited[p] := True;
+           map_Board_Visited[p1] := True;
+        end;
+        'D': begin
+           p := p + curMapNode.Cols;
+           p1 := p + curMapNode.Cols;
+           map_Board_Visited[p] := True;
+           map_Board_Visited[p1] := True;
+        end;
+      end;
+  end;
+  
+  
+end;
+
 // 地图上双击 -- 箱子编号
 procedure Tmain.map_ImageDblClick(Sender: TObject);
 var
@@ -2623,9 +2709,14 @@ begin
           Exit;
        end;
        PosNum_Board[pos] := -1;
+    end else if myCell = WallCell then begin  // 双击的是墙壁
+       if mySettings.isShowNoVisited then mySettings.isShowNoVisited := False
+       else begin
+         Board_Visited;
+         mySettings.isShowNoVisited := True;
+       end;
     end else Exit;
   end;
-
 
   if myCell in [ BoxCell, BoxGoalCell ] then begin                      // 双击的是箱子
      i := 1;
@@ -3254,8 +3345,9 @@ begin
         DataModule1.ADOQuery1.SQL.Clear;
         DataModule1.ADOQuery1.SQL.Text := 'select * from Tab_State';
         DataModule1.ADOQuery1.Open;
+        DataModule1.DataSource1.DataSet := DataModule1.ADOQuery1;
 
-           // 追加状态
+        // 追加状态
         with DataModule1.DataSource1.DataSet do
         begin
 
@@ -3303,6 +3395,7 @@ begin
         DataModule1.ADOQuery1.SQL.Clear;
         DataModule1.ADOQuery1.SQL.Text := 'select * from Tab_State';
         DataModule1.ADOQuery1.Open;
+        DataModule1.DataSource1.DataSet := DataModule1.ADOQuery1;
 
         with DataModule1.DataSource1.DataSet do begin
 
@@ -3314,8 +3407,7 @@ begin
 
         end;
 
-
-           // 调整状态列表条目的次序 -- 当前状态提到最前面
+        // 调整状态列表条目的次序 -- 当前状态提到最前面
         if i > 0 then begin
           actNode := StateList.Items[i];
           actNode.DateTime := Now;
@@ -3337,7 +3429,7 @@ begin
   actNode := nil;
   PageControl.ActivePageIndex := 1;
   List_State.Selected[0] := True;
-  List_State.SetFocus;
+  if pl_Side.Visible then List_State.SetFocus;
   mySettings.isLurd_Saved := True;
   Result := True;
 end;
@@ -3457,7 +3549,7 @@ begin
   end;
   solNode := nil;
 
-  // 无重复，在保存入答案库
+  // 无重复，存入答案库
   if i = size then
   begin
     if n = 1 then begin      // 正推过关
@@ -3473,38 +3565,43 @@ begin
     solNode.Pushs := p;
     solNode.CRC32 := solCRC;
 
-      // 保存到数据库
+    // 保存到数据库
     try
-      DataModule1.ADOQuery1.Close;
-      DataModule1.ADOQuery1.SQL.Clear;
-      DataModule1.ADOQuery1.SQL.Text := 'select * from Tab_Solution';
-      DataModule1.ADOQuery1.Open;
+      try
+        DataModule1.ADOQuery1.Close;
+        DataModule1.ADOQuery1.SQL.Clear;
+        DataModule1.ADOQuery1.SQL.Text := 'select * from Tab_Solution';
+        DataModule1.ADOQuery1.Open;
+        DataModule1.DataSource1.DataSet := DataModule1.ADOQuery1;
 
-      with DataModule1.DataSource1.DataSet do
-      begin
+        with DataModule1.DataSource1.DataSet do
+        begin
 
-        Append;    // 修改
+          Append;    // 修改
 
-        FieldByName('XSB_CRC32').AsInteger := curMapNode.CRC32;
-        FieldByName('XSB_CRC_TrunNum').AsInteger := curMapNode.CRC_Num;
-        FieldByName('Goals').AsInteger := curMapNode.Goals;
-        FieldByName('Sol_CRC32').AsInteger := solNode.CRC32;
-        FieldByName('Moves').AsInteger := solNode.Moves;
-        FieldByName('Pushs').AsInteger := solNode.Pushs;
-        FieldByName('Sol_Text').AsString := sol;
-        FieldByName('Sol_DateTime').AsDateTime := solNode.DateTime;
+          FieldByName('XSB_CRC32').AsInteger := curMapNode.CRC32;
+          FieldByName('XSB_CRC_TrunNum').AsInteger := curMapNode.CRC_Num;
+          FieldByName('Goals').AsInteger := curMapNode.Goals;
+          FieldByName('Sol_CRC32').AsInteger := solNode.CRC32;
+          FieldByName('Moves').AsInteger := solNode.Moves;
+          FieldByName('Pushs').AsInteger := solNode.Pushs;
+          FieldByName('Sol_Text').AsString := sol;
+          FieldByName('Sol_DateTime').AsDateTime := solNode.DateTime;
 
-        Post;    // 提交
+          Post;    // 提交
 
+        end;
+
+        solNode.id := DataModule1.DataSource1.DataSet.FieldByName('ID').AsInteger;
+
+        SoltionList.Add(solNode);
+        List_Solution.Items.Add(IntToStr(p) + '/' + IntToStr(m) + #10 + FormatDateTime(' yyyy-mm-dd hh:nn', solNode.DateTime));
+      Finally
+        DataModule1.ADOQuery1.Close;
       end;
-
-      solNode.id := DataModule1.DataSource1.DataSet.FieldByName('ID').AsInteger;
-      DataModule1.ADOQuery1.Close;
-
-      SoltionList.Add(solNode);
-      List_Solution.Items.Add(IntToStr(p) + '/' + IntToStr(m) + #10 + FormatDateTime(' yyyy-mm-dd hh:nn', solNode.DateTime));
     except
       FreeAndNil(solNode);
+      StatusBar1.Panels[7].Text := '保存答案时遇到错误！';
       exit;
     end;
 
@@ -3515,7 +3612,7 @@ begin
   PageControl.ActivePageIndex := 0;
   if i < size then List_Solution.Selected[i] := True
   else List_Solution.Selected[List_Solution.Count - 1] := True;
-  List_Solution.SetFocus;
+  if pl_Side.Visible then List_Solution.SetFocus;
   solNode := nil;
 end;
 
@@ -3579,19 +3676,20 @@ procedure Tmain.ReDo(Steps: Integer);
 var
   ch: Char;
   pos1, pos2: Integer;
-  isPush, isOK, isMeet, IsCompleted: Boolean;
+  isMeet, IsCompleted: Boolean;
 
 begin
   isSelectMod := False;
-  isMoving := True;
-                                                              // 移动中...
+  isMoving := True;                                                             // 移动中...
+
+  mySettings.isShowNoVisited := False;                                                           
   IsBoxAccessibleTips := False;
   IsManAccessibleTips := False;
   StatusBar1.Panels[7].Text := '';
 
   isMeet := False;
   IsCompleted := False;
-
+  
   while (not IsStop) and (Steps > 0) and (ReDoPos > 0) and (UnDoPos < MaxLenPath) do begin
 
     ch := RedoList[ReDoPos];
@@ -3628,54 +3726,30 @@ begin
         end;
     end;
 
-    isPush := false;                                                            // 先默认非推动
-    isOK := (pos1 >= 0) and (pos1 < curMap.MapSize);                            // 界内位置
+    if (pos1 < 0) or (pos1 >= curMap.MapSize) then Break;                       // pos1 界外
 
     // 遇到地板，仅仅移动人即可；若遇到箱子，需要同时移动箱子和人；否则，遇到了错误，直接结束本次的移动
-    if isOK and (map_Board[pos1] = FloorCell) then                              // 下一格是地板
-      map_Board[pos1] := ManCell          
-    else if isOK and (map_Board[pos1] = GoalCell) then                          // 下一格是目标点
-      map_Board[pos1] := ManGoalCell  
-    else if isOK and (map_Board[pos1] = BoxCell) then                           // 下一格是箱子
-    begin                            
-      isOK := (pos2 >= 0) and (pos2 < curMap.MapSize);                          // 界内位置
-      if isOK and (map_Board[pos2] = FloorCell) then
-        map_Board[pos2] := BoxCell
-      else if isOK and (map_Board[pos2] = GoalCell) then
-        map_Board[pos2] := BoxGoalCell
-      else
-        Break;                                                                  // 遇到错误，结束动画
-      map_Board[pos1] := ManCell;
-      isPush := true;                                                           // 推动标志
-    end
-    else if isOK and (map_Board[pos1] = BoxGoalCell) then                       // 下一格是箱子在目标点
-    begin                   
-      isOK := (pos2 >= 0) and (pos2 < curMap.MapSize);                          // 界内位置
-      if isOK and (map_Board[pos2] = FloorCell) then
-        map_Board[pos2] := BoxCell
-      else if isOK and (map_Board[pos2] = GoalCell) then
-        map_Board[pos2] := BoxGoalCell
-      else
-        Break;                                                                  // 遇到错误，结束动画
-      map_Board[pos1] := ManGoalCell;
-      isPush := true;                                                           // 推动标志
-    end
-    else
-      Break;                                                                    // 遇到错误，结束动画
+    if (map_Board[pos1] in [ FloorCell, GoalCell]) then begin                   // pos1 是通道
+       if map_Board[pos1] = FloorCell then map_Board[pos1] := ManCell
+       else map_Board[pos1] := ManGoalCell;
+    end else if (map_Board[pos1] in [ BoxCell, BoxGoalCell]) then begin         // pos1 是箱子
+      if (pos2 < 0) or (pos2 >= curMap.MapSize) then Break;                     // pos2 界外
+      if (map_Board[pos2] in [ FloorCell, GoalCell]) then begin                 // pos2 是通道
+         if map_Board[pos2] = FloorCell then map_Board[pos2] := BoxCell         // 箱子到位
+         else map_Board[pos2] := BoxGoalCell;
+         if map_Board[pos1] = BoxCell then map_Board[pos1] := ManCell           // 人到位
+         else map_Board[pos1] := ManGoalCell;
+         ch := Char(Ord(ch) - 32);                                              // 变成大写 -- 推动
+         Inc(PushTimes);                                                        // 推动步数
+         BoxNum_Board[pos2] := BoxNum_Board[pos1];                              // 新箱子编号
+         BoxNum_Board[pos1] := -1;                                              // 原箱子编号
+      end else Break;                                                           // 错误动作
+    end else Break;                                                             // 错误动作
 
-    // 恢复人原来的位置
-    if map_Board[ManPos] = ManCell then
-      map_Board[ManPos] := FloorCell
-    else
-      map_Board[ManPos] := GoalCell;
+    // 到了这里，动作正确，将人移走
+    if map_Board[ManPos] = ManCell then map_Board[ManPos] := FloorCell          // 人移走
+    else map_Board[ManPos] := GoalCell;
 
-    if isPush then
-    begin
-      ch := Char(Ord(ch) - 32);                                                 // 变成大写 -- 推动
-      Inc(PushTimes);                                                           // 推动步数
-      BoxNum_Board[pos2] := BoxNum_Board[pos1];                                 // 新箱子编号
-      BoxNum_Board[pos1] := -1;                                                 // 原箱子编号
-    end;
     Inc(MoveTimes);                                                             // 移动步数
 
     Inc(UnDoPos);
@@ -3689,14 +3763,15 @@ begin
 
     if Steps > 0 then GameDelay();                                              // 延时
 
-    if (not curMap.isYanShi) and isPush and (PushTimes > 0)then begin
+    if (not curMap.isYanShi) and (ch in [ 'L', 'R', 'U', 'D' ]) and (PushTimes > 0)then begin
+
       if IsComplete() then                                                      // 解关成功
       begin
         IsCompleted := True;
         Break;
       end
       else if IsMeets(ch) then
-      begin                                                                     // 正逆相合
+      begin                                                                      // 正逆相合
         isMeet := True;
         Break;
       end;
@@ -3736,8 +3811,9 @@ var
   pos1, pos2: Integer;
 begin
   isSelectMod := False;
-  isMoving := True;
-                                                                                // 移动中...
+  isMoving := True;                                                             // 移动中...
+
+  mySettings.isShowNoVisited := False;
   IsBoxAccessibleTips := False;
   IsManAccessibleTips := False;
   StatusBar1.Panels[7].Text := '';
@@ -3774,22 +3850,31 @@ begin
         end;
     end;
 
-    // UnDo 无需做错误检查
-    // 人的退回
+//    if (map_Board[pos2] <> FloorCell) and (map_Board[pos2] <> GoalCell) then begin
+//      StatusBar1.Panels[7].Text := '遇到了错误的动作符号！';
+//      Break;
+//    end;
+    // 人的回退
     if map_Board[pos2] = FloorCell then
       map_Board[pos2] := ManCell
     else
       map_Board[pos2] := ManGoalCell;
-    Dec(MoveTimes);                                                             // 移动步数
 
     // 检测是否包含箱子的退回
     if ch in ['L', 'R', 'U', 'D'] then
     begin
+
+//      if (map_Board[pos1] <> BoxCell) and (map_Board[pos1] <> BoxGoalCell) then begin
+//        StatusBar1.Panels[7].Text := '遇到了错误的动作符号！';
+//        Break;
+//      end;
+
       Dec(PushTimes);                                                           // 推动步数
       if (map_Board[pos1] = BoxCell) then
         map_Board[pos1] := FloorCell
       else
         map_Board[pos1] := GoalCell;
+
       if (map_Board[ManPos] = ManCell) then
         map_Board[ManPos] := BoxCell
       else
@@ -3805,6 +3890,8 @@ begin
       else
         map_Board[ManPos] := GoalCell;
     end;
+
+    Dec(MoveTimes);                                                             // 移动步数
 
     inc(ReDoPos);
     RedoList[ReDoPos] := ch;
@@ -3888,21 +3975,26 @@ begin
     begin
       if ch in [ 'L', 'R', 'U', 'D' ] then
       begin
-        if (map_Board_BK[pos2] <> BoxCell) and (map_Board_BK[pos2] <> BoxGoalCell) or (map_Board_BK[pos1] <> FloorCell) and (map_Board_BK[pos1] <> GoalCell) then
+        if (map_Board_BK[pos2] <> BoxCell) and (map_Board_BK[pos2] <> BoxGoalCell) or (map_Board_BK[pos1] <> FloorCell) and (map_Board_BK[pos1] <> GoalCell) then begin
+          StatusBar1.Panels[7].Text := '遇到了错误的动作符号！';
           Break;                                                                // 遇到错误
+        end;
 
         if (map_Board_BK[pos1] = FloorCell) then                                // 下一格是地板
           map_Board_BK[pos1] := ManCell         
-        else if (map_Board_BK[pos1] = GoalCell) then                            // 下一格是目标点
-          map_Board_BK[pos1] := ManGoalCell;  
+        else                                                                    // 下一格是目标点
+          map_Board_BK[pos1] := ManGoalCell;
+
         if map_Board_BK[ManPos_BK] = ManCell then
           map_Board_BK[ManPos_BK] := BoxCell
         else
           map_Board_BK[ManPos_BK] := BoxGoalCell;
+
         if map_Board_BK[pos2] = BoxCell then
           map_Board_BK[pos2] := FloorCell
         else
           map_Board_BK[pos2] := GoalCell;
+          
         Inc(PushTimes_BK);                                                      // 推动步数
 
         BoxNum_Board_BK[ManPos_BK] := BoxNum_Board_BK[pos2];                    // 新箱子编号
@@ -3910,13 +4002,17 @@ begin
       end
       else
       begin
+        if (map_Board_BK[pos1] <> FloorCell) and (map_Board_BK[pos1] <> GoalCell) then begin
+          StatusBar1.Panels[7].Text := '遇到了错误的动作符号！';
+          Break;                                                                // 遇到错误
+        end;
+
         // 人到位
         if (map_Board_BK[pos1] = FloorCell) then                                // 下一格是地板
           map_Board_BK[pos1] := ManCell          
-        else if (map_Board_BK[pos1] = GoalCell) then                            // 下一格是目标点
-          map_Board_BK[pos1] := ManGoalCell  
-        else
-          Break;                                                                // 遇到错误
+        else                                                                    // 下一格是目标点
+          map_Board_BK[pos1] := ManGoalCell;
+                                                                              
         if map_Board_BK[ManPos_BK] = ManCell then
           map_Board_BK[ManPos_BK] := FloorCell
         else
@@ -4035,7 +4131,7 @@ procedure Tmain.UnDo_BK(Steps: Integer);
 var
   ch: Char;
   pos1, pos2: Integer;
-  isPush: Boolean;
+
 begin
   isSelectMod := False;
   isMoving := True;                                                             // 移动中...
@@ -4051,7 +4147,6 @@ begin
 
     Dec(Steps);
 
-    isPush := False;
 
     pos1 := -1;
     pos2 := -1;
@@ -4060,37 +4155,40 @@ begin
         begin
           pos1 := ManPos_BK + 1;
           pos2 := ManPos_BK + 2;
-          isPush := (ch = 'L');
         end;
       'r', 'R':
         begin
           pos1 := ManPos_BK - 1;
           pos2 := ManPos_BK - 2;
-          isPush := (ch = 'R');
         end;
       'u', 'U':
         begin
           pos1 := ManPos_BK + curMapNode.Cols;
           pos2 := ManPos_BK + curMapNode.Cols * 2;
-          isPush := (ch = 'U');
         end;
       'd', 'D':
         begin
           pos1 := ManPos_BK - curMapNode.Cols;
           pos2 := ManPos_BK - curMapNode.Cols * 2;
-          isPush := (ch = 'D');
         end;
     end;
 
-    // UnDo 无需做错误检查
     // 检测是否包含箱子的退回
-    if isPush then
+    if ch in [ 'L', 'R', 'U', 'D' ] then
     begin
+    
+//      if (map_Board_BK[pos1] <> BoxCell) and (map_Board_BK[pos1] <> BoxGoalCell) or (map_Board_BK[pos2] <> FloorCell) and (map_Board_BK[pos2] <> GoalCell) then begin
+//        StatusBar1.Panels[7].Text := '遇到了错误的动作符号！';
+//        Break;
+//      end;
+
       Dec(PushTimes_BK);                                                        // 推动步数
+
       if (map_Board_BK[pos2] = FloorCell) then
         map_Board_BK[pos2] := BoxCell
-      else
+      else 
         map_Board_BK[pos2] := BoxGoalCell;
+
       if map_Board_BK[pos1] = BoxCell then
         map_Board_BK[pos1] := ManCell
       else
@@ -4101,16 +4199,23 @@ begin
     end
     else
     begin
+    
+//      if (map_Board_BK[pos1] <> FloorCell) and (map_Board_BK[pos1] <> GoalCell) then begin
+//        StatusBar1.Panels[7].Text := '遇到了错误的动作符号！';
+//        Break;
+//      end;
+
       if (map_Board_BK[pos1] = FloorCell) then
         map_Board_BK[pos1] := ManCell
       else
         map_Board_BK[pos1] := ManGoalCell;
     end;
 
+    // 前面无差错，这里就应该没有问题了
     // 人的退回
     if (map_Board_BK[ManPos_BK] = ManCell) then
       map_Board_BK[ManPos_BK] := FloorCell
-    else
+    else 
       map_Board_BK[ManPos_BK] := GoalCell;
 
     Dec(MoveTimes_BK);                                                          // 移动步数
@@ -4148,6 +4253,11 @@ begin
   if isMoving then IsStop := True
   else IsStop := False;
 
+  if MapList.Count = 0 then begin
+     StatusBar1.Panels[7].Text := '尚无打开的关卡！';
+     Exit;
+  end;
+
   if curMap.CurrentLevel > 1 then
   begin
     if not mySettings.isLurd_Saved then
@@ -4166,7 +4276,6 @@ begin
       if LoadMap(curMap.CurrentLevel) then
       begin
         InitlizeMap();
-        ed_sel_Map.Text := IntToStr(curMap.CurrentLevel);
         SetMapTrun();
       end;
     end else begin
@@ -4176,7 +4285,6 @@ begin
            curMap.CurrentLevel := curMap.CurrentLevel-1;
            curMapNode := tmpMapNode;
            ReadQuicklyMap();
-           ed_sel_Map.Text := IntToStr(curMap.CurrentLevel);
         end;
       except
       end;
@@ -4196,6 +4304,11 @@ begin
   if isMoving then IsStop := True
   else IsStop := False;
 
+  if MapList.Count = 0 then begin
+     StatusBar1.Panels[7].Text := '尚无打开的关卡！';
+     Exit;
+  end;
+
   if not mySettings.isLurd_Saved then
   begin    // 有新的动作尚未保存
     bt := MessageBox(Handle, '警告!' + #10 + '是否保存最新的推动？', AppName, MB_ICONWARNING + MB_YESNOCANCEL);
@@ -4213,7 +4326,6 @@ begin
       if LoadMap(curMap.CurrentLevel) then
       begin
         InitlizeMap();
-        ed_sel_Map.Text := IntToStr(curMap.CurrentLevel);
         SetMapTrun();
       end;
     end else StatusBar1.Panels[7].Text := '后面没有了...';
@@ -4224,7 +4336,6 @@ begin
           curMap.CurrentLevel := curMap.CurrentLevel+1;
           curMapNode := tmpMapNode;
           ReadQuicklyMap();
-          ed_sel_Map.Text := IntToStr(curMap.CurrentLevel);
        end else StatusBar1.Panels[7].Text := '后面没有了...';
     except
     end;
@@ -4235,8 +4346,8 @@ end;
 // UnDo 按钮
 procedure Tmain.bt_UnDoClick(Sender: TObject);
 begin
-  if isMoving then IsStop := True
-  else IsStop := False;
+//  if isMoving then IsStop := True
+//  else IsStop := False;
 
   N15.Click;
 end;
@@ -4244,8 +4355,8 @@ end;
 // ReDo按钮
 procedure Tmain.bt_ReDoClick(Sender: TObject);
 begin
-  if isMoving then IsStop := True
-  else IsStop := False;
+//  if isMoving then IsStop := True
+//  else IsStop := False;
 
   N18.Click;
 end;
@@ -4271,11 +4382,12 @@ begin
   if isMoving then IsStop := True
   else IsStop := False;
   
+  mySettings.isShowNoVisited := False;                                                           
   StatusBar1.Panels[7].Text := '';
   mySettings.isBK := not mySettings.isBK;
   DrawMap();
   SetButton();             // 设置按钮状态
-  if curMapNode.Cols > 0 then
+  if (curMapNode <> nil) and (curMapNode.Cols > 0) then
   begin
     if mySettings.isBK then
     begin
@@ -4294,6 +4406,7 @@ procedure Tmain.bt_OpenClick(Sender: TObject);
 var
   bt: LongWord;
   i, size, n: Integer;
+  fn: string;
 
 begin
   if isMoving then IsStop := True
@@ -4325,8 +4438,16 @@ begin
   end;
 
   try
-    if (ExtractFilePath(mySettings.MapFileName) <> '') then
-        MyOpenFile.DirectoryListBox1.Directory := ExtractFilePath(mySettings.MapFileName)
+
+    if AnsiSameText(mySettings.MapFileName, 'BoxMan.xsb') and (mySettings.LaterList.Count > 0) then
+       fn := mySettings.LaterList[0]
+    else
+       fn := mySettings.MapFileName;
+
+    if Pos(':', fn) = 0 then fn := AppPath + fn;
+
+    if (ExtractFilePath(fn) <> '') then
+        MyOpenFile.DirectoryListBox1.Directory := ExtractFilePath(fn)
     else
         MyOpenFile.DirectoryListBox1.Directory := AppPath;
         
@@ -4336,10 +4457,13 @@ begin
     MyOpenFile.DriveComboBox1.Drive := MyOpenFile.DirectoryListBox1.Directory[1];
   end;
 
-  
   MyOpenFile.FileListBox1.FileName := '';
 
   MyOpenFile.CheckBox1.Checked := False;    // 加载文档关卡时，是否同时导入答案
+
+//  if OpenDialog1.Execute then begin
+//  
+//  end;
 
   if MyOpenFile.ShowModal = mrOk then begin
 
@@ -4350,16 +4474,16 @@ begin
     if MyOpenFile.FileListBox1.FileName <> '' then begin
 
        curMapNode := QuicklyLoadMap(MyOpenFile.FileListBox1.FileName, 1);
+
        if curMapNode.Map.Count > 2 then begin
 
           curMap.CurrentLevel := 1;
           mySettings.MapFileName := MyOpenFile.FileListBox1.FileName;
-          
+
           n := Pos(AppPath, mySettings.MapFileName);
           if n > 0 then Delete(mySettings.MapFileName, 1, Length(AppPath));
 
           ReadQuicklyMap();
-          ed_sel_Map.Text := IntToStr(curMap.CurrentLevel);
 
           ResetSolvedLevel();
           mySettings.isXSB_Saved := True;
@@ -4797,8 +4921,6 @@ begin
   if isMoving then IsStop := True
   else IsStop := False;
 
-//  GetIcon();
-
   BrowseForm.Tag := -1;        // 双击 item 时，赋值为 0
   BrowseForm.BK_Color := mySettings.bwBKColor;
   BrowseForm.curIndex := curMap.CurrentLevel-1;
@@ -4809,7 +4931,6 @@ begin
   curMap.CurrentLevel := BrowseForm.ListView1.ItemIndex + 1;
   if LoadMap(curMap.CurrentLevel) then begin
     InitlizeMap();
-    ed_sel_Map.Text := IntToStr(curMap.CurrentLevel);
     SetMapTrun();
   end;
 
@@ -5410,6 +5531,34 @@ begin
   end;
 end;
 
+// 状态 -- 非本关卡的全部状态
+procedure Tmain.sa_ClraeAllClick(Sender: TObject);
+var
+  i, len: Integer;
+  actNode: ^TStateNode;
+  s: string;
+  
+begin
+  if MessageBox(Handle, '警告!' + #10 + '清理非本关卡的全部状态，确定吗？', AppName, MB_ICONWARNING + MB_OKCANCEL) <> idOK then Exit;
+
+  len := List_State.Count;
+
+  try
+    for i := 0 to len-1 do begin
+        actNode := StateList[i];
+        if i = 0 then s := IntToStr(actNode.id)
+        else s := s + ', ' + IntToStr(actNode.id);
+    end;
+    actNode := nil;
+    
+    DataModule1.ADOQuery1.Close;
+    DataModule1.ADOQuery1.SQL.Clear;
+    DataModule1.ADOQuery1.SQL.Text := 'delete from Tab_State where not id in (' + s + ')';
+    DataModule1.ADOQuery1.ExecSQL;
+  except
+  end;
+end;
+
 // 答案 -- Lurd 到剪切板
 procedure Tmain.so_LurdClick(Sender: TObject);
 var
@@ -5716,21 +5865,45 @@ begin
   BrowseForm.Left := mySettings.bwLeft;
   BrowseForm.Width := mySettings.bwWidth;
   BrowseForm.Height := mySettings.bwHeight;
-  
+
+  // 左侧边栏
+  if mySettings.isLeftBar then begin
+     pl_Side.Visible := True;
+     bt_LeftBar.Caption := '<';
+  end else begin
+     pl_Side.Visible := False;
+     bt_LeftBar.Caption := '>';
+  end;
+  NewMapSize();
+  DrawMap();        // 画地图
+end;
+
+procedure Delay(msecs:integer);
+var
+  FirstTickCount: longint;
+begin
+  FirstTickCount := GetTickCount;
+  repeat
+    Application.ProcessMessages;
+  until ((GetTickCount-FirstTickCount) >= Longint(msecs));
 end;
 
 procedure Tmain.FormMouseWheelDown(Sender: TObject; Shift: TShiftState;
   MousePos: TPoint; var Handled: Boolean);
 begin
-  bt_UnDo.Click;          // z，撤销
+  if isMoving then IsStop := True
+  else N15.Click;          // z，撤销
   Handled := True;
+  Delay(10);
 end;
 
 procedure Tmain.FormMouseWheelUp(Sender: TObject; Shift: TShiftState;
   MousePos: TPoint; var Handled: Boolean);
 begin
-  bt_ReDo.Click;          // x，重做
+  if isMoving then IsStop := True
+  else N18.Click;          // x，重做
   Handled := True;
+  Delay(10);
 end;
 
 // GET 请求
@@ -5821,22 +5994,28 @@ begin
 
         if (jRet.O['main'] <> nil) then begin
             strLevel := jRet.O['main'].AsString;
-            jLevel := SO(strLevel);
-            title := jLevel.O['title'].AsString;
-            author := jLevel.O['author'].AsString;
-            level := jLevel.O['level'].AsString;
-            level := StringReplace(level, '|', #10, [rfReplaceAll]);
-            str := str + level + #10 + 'Title: ' + title + #10 + 'Author' + author + #10#10;
+
+            if not AnsiSameText(strLevel, 'null') then begin
+               jLevel := SO(strLevel);
+               title := jLevel.O['title'].AsString;
+               author := jLevel.O['author'].AsString;
+               level := jLevel.O['level'].AsString;
+               level := StringReplace(level, '|', #10, [rfReplaceAll]);
+               str := str + level + #10 + 'Title: ' + title + #10 + 'Author' + author + #10#10;
+            end;
         end;
       
         if (jRet.O['extra'] <> nil) then begin
             strLevel := jRet.O['extra'].AsString;
-            jLevel := SO(strLevel);
-            title := jLevel.O['title'].AsString;
-            author := jLevel.O['author'].AsString;
-            level := jLevel.O['level'].AsString;
-            level := StringReplace(level, '|', #10, [rfReplaceAll]);
-            str := str + level + #10 + 'Title: ' + title + #10 + 'Author' + author + #10;
+
+            if not AnsiSameText(strLevel, 'null') then begin
+               jLevel := SO(strLevel);
+               title := jLevel.O['title'].AsString;
+               author := jLevel.O['author'].AsString;
+               level := jLevel.O['level'].AsString;
+               level := StringReplace(level, '|', #10, [rfReplaceAll]);
+               str := str + level + #10 + 'Title: ' + title + #10 + 'Author' + author + #10;
+            end;
         end;
 
         if LoadMapsFromText(str) then begin               // 从字符串文本导入 XSB
@@ -5846,7 +6025,6 @@ begin
               curMapNode.Trun := 0;    // 默认关卡第 0 转
               SetMapTrun();
               InitlizeMap();
-              ed_sel_Map.Text := IntToStr(curMap.CurrentLevel);
               mySettings.isXSB_Saved := False;              // 当从剪切板导入的 XSB 是否保存过了
               mySettings.isLurd_Saved := True;              // 推关卡的动作是否保存过了
               Caption := AppName + AppVer + ' - 比赛关卡 ~ [' + inttostr(curMap.CurrentLevel) + '/' + inttostr(MapList.Count) + ']';
@@ -5941,7 +6119,7 @@ begin
   ItemL1.OnClick := MenuItemClick;
   pm_Later.Items.Add(ItemL1);
 
-  SetCursorPos(Left + 45, Top + 55);
+  SetCursorPos(Left + 60, Top + 55);
   mouse_event(MOUSEEVENTF_RIGHTDOWN, 0, 0, 0, 0);
   mouse_event(MOUSEEVENTF_RIGHTUP, 0, 0, 0, 0);
 end;
@@ -5963,6 +6141,8 @@ begin
   if isMoving then IsStop := True
   else IsStop := False;
 
+  if (curMapNode = nil) or (curMapNode.Map.Count = 0) then Exit;
+  
   isNoDelay := True;
   if mySettings.isBK then UnDo_BK(UnDoPos_BK)
   else UnDo(UnDoPos);
@@ -5997,6 +6177,25 @@ begin
 //  ShellExecute(handle,nil,pchar('http://sokoban.cn/solution_table.php'),nil,nil,SW_shownormal);
 end;
 
+// 导出 xsb 现场 -- 剪切板
+procedure Tmain.XSB4Click(Sender: TObject);
+begin
+  if isMoving then IsStop := True
+  else IsStop := False;
+
+  StatusBar1.Panels[7].Text := '';
+  
+  if curMapNode = nil then Exit;
+  
+  if not keyPressing then
+  begin
+    keyPressing := true;
+    XSBToClipboard_2();
+    StatusBar1.Panels[7].Text := '现场 XSB 已送入剪切板！';
+  end;
+end;
+
+// 导出关卡xsb -- 文档
 procedure Tmain.XSB3Click(Sender: TObject);
 begin
   if isMoving then IsStop := True
@@ -6010,12 +6209,16 @@ begin
   end;
 end;
 
+// 导出关卡xsb -- 剪切板
 procedure Tmain.XSB2Click(Sender: TObject);
 begin
   if isMoving then IsStop := True
   else IsStop := False;
 
   StatusBar1.Panels[7].Text := '';
+
+  if curMapNode = nil then Exit;
+  
   if not keyPressing then
   begin
     keyPressing := true;
@@ -6024,6 +6227,7 @@ begin
   end;
 end;
 
+// 导入关卡 xsb -- 剪切板
 procedure Tmain.XSB1Click(Sender: TObject);
 var
   i: Integer;
@@ -6065,7 +6269,6 @@ begin
           InitlizeMap();
           curMapNode.Trun := 0;    // 默认关卡第 0 转
           SetMapTrun();
-          ed_sel_Map.Text := IntToStr(curMap.CurrentLevel);
           mySettings.isXSB_Saved := False;              // 当从剪切板导入的 XSB 是否保存过了
           mySettings.isLurd_Saved := True;              // 推关卡的动作是否保存过了
           Caption := AppName + AppVer + ' - 剪切板 ~ [' + inttostr(curMap.CurrentLevel) + '/' + inttostr(MapList.Count) + ']';
@@ -6110,7 +6313,6 @@ begin
         if LoadMap(curMap.CurrentLevel) then
         begin
           InitlizeMap();
-          ed_sel_Map.Text := IntToStr(curMap.CurrentLevel);
           SetMapTrun();
         end;
      end else StatusBar1.Panels[7].Text := '后面没有了!';
@@ -6125,7 +6327,6 @@ begin
        curMap.CurrentLevel := n;
        curMapNode := tmpMapNode;
        ReadQuicklyMap();
-       ed_sel_Map.Text := IntToStr(curMap.CurrentLevel);
     end else StatusBar1.Panels[7].Text := '后面没有了!';
   end;
   tmpMapNode := nil;
@@ -6159,7 +6360,6 @@ begin
       if LoadMap(curMap.CurrentLevel) then
       begin
         InitlizeMap();
-        ed_sel_Map.Text := IntToStr(curMap.CurrentLevel);
         SetMapTrun();
       end;
     end else Begin
@@ -6169,7 +6369,6 @@ begin
            curMap.CurrentLevel := 1;
            curMapNode := tmpMapNode;
            ReadQuicklyMap();
-           ed_sel_Map.Text := IntToStr(curMap.CurrentLevel);
         end;
       except
       end;
@@ -6212,7 +6411,6 @@ begin
       if LoadMap(i) then
       begin
         InitlizeMap();
-        ed_sel_Map.Text := IntToStr(curMap.CurrentLevel);
         SetMapTrun();
       end;
       s := '上一关未解关卡！';
@@ -6255,7 +6453,6 @@ begin
       if LoadMap(i) then
       begin
         InitlizeMap();
-        ed_sel_Map.Text := IntToStr(curMap.CurrentLevel);
         SetMapTrun();
       end;
       s := '下一关未解关卡！';
@@ -6342,6 +6539,8 @@ begin
   if isMoving then IsStop := True
   else IsStop := False;
 
+  if (curMapNode = nil) or (curMapNode.Map.Count = 0) then Exit;
+
   isYanshi := True;
   if mySettings.isBK then begin
     UnDo_BK(UnDoPos_BK);
@@ -6354,6 +6553,8 @@ procedure Tmain.N22Click(Sender: TObject);
 begin
   if isMoving then IsStop := True
   else IsStop := False;
+
+  if (curMapNode = nil) or (curMapNode.Map.Count = 0) then Exit;
 
   isYanshi := True;
   if mySettings.isBK then begin
@@ -6373,6 +6574,7 @@ procedure Tmain.ed_sel_MapKeyPress(Sender: TObject; var Key: Char);
 begin
    // 限制输入数字/小数点/退格键
    if not (Key in [#8, #13, '0'..'9']) then Key := #0;
+   ed_sel_Map.Tag := 1;
 end;
 
 procedure Tmain.ed_sel_MapChange(Sender: TObject);
@@ -6383,10 +6585,20 @@ var
  tmpMapNode : PMapNode;        // 关卡节点
  
 begin
+   // 排除非键盘输入的 OnChange 事件
+   if ed_sel_Map.Tag = 0 then Exit;
+   ed_sel_Map.Tag := 0;
+   
    // 获取当前文本内容
    edt := TEdit(Sender);
    str := edt.Text;
-   n   := StrToInt(str);
+
+   try
+      n := StrToInt(str);
+   except
+      StatusBar1.Panels[7].Text := '无效的关卡序号！';
+      Exit;
+   end;
 
    if n > 0 then begin
       if not mySettings.isLurd_Saved then
@@ -6416,19 +6628,18 @@ begin
                StatusBar1.Panels[7].Text := '';
             end;
          end else begin
-            if (n > 1) and (n <= MapList.Count) then
+            if (n > 0) and (n <= MapList.Count) then
             begin
               curMap.CurrentLevel := n;
               if LoadMap(curMap.CurrentLevel) then
               begin
                 InitlizeMap();
-                ed_sel_Map.Text := IntToStr(curMap.CurrentLevel);
                 SetMapTrun();
               end;
             end;
          end;
       except
-         StatusBar1.Panels[7].Text := '没找到指定的关卡！';;
+         StatusBar1.Panels[7].Text := '没找到指定的关卡！';
       end;
    end;
 end;
@@ -6448,6 +6659,8 @@ var
 begin
 
   StatusBar1.Panels[7].Text := '';
+
+  if (curMapNode = nil) or (curMapNode.Map.Count = 0) then Exit;
 
   if mySettings.MapFileName = '' then begin
     if MessageBox(Handle, PChar('提示!' + #10 + '将导入的' + inttostr(MapList.Count) + '个关卡，加入到关卡周转库，' + #10 + '确定吗？'), AppName, MB_ICONINFORMATION + MB_OKCANCEL) <> idOK then Exit;
@@ -6487,6 +6700,100 @@ begin
     StatusBar1.Panels[7].Text := '已入关卡周转库';
     Caption := AppName + AppVer + ' - ' + ExtractFileName(ChangeFileExt(mySettings.MapFileName, EmptyStr)) + ' ~ [' + inttostr(curMap.CurrentLevel) + '/' + inttostr(MapList.Count) + ']';
   end;
+end;
+
+procedure Tmain.bt_LeftBarClick(Sender: TObject);
+begin
+  mySettings.isLeftBar := not mySettings.isLeftBar;
+
+  if mySettings.isLeftBar then begin
+     pl_Side.Visible := True;
+     bt_LeftBar.Caption := '<';
+  end else begin
+     pl_Side.Visible := False;
+     bt_LeftBar.Caption := '>';
+  end;
+  NewMapSize();
+  DrawMap();        // 画地图
+end;
+
+// 导入lurd - 剪切板
+procedure Tmain.Lurd1Click(Sender: TObject);
+var
+  i, myCell: Integer;
+  
+begin
+  if isMoving then IsStop := True
+  else IsStop := False;
+
+  if (curMapNode = nil) or (curMapNode.Map.Count = 0) then Exit;
+
+  keyPressing := true;
+  if LoadLurdFromClipboard(mySettings.isBK) then begin
+    StatusBar1.Panels[7].Text := '从剪切板加载 Lurd！';
+    if mySettings.isBK and (ManPos_BK_0_2 >= 0) then begin   // 处理人的位置
+      myCell := map_Board_OG[ManPos_BK_0_2];
+      if (myCell = FloorCell) or (myCell = GoalCell) then begin
+        for i := 0 to curMap.MapSize - 1 do begin
+          if map_Board_OG[i] = BoxCell then
+            map_Board_BK[i] := GoalCell
+          else if map_Board_OG[i] = GoalCell then
+            map_Board_BK[i] := BoxCell
+          else if map_Board_OG[i] = ManCell then
+            map_Board_BK[i] := FloorCell
+          else if map_Board_OG[i] = ManGoalCell then
+            map_Board_BK[i] := GoalCell
+          else
+            map_Board_BK[i] := map_Board_OG[i];
+        end;
+        ManPos_BK_0 := ManPos_BK_0_2;
+        ManPos_BK := ManPos_BK_0_2;
+        if map_Board_BK[ManPos_BK] = FloorCell then
+          map_Board_BK[ManPos_BK] := ManCell
+        else
+          map_Board_BK[ManPos_BK] := ManGoalCell;
+        UnDoPos_BK := 0;
+        MoveTimes_BK := 0;
+        PushTimes_BK := 0;
+        LastSteps := -1;              // 正推最后一次点推前的步数
+        IsManAccessibleTips_BK := false;           // 是否显示人的逆推可达提示
+        IsBoxAccessibleTips_BK := false;           // 是否显示箱子的逆推可达提示
+//              mySettings.isLurd_Saved := True;            // 推关卡的动作是否保存过了
+        DrawMap();         // 画地图
+        SetButton();       // 设置按钮状态
+        ShowStatusBar();   // 底行状态栏
+        StatusBar1.Panels[5].Text := ' ' + GetCur(ManPos_BK mod curMapNode.Cols, ManPos_BK div curMapNode.Cols) + ' - [ ' + IntToStr(ManPos_BK mod curMapNode.Cols + 1) + ', ' + IntToStr(ManPos_BK div curMapNode.Cols + 1) + ' ]';       // 标尺
+      end;
+    end;
+    curMap.isYanShi := False;
+    if mySettings.isBK then begin
+      if ManPos_BK >= 0 then ReDo_BK(ReDoPos_BK);
+    end else ReDo(ReDoPos);
+  end;
+end;
+
+procedure Tmain.Lurd2Click(Sender: TObject);
+begin
+  if isMoving then IsStop := True
+  else IsStop := False;
+
+  if (curMapNode = nil) or (curMapNode.Map.Count = 0) then Exit;
+
+  keyPressing := true;
+  if LurdToClipboard(ManPos_BK_0 mod curMapNode.Cols, ManPos_BK_0 div curMapNode.Cols) then
+     StatusBar1.Panels[7].Text := '已做动作 Lurd 送入剪切板！';
+end;
+
+procedure Tmain.Lurd3Click(Sender: TObject);
+begin
+  if isMoving then IsStop := True
+  else IsStop := False;
+
+  if (curMapNode = nil) or (curMapNode.Map.Count = 0) then Exit;
+
+  keyPressing := true;
+  if LurdToClipboard2(mySettings.isBK) then
+     StatusBar1.Panels[7].Text := '后续动作 Lurd 送入剪切板！';
 end;
 
 initialization

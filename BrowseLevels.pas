@@ -74,7 +74,7 @@ begin
   ListView1.Color := BK_Color;
 
   Solved_Count := 0;
-  for i := 0 to MapList.Count-1 do begin   // 添加 item
+  for i := 0 to MapList.Count-1 do begin   // 统计已解关卡
     mapNode := MapList[i];
     if mapNode.Solved then inc(Solved_Count);
   end;
@@ -82,8 +82,8 @@ begin
   if (curIndex < 0) or (curIndex >= MapList.Count) then curIndex := 0;
 
   if ListView1.Items.Count > 0 then begin
-    ListView1.ItemIndex := curIndex;
-    ListView1.Items[curIndex].MakeVisible(True);
+     ListView1.ItemIndex := curIndex;
+     ListView1.Items[curIndex].MakeVisible(True);
   end;
 
   myTitle := '浏览 [完成率: ' + IntToStr(Solved_Count) + '/' + IntToStr(MapList.Count) + ']';

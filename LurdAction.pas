@@ -40,6 +40,7 @@ var
   UnDoPos, ReDoPos, UnDoPos_BK, ReDoPos_BK: Integer;                            // undo、redo 位置指针
 
   function LurdToClipboard(c, r: Integer): Boolean;        // Lurd 送入剪切板
+  function LurdToClipboard2(isBK: Boolean): Boolean;       // 后续动作 Lurd 送入剪切板
   function LoadLurdFromClipboard(isBK: Boolean): boolean;  // 从剪切板加载 Lurd
   function isLurd(str: String): boolean;                   // 判断是否为有效的 Lurd 行
   function isLurd_2(str: String): boolean;                 // 判断是否为有效的 Lurd 行 -- 允许逆推的动作字符
@@ -119,6 +120,31 @@ begin
    end else begin
       if UnDoPos_BK > 0 then begin
          Clipboard.SetTextBuf(PChar(str1+str2));
+         Result := true;
+      end;
+   end;
+end;
+
+// 后续动作 Lurd 送入剪切板
+function LurdToClipboard2(isBK: Boolean): Boolean;
+var
+  str: string;
+
+begin
+   Result := False;
+
+   if isBK then begin
+      if ReDoPos_BK > 0 then begin
+         if ReDoPos_BK < MaxLenPath then RedoList_BK[ReDoPos_BK+1] := #0;
+         str  := PChar(@RedoList_BK);
+         Clipboard.SetTextBuf(PChar(str));
+         Result := true;
+      end;
+   end else begin
+      if ReDoPos > 0 then begin
+         if ReDoPos < MaxLenPath then RedoList[ReDoPos+1] := #0;
+         str := PChar(@RedoList);
+         Clipboard.SetTextBuf(PChar(reversestring(str)));
          Result := true;
       end;
    end;
