@@ -22,6 +22,12 @@ uses
 
 {$R *.RES}
 
+// 避免关闭程序出现“runtime error 216 at xxxxxxx"的错误提示
+procedure Halt0;
+begin
+  Halt;
+end;
+
 begin
   Application.Initialize;
   Application.CreateForm(TDataModule1, DataModule1);
@@ -35,4 +41,20 @@ begin
 //  Application.CreateForm(TBrowseForm, BrowseForm);
   Application.Run;
 
+  // 避免关闭程序出现“runtime error 216 at xxxxxxx"的错误提示
+  asm
+      xor edx, edx
+      push ebp
+      push OFFSET @@safecode
+      push dword ptr fs:[edx]
+      mov fs:[edx],esp
+
+      call Halt0
+      jmp @@exit;
+
+      @@safecode:
+      call Halt0;
+
+      @@exit:
+    end;
 end.

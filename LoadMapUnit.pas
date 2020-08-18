@@ -34,7 +34,7 @@ type                  // 关卡节点 -- 关卡集中的各个关卡
 
   PMapNode = ^TMapNode;              // 关卡节点指针
 
-function GetXSB(): string;                                     // 取得关卡 XSB
+function GetXSB(mapNpde: PMapNode): string;                    // 取得关卡 XSB
 
 function GetXSB_2(): string;                                   // 取得现场 XSB
 
@@ -853,7 +853,7 @@ begin
         BrowseForm.ListView1.Items.add;
 
         if mapNode.Title = '' then
-          BrowseForm.ListView1.Items[k].Caption := '【№: ' + IntToStr(k + 1) + '】'
+          BrowseForm.ListView1.Items[k].Caption := '_#' + IntToStr(k + 1) + '_'
         else
           BrowseForm.ListView1.Items[k].Caption := mapNode.Title;
 
@@ -1238,25 +1238,25 @@ begin
 end;
 
 // 取得关卡 XSB
-function GetXSB(): string;
+function GetXSB(mapNpde: PMapNode): string;
 var
   i: Integer;
 begin
   Result := #10;
 
-  if curMapNode.Map.Count > 0 then
+  if mapNpde.Map.Count > 0 then
   begin
-    for i := 0 to curMapNode.Map.Count - 1 do
+    for i := 0 to mapNpde.Map.Count - 1 do
     begin
-      Result := Result + curMapNode.Map.Strings[i] + #10;
+      Result := Result + mapNpde.Map.Strings[i] + #10;
     end;
-    if Trim(curMapNode.Title) <> '' then
-      Result := Result + 'Title: ' + curMapNode.Title + #10;
-    if Trim(curMapNode.Author) <> '' then
-      Result := Result + 'Author: ' + curMapNode.Author + #10;
-    if Trim(curMapNode.Comment) <> '' then
+    if Trim(mapNpde.Title) <> '' then
+      Result := Result + 'Title: ' + mapNpde.Title + #10;
+    if Trim(mapNpde.Author) <> '' then
+      Result := Result + 'Author: ' + mapNpde.Author + #10;
+    if Trim(mapNpde.Comment) <> '' then
     begin
-      Result := Result + 'Comment: ' + curMapNode.Comment + #10;
+      Result := Result + 'Comment: ' + mapNpde.Comment + #10;
       Result := Result + 'Comment_end: ' + #10;
     end;
     Result := Result + #10;
@@ -1295,7 +1295,7 @@ procedure XSBToClipboard();
 begin
   if curMapNode.Map.Count > 0 then
   begin
-    Clipboard.SetTextBuf(PChar(GetXSB()));
+    Clipboard.SetTextBuf(PChar(GetXSB(curMapNode)));
   end;
 end;
 
@@ -1550,7 +1550,7 @@ begin
           BrowseForm.ListView1.Items.add;
 
           if mapNode.Title = '' then
-            BrowseForm.ListView1.Items[k].Caption := '【№: ' + IntToStr(k + 1) + '】'
+            BrowseForm.ListView1.Items[k].Caption := '_#' + IntToStr(k + 1) + '_'
           else
             BrowseForm.ListView1.Items[k].Caption := mapNode.Title;
 

@@ -1,9 +1,10 @@
 unit MainForm;
 
-//{$DEFINE TEST}
+{$DEFINE TEST}
 
 //  {$IFDEF TEST}
 //     Writeln(myLogFile, '');
+//     Flush(myLogFile);
 //  {$ENDIF}
 
 interface
@@ -11,7 +12,7 @@ interface
 uses
   Windows, Messages, SysUtils, Classes, Graphics, Forms, Inifiles, Controls,
   Contnrs, Registry, ComCtrls, ExtCtrls, ImgList, StdCtrls, Buttons, Dialogs,
-  ShellAPI, Menus, Clipbrd, Math, AppEvnts, StrUtils;
+  ShellAPI, Menus, Clipbrd, Math, AppEvnts, StrUtils, LoadMapUnit;
 
 type
   TSetting = record       // 程序设置项目
@@ -152,6 +153,8 @@ type
     XSB4: TMenuItem;
     N25: TMenuItem;
     sa_ClraeAll: TMenuItem;
+    so_XSBAll_LurdAll1_File: TMenuItem;
+    SpeedButton1: TSpeedButton;
 
     procedure FormCreate(Sender: TObject);
     procedure FormResize(Sender: TObject);
@@ -201,6 +204,7 @@ type
     procedure so_XSB_LurdAllClick(Sender: TObject);
     procedure so_XSB_Lurd_FileClick(Sender: TObject);
     procedure so_XSB_LurdAll_FileClick(Sender: TObject);
+    procedure so_XSBAll_LurdAll1_FileClick(Sender: TObject);       // 计算访问过的格子
     procedure so_DeleteClick(Sender: TObject);
     procedure so_DeleteAllClick(Sender: TObject);
     procedure StatusBar1DblClick(Sender: TObject);
@@ -249,7 +253,8 @@ type
     procedure Lurd2Click(Sender: TObject);
     procedure Lurd3Click(Sender: TObject);
     procedure XSB4Click(Sender: TObject);
-    procedure Board_Visited;       // 计算访问过的格子
+    procedure Board_Visited;
+    procedure SpeedButton1Click(Sender: TObject);
 
   private
     // 当前地图参数
@@ -308,6 +313,7 @@ type
     function SaveState(): Boolean;                    // 保存状态
     function LoadState(): Boolean;                    // 加载状态
     function LoadSolution(): Boolean;                 // 加载答案
+    function GetSolution(mapNpde: PMapNode): string;  // 加载指定关卡的所有答案
     function GetStateFromDB(index: Integer; var x: Integer; var y: Integer; var str1: string; var str2: string): Boolean;    // 从答案库加载一条状态
     function GetSolutionFromDB(index: Integer; var str: string): Boolean;                                                    // 从答案库加载一条答案
     procedure MenuItemClick(Sender: TObject);
@@ -330,7 +336,7 @@ const
   MapTrun: array[0..7] of string = ('0转', '1转', '2转', '3转', '4转', '5转', '6转', '7转');
   SpeedInf: array[0..4] of string = ('最快', '较快', '中速', '较慢', '最慢');
   AppName = 'BoxMan';
-  AppVer = ' V1.4';
+  AppVer = ' V1.5';
 
 var
   main: Tmain;
@@ -374,7 +380,7 @@ implementation
 
 uses
   DateUtils, LogFile, MyInf, Submit, IDHttp, superobject, ShowSolutionList, OpenFile,
-  LoadSkin, LoadMapUnit, PathFinder, LurdAction, BrowseLevels, DateModule, CRC_32, Actions;
+  LoadSkin, PathFinder, LurdAction, BrowseLevels, DateModule, CRC_32, Actions;
 
 var
   myPathFinder: TPathFinder;
@@ -761,7 +767,8 @@ end;
 // 关卡初始化
 procedure Tmain.InitlizeMap();
 var
-  i: integer;
+  i, x, y, len: integer;
+  s1, s2: string;
 begin
   // 前期准备
   UnDoPos := 0;
@@ -788,7 +795,7 @@ begin
   isNoDelay := False;                      // 是否无延时执行动作
   isSelectMod := False;
   isDelSelect := False;
-  curMap.isYanShi := True;               // 是否正在执行动作演示
+  curMap.isYanShi := True;                // 是否正在执行动作演示
   curMap.Recording := false;              // 是否在动作录制状态
   curMapNode.Boxs := 0;
   curMapNode.Goals := 0;
@@ -853,6 +860,78 @@ begin
   LoadState();     // 加载状态
   LoadSolution();  // 加载答案
   curMapNode.Solved := (SoltionList.Count > 0);
+
+  // 若关卡已经解开，则自动加载答案，否则，并且有状态保存，则直接打开最新的状态
+  if curMapNode.Solved then begin
+    if GetSolutionFromDB(0, s1) then begin
+
+       len := Length(s1);
+
+       if len > 0 then begin
+           // 答案送入正推的 RedoList
+           ReDoPos := 0;
+           for i := len downto 1 do begin
+               if ReDoPos = MaxLenPath then Exit;
+               inc(ReDoPos);
+               RedoList[ReDoPos] := s1[i];
+           end;
+           curMap.isYanShi := True;
+       end;
+       StatusBar1.Panels[7].Text := '答案已载入！';
+    end;
+  end else if StateList.count > 0 then begin
+    if GetStateFromDB(0, x, y, s1, s2) then begin
+
+       len := Length(s1);
+
+       // 状态送入 RedoList
+       if len > 0 then begin
+           ReDoPos := 0;
+           for i := len downto 1 do begin
+               if ReDoPos = MaxLenPath then Exit;
+               inc(ReDoPos);
+               RedoList[ReDoPos] := s1[i];
+           end;
+               
+           isNoDelay := True;
+           ReDo(len);
+           isNoDelay := False;
+       end;
+
+       len := Length(s2);
+
+       // 状态送入 RedoList_BK
+       if (len > 0) and (x > 0) and (y > 0) then begin
+
+           if ManPos_BK >= 0 then begin
+              if map_Board_BK[ManPos_BK] = ManCell then map_Board_BK[ManPos_BK] := FloorCell
+              else map_Board_BK[ManPos_BK] := GoalCell;
+           end;
+
+           ManPos_BK := y * curMapNode.Cols + x;
+
+           if map_Board_BK[ManPos_BK] = FloorCell then map_Board_BK[ManPos_BK] := ManCell
+           else if map_Board_BK[ManPos_BK] = GoalCell then map_Board_BK[ManPos_BK] := ManGoalCell
+           else Exit;
+
+           ManPos_BK_0 := ManPos_BK;
+               
+           ReDoPos_BK := 0;
+           for i := len downto 1 do begin
+               if ReDoPos_BK = MaxLenPath then Exit;
+               inc(ReDoPos_BK);
+               RedoList_BK[ReDoPos_BK] := s2[i];
+           end;
+
+           isNoDelay := True;
+           ReDo_BK(len);
+           isNoDelay := False;
+       end;
+       curMap.isYanShi := True;
+       StatusBar1.Panels[7].Text := '状态已载入！';
+//       StatusBar1.Repaint;
+    end;
+  end;
 
   if mySettings.isXSB_Saved then begin
     if MapList.Count = 0 then
@@ -1640,9 +1719,10 @@ begin
   pmSolution.Items[5].Caption := 'XSB + Lurd 到文档';
   pmSolution.Items[6].Caption := 'XSB + Lurd_All 到剪切板';
   pmSolution.Items[7].Caption := 'XSB + Lurd_All 到文档';
-  pmSolution.Items[8].Caption := '-';
-  pmSolution.Items[9].Caption := '删除';
-  pmSolution.Items[10].Caption := '删除全部';
+  pmSolution.Items[8].Caption := 'XSB_All + Lurd_All 到文档';
+  pmSolution.Items[9].Caption := '-';
+  pmSolution.Items[10].Caption := '删除';
+  pmSolution.Items[11].Caption := '删除全部';
 
   pmState.Items[0].Caption := '正推 Lurd 到剪切板';
   pmState.Items[1].Caption := '逆推 Lurd 到剪切板';
@@ -1651,8 +1731,6 @@ begin
   pmState.Items[4].Caption := '-';
   pmState.Items[5].Caption := '删除';
   pmState.Items[6].Caption := '删除全部';
-  pmState.Items[7].Caption := '-';
-  pmState.Items[8].Caption := '清理非本关卡的全部状态';
 
   pmBoardBK.Items[0].Caption := '固定的目标位';
   pmBoardBK.Items[1].Caption := '即景目标位';
@@ -1661,7 +1739,7 @@ begin
   pmBoardBK.Items[4].Caption := '导出关卡XSB - 剪切板';
   pmBoardBK.Items[5].Caption := '导出现场XSB - 剪切板';
   pmBoardBK.Items[6].Caption := '导出关卡XSB - 文档';
-  pmBoardBK.Items[7].Caption := '关卡送入周转库(BoxMan.xsb)';
+  pmBoardBK.Items[7].Caption := '送入关卡周转库(BoxMan.xsb)';
   pmBoardBK.Items[8].Caption := '-';
   pmBoardBK.Items[9].Caption := '导入动作Lurd - 剪切板 - 正逆推';
   pmBoardBK.Items[10].Caption := '导出已做动作Lurd - 剪切板 - 正逆推';
@@ -1906,13 +1984,15 @@ begin
   result := true;
 
   size := curMap.MapSize;
-  for i := 0 to size-1 do
-  begin
+  for i := 0 to size-1 do begin
     if (map_Board_BK[i] = BoxCell) or (map_Board_BK[i] = GoalCell) then
     begin
       result := false;
       Exit;
     end;
+  end;
+  if (curMap.ManPosition <> ManPos_BK) then begin
+    result := myPathFinder.manTo2(false, -1, -1, curMap.ManPosition div curMapNode.Cols, curMap.ManPosition mod curMapNode.Cols, ManPos_BK div curMapNode.Cols, ManPos_BK mod curMapNode.Cols);
   end;
 end;
 
@@ -1943,8 +2023,7 @@ begin
     flg := myPathFinder.manTo2(false, -1, -1, ManPos div curMapNode.Cols, ManPos mod curMapNode.Cols, ManPos_BK div curMapNode.Cols, ManPos_BK mod curMapNode.Cols);
   end;
 
-  if flg then
-  begin
+  if flg then begin
     Result := True;
      
 //     if isBK then bt_BK.Click;    // 切换到正推界面
@@ -2528,13 +2607,10 @@ begin
       if (not keyPressing) and (ssCtrl in Shift) then begin
          Lurd1.Click;
       end;
-    77:                // Ctrl + M， Lurd 送入剪切板
+    77:                // Ctrl + M， Lurd 送入剪切板; Ctrl + Alt + N， 后续动作 Lurd 送入剪切板
       if (not keyPressing) and (ssCtrl in Shift) then begin
-         Lurd2.Click;
-      end;
-    78:                 // Ctrl + Alt + N， 后续动作 Lurd 送入剪切板
-      if (not keyPressing) and (ssCtrl in Shift) and (ssAlt in Shift) then begin
-         Lurd3.Click;
+         if ssAlt in Shift then Lurd3.Click
+         else Lurd2.Click;
       end;
     67:                 // Ctrl + C， XSB 送入剪切板
       if ssCtrl in Shift then
@@ -2563,7 +2639,7 @@ end;
 procedure Tmain.Restart(is_BK: Boolean);
 begin
     isNoDelay := True;
-    if mySettings.isBK then begin
+    if is_BK then begin
        UnDo_BK(UnDoPos_BK);
     end else begin
        UnDo(UnDoPos);
@@ -2765,7 +2841,7 @@ procedure Tmain.map_ImageMouseDown(Sender: TObject; Button: TMouseButton; Shift:
 var
   MapClickPos: TPoint;
   myCell, pos, x2, y2, k: Integer;
-
+  act, s: string;
 begin
   if curMap.CellSize = 0 then Exit;
 
@@ -2884,6 +2960,21 @@ begin
         case myCell of
           FloorCell, GoalCell:
             begin            // 单击地板
+{$IFDEF TEST}
+   if mySettings.isBK then begin
+     s := '[BK]';
+     if UnDoPos_BK < MaxLenPath then UndoList_BK[UnDoPos_BK+1] := #0;
+     act := PChar(@UndoList_BK);
+   end else begin
+     s := '';
+     if UnDoPos < MaxLenPath then UndoList[UnDoPos+1] := #0;
+     act := PChar(@UndoList);
+   end;
+   Writeln(myLogFile, '');
+   Writeln(myLogFile, s + 'Click the Pass at ' + DateTimeToStr(Now));
+   Writeln(myLogFile, '    ' + act);
+   Flush(myLogFile);
+{$ENDIF}
               if mySettings.isBK then
               begin                                            // 逆推
                 if IsBoxAccessibleTips_BK then
@@ -2982,6 +3073,21 @@ begin
             end;
           ManCell, ManGoalCell:
             begin           // 单击人
+{$IFDEF TEST}
+   if mySettings.isBK then begin
+     s := '[BK]';
+     if UnDoPos_BK < MaxLenPath then UndoList_BK[UnDoPos_BK+1] := #0;
+     act := PChar(@UndoList_BK);
+   end else begin
+     s := '';
+     if UnDoPos < MaxLenPath then UndoList[UnDoPos+1] := #0;
+     act := PChar(@UndoList);
+   end;
+   Writeln(myLogFile, '');
+   Writeln(myLogFile, s + 'Click the Man at ' + DateTimeToStr(Now));
+   Writeln(myLogFile, '    ' + act);
+   Flush(myLogFile);
+{$ENDIF}
               if mySettings.isBK then
               begin                                            // 逆推
                 if IsBoxAccessibleTips_BK and myPathFinder.isBoxReachable_BK(ManPos_BK) then
@@ -3036,6 +3142,21 @@ begin
             end;
           BoxCell, BoxGoalCell:
             begin           // 单击箱子
+{$IFDEF TEST}
+   if mySettings.isBK then begin
+     s := '[BK]';
+     if UnDoPos_BK < MaxLenPath then UndoList_BK[UnDoPos_BK+1] := #0;
+     act := PChar(@UndoList_BK);
+   end else begin
+     s := '';
+     if UnDoPos < MaxLenPath then UndoList[UnDoPos+1] := #0;
+     act := PChar(@UndoList);
+   end;
+   Writeln(myLogFile, '');
+   Writeln(myLogFile, s + 'Click the Box at ' + DateTimeToStr(Now));
+   Writeln(myLogFile, '    ' + act);
+   Flush(myLogFile);
+{$ENDIF}
               if mySettings.isBK then
               begin                                            // 逆推
                 if ManPos_BK < 0 then
@@ -3517,8 +3638,8 @@ begin
      solCRC := Calcu_CRC_32_2(@UndoList, MoveTimes);
      m := MoveTimes;
      p := PushTimes;
-  end else begin           // 逆推过关或正逆相合
-     // 整你相合或逆推过关时，答案已经到了正推中
+  end else begin           // 正逆相合或逆推过关
+     // 正逆相合或逆推过关时，答案已经到了正推 undolist和redolist中
      // 借用一下 ManPath 数组做相关的计算
      for i := 1 to UnDoPos do begin
          ManPath[i] := UndoList[i];
@@ -3671,14 +3792,62 @@ begin
   Result := True;
 end;
 
+// 加载指定关卡的所有答案
+function Tmain.GetSolution(mapNpde: PMapNode): string;
+var
+  str: string;
+  Sol_DateTime: TDateTime;
+  Sol_Moves, Sol_Pushs: Integer;
+
+begin
+  Result := '';
+
+  // 保存答案到数据库
+  try
+    DataModule1.ADOQuery1.Close;
+    DataModule1.ADOQuery1.SQL.Clear;
+    DataModule1.ADOQuery1.SQL.Text := 'select * from Tab_Solution where XSB_CRC32 = ' + IntToStr(mapNpde.CRC32) + ' and Goals = ' + IntToStr(mapNpde.Goals);
+    DataModule1.ADOQuery1.Open;
+    DataModule1.DataSource1.DataSet := DataModule1.ADOQuery1;
+
+     // 读取答案
+    with DataModule1.DataSource1.DataSet do
+    begin
+      First;
+
+      while not Eof do begin
+        Sol_Moves     := FieldByName('Moves').AsInteger;
+        Sol_Pushs     := FieldByName('Pushs').AsInteger;
+        Sol_DateTime  := FieldByName('Sol_DateTime').AsDateTime;
+        str           := FieldByName('Sol_Text').AsString;
+
+        // 答案验证
+        if isSolution(mapNpde, PChar(str)) then begin
+           Result := Result + 'Solution (Moves: ' + inttostr(Sol_Moves) + ', Pushs: '+ inttostr(Sol_Pushs) + ', DateTime: ' + DateTimeToStr(Sol_DateTime) + '): ' + str + #10;
+        end;
+
+        Next;
+      end;
+
+    end;
+
+  except
+    Exit;
+  end;
+
+  DataModule1.ADOQuery1.Close;
+end;
+
 // 重做一步 -- 正推
 procedure Tmain.ReDo(Steps: Integer);
 var
-  ch: Char;
+  ch, ch_: Char;
   pos1, pos2: Integer;
   isMeet, IsCompleted: Boolean;
 
 begin
+  StatusBar1.Panels[7].Text := '';
+
   isSelectMod := False;
   isMoving := True;                                                             // 移动中...
 
@@ -3692,10 +3861,15 @@ begin
   
   while (not IsStop) and (Steps > 0) and (ReDoPos > 0) and (UnDoPos < MaxLenPath) do begin
 
-    ch := RedoList[ReDoPos];
-    Dec(ReDoPos);
+    // 人的位置出现异常
+    if (ManPos < 0) or (ManPos >= curMap.MapSize) or
+       (not (map_Board[ManPos] in [ManCell, ManGoalCell])) then begin
+       StatusBar1.Panels[7].Text := format('人的位置异常！- [%d, %d]', [ManPos mod curMapNode.Cols + 1, ManPos div curMapNode.Cols + 1]);
+       Break;
+    end;
 
-    Dec(Steps);
+    ch  := RedoList[ReDoPos];
+    ch_ := ch;
 
     pos1 := -1;
     pos2 := -1;
@@ -3726,25 +3900,45 @@ begin
         end;
     end;
 
-    if (pos1 < 0) or (pos1 >= curMap.MapSize) then Break;                       // pos1 界外
+    if (pos1 < 0) or (pos1 >= curMap.MapSize) then begin                        // pos1 界外
+       StatusBar1.Panels[7].Text := '遇到了错误的动作符号！- ' + ch_;
+       Break;
+    end;
 
     // 遇到地板，仅仅移动人即可；若遇到箱子，需要同时移动箱子和人；否则，遇到了错误，直接结束本次的移动
     if (map_Board[pos1] in [ FloorCell, GoalCell]) then begin                   // pos1 是通道
+
        if map_Board[pos1] = FloorCell then map_Board[pos1] := ManCell
        else map_Board[pos1] := ManGoalCell;
+
     end else if (map_Board[pos1] in [ BoxCell, BoxGoalCell]) then begin         // pos1 是箱子
-      if (pos2 < 0) or (pos2 >= curMap.MapSize) then Break;                     // pos2 界外
+
+      if (pos2 < 0) or (pos2 >= curMap.MapSize) then begin                      // pos2 界外
+         StatusBar1.Panels[7].Text := '遇到了错误的动作符号！- ' + ch_;
+         Break;
+      end;
+
       if (map_Board[pos2] in [ FloorCell, GoalCell]) then begin                 // pos2 是通道
+
          if map_Board[pos2] = FloorCell then map_Board[pos2] := BoxCell         // 箱子到位
          else map_Board[pos2] := BoxGoalCell;
+
          if map_Board[pos1] = BoxCell then map_Board[pos1] := ManCell           // 人到位
          else map_Board[pos1] := ManGoalCell;
+
          ch := Char(Ord(ch) - 32);                                              // 变成大写 -- 推动
-         Inc(PushTimes);                                                        // 推动步数
          BoxNum_Board[pos2] := BoxNum_Board[pos1];                              // 新箱子编号
          BoxNum_Board[pos1] := -1;                                              // 原箱子编号
-      end else Break;                                                           // 错误动作
-    end else Break;                                                             // 错误动作
+
+         Inc(PushTimes);                                                        // 推动步数
+      end else begin                                                            // 错误动作
+         StatusBar1.Panels[7].Text := '遇到了错误的动作符号！- ' + ch_;
+         Break;
+      end;
+    end else begin                                                              // 错误动作
+       StatusBar1.Panels[7].Text := '遇到了错误的动作符号！- ' + ch_;
+       Break;
+    end;
 
     // 到了这里，动作正确，将人移走
     if map_Board[ManPos] = ManCell then map_Board[ManPos] := FloorCell          // 人移走
@@ -3752,26 +3946,28 @@ begin
 
     Inc(MoveTimes);                                                             // 移动步数
 
+    Dec(ReDoPos);
     Inc(UnDoPos);
     UndoList[UnDoPos] := ch;
     ManPos := pos1;                                                             // 人的新位置
 
     if (not mySettings.isIM) and (not isNoDelay) then DrawMap();                // 更新地图显示
-    
+
     ShowStatusBar();
     StatusBar1.Panels[5].Text := ' ' + GetCur(ManPos mod curMapNode.Cols, ManPos div curMapNode.Cols) + ' - [ ' + IntToStr((ManPos mod curMapNode.Cols) + 1) + ', ' + IntToStr((ManPos div curMapNode.Cols) + 1) + ' ]';       // 标尺
 
+    Dec(Steps);
     if Steps > 0 then GameDelay();                                              // 延时
 
     if (not curMap.isYanShi) and (ch in [ 'L', 'R', 'U', 'D' ]) and (PushTimes > 0)then begin
 
-      if IsComplete() then                                                      // 解关成功
+      if IsComplete() then                                      // 解关成功
       begin
         IsCompleted := True;
         Break;
       end
       else if IsMeets(ch) then
-      begin                                                                      // 正逆相合
+      begin                                                                     // 正逆相合
         isMeet := True;
         Break;
       end;
@@ -3790,13 +3986,15 @@ begin
 
     mySettings.isLurd_Saved := True;
 
+    curMap.isYanShi := True;
     ShowMyInfo('正推过关！', '恭喜');
 
   end else if isMeet then begin
     // 自动保存一下答案
-    SaveSolution(2);                                                            // 正逆相合
+    SaveSolution(2);
+    curMap.isYanShi := True;                                                    // 正逆相合
     ShowMyInfo('正逆相合！', '恭喜');
-  end else StatusBar1.Panels[7].Text := '';
+  end;
 
   IsStop    := false;
   isNoDelay := false;                                                           // 是否为无延时动作 -- 至首、至尾功能用
@@ -3810,6 +4008,8 @@ var
   ch: Char;
   pos1, pos2: Integer;
 begin
+  StatusBar1.Panels[7].Text := '';
+
   isSelectMod := False;
   isMoving := True;                                                             // 移动中...
 
@@ -3820,10 +4020,14 @@ begin
 
   while (not IsStop) and (Steps > 0) and (UnDoPos > 0) and (ReDoPos < MaxLenPath) do begin
 
+    // 人的位置出现异常
+    if (ManPos < 0) or (ManPos >= curMap.MapSize) or
+       (not (map_Board[ManPos] in [ManCell, ManGoalCell])) then begin
+       StatusBar1.Panels[7].Text := format('人的位置异常！- [%d, %d]', [ManPos mod curMapNode.Cols + 1, ManPos div curMapNode.Cols + 1]);
+       Break;
+    end;
+    
     ch := UndoList[UnDoPos];
-    Dec(UnDoPos);
-
-    Dec(Steps);
 
     pos1 := -1;
     pos2 := -1;
@@ -3850,26 +4054,18 @@ begin
         end;
     end;
 
-//    if (map_Board[pos2] <> FloorCell) and (map_Board[pos2] <> GoalCell) then begin
-//      StatusBar1.Panels[7].Text := '遇到了错误的动作符号！';
-//      Break;
-//    end;
-    // 人的回退
-    if map_Board[pos2] = FloorCell then
-      map_Board[pos2] := ManCell
-    else
-      map_Board[pos2] := ManGoalCell;
-
     // 检测是否包含箱子的退回
     if ch in ['L', 'R', 'U', 'D'] then
     begin
 
-//      if (map_Board[pos1] <> BoxCell) and (map_Board[pos1] <> BoxGoalCell) then begin
-//        StatusBar1.Panels[7].Text := '遇到了错误的动作符号！';
-//        Break;
-//      end;
+      if (pos1 < 0) or (pos1 >= curMap.MapSize) or                              // 界外，等
+         (pos2 < 0) or (pos2 >= curMap.MapSize) or
+         (not (map_Board[pos1] in [BoxCell, BoxGoalCell])) or
+         (not (map_Board[pos2] in [FloorCell, GoalCell])) then begin
+         StatusBar1.Panels[7].Text := '遇到了错误的动作符号！- ' + ch;
+         Break;
+      end;
 
-      Dec(PushTimes);                                                           // 推动步数
       if (map_Board[pos1] = BoxCell) then
         map_Board[pos1] := FloorCell
       else
@@ -3880,19 +4076,40 @@ begin
       else
         map_Board[ManPos] := BoxGoalCell;
 
+      // 人的回退
+      if map_Board[pos2] = FloorCell then
+        map_Board[pos2] := ManCell
+      else
+        map_Board[pos2] := ManGoalCell;
+
       BoxNum_Board[ManPos] := BoxNum_Board[pos1];                               // 新箱子编号
       BoxNum_Board[pos1] := -1;                                                 // 原箱子编号
+
+      Dec(PushTimes);                                                           // 推动步数
     end
     else
     begin
+      if (pos2 < 0) or (pos2 >= curMap.MapSize) or                              // 界外，等
+         (not (map_Board[pos2] in [FloorCell, GoalCell])) then begin
+         StatusBar1.Panels[7].Text := '遇到了错误的动作符号！- ' + ch;
+         Break;
+      end;
+
       if (map_Board[ManPos] = ManCell) then
         map_Board[ManPos] := FloorCell
       else
         map_Board[ManPos] := GoalCell;
+
+      // 人的回退
+      if map_Board[pos2] = FloorCell then
+        map_Board[pos2] := ManCell
+      else
+        map_Board[pos2] := ManGoalCell;
     end;
 
     Dec(MoveTimes);                                                             // 移动步数
 
+    Dec(UnDoPos);
     inc(ReDoPos);
     RedoList[ReDoPos] := ch;
     ManPos := pos2;                                                             // 人的新位置
@@ -3901,13 +4118,13 @@ begin
     ShowStatusBar();
     StatusBar1.Panels[5].Text := ' ' + GetCur(ManPos mod curMapNode.Cols, ManPos div curMapNode.Cols) + ' - [ ' + IntToStr((ManPos mod curMapNode.Cols) + 1) + ', ' + IntToStr((ManPos div curMapNode.Cols) + 1) + ' ]';       // 标尺
 
+    Dec(Steps);
     if Steps > 0 then GameDelay();                                              // 延时
 
   end;
 
   if mySettings.isIM or isNoDelay then DrawMap();                               // 更新地图显示
 
-  StatusBar1.Panels[7].Text := '';
   StatusBar1.Repaint;
 
   IsStop    := false;
@@ -3924,22 +4141,27 @@ var
   isOK, isMeet, IsCompleted: Boolean;
   
 begin
+  StatusBar1.Panels[7].Text := '';
+  
   isSelectMod := False;
   isMoving := True;
                                                                                 // 移动中...
   IsBoxAccessibleTips_BK := False;
   IsManAccessibleTips_BK := False;
-  StatusBar1.Panels[7].Text := '';
 
   isMeet := False;
   IsCompleted := False;
 
   while (not IsStop) and (Steps > 0) and (ReDoPos_BK > 0) and (UnDoPos_BK < MaxLenPath) do begin
 
-    ch := RedoList_BK[ReDoPos_BK];
-    Dec(ReDoPos_BK);
+    // 人的位置出现异常
+    if (ManPos_BK < 0) or (ManPos_BK >= curMap.MapSize) or
+       (not (map_Board_BK[ManPos_BK] in [ManCell, ManGoalCell])) then begin
+       StatusBar1.Panels[7].Text := format('人的位置异常！- [%d, %d]', [ManPos_BK mod curMapNode.Cols + 1, ManPos_BK div curMapNode.Cols + 1]);
+       Break;
+    end;
 
-    Dec(Steps);
+    ch := RedoList_BK[ReDoPos_BK];
 
     pos1 := -1;
     pos2 := -1;
@@ -3975,14 +4197,23 @@ begin
     begin
       if ch in [ 'L', 'R', 'U', 'D' ] then
       begin
-        if (map_Board_BK[pos2] <> BoxCell) and (map_Board_BK[pos2] <> BoxGoalCell) or (map_Board_BK[pos1] <> FloorCell) and (map_Board_BK[pos1] <> GoalCell) then begin
-          StatusBar1.Panels[7].Text := '遇到了错误的动作符号！';
-          Break;                                                                // 遇到错误
+
+        if (pos2 < 0) or (pos2 >= curMap.MapSize) or                              // 界外，等
+           (pos1 < 0) or (pos1 >= curMap.MapSize) or
+           (not (map_Board_BK[pos2] in [BoxCell, BoxGoalCell])) or
+           (not (map_Board_BK[pos1] in [FloorCell, GoalCell]))then begin
+           StatusBar1.Panels[7].Text := '遇到了错误的动作符号！- ' + ch;
+           Break;
         end;
 
+        if map_Board_BK[pos2] = BoxCell then
+          map_Board_BK[pos2] := FloorCell
+        else
+          map_Board_BK[pos2] := GoalCell;
+
         if (map_Board_BK[pos1] = FloorCell) then                                // 下一格是地板
-          map_Board_BK[pos1] := ManCell         
-        else                                                                    // 下一格是目标点
+          map_Board_BK[pos1] := ManCell
+        else
           map_Board_BK[pos1] := ManGoalCell;
 
         if map_Board_BK[ManPos_BK] = ManCell then
@@ -3990,29 +4221,26 @@ begin
         else
           map_Board_BK[ManPos_BK] := BoxGoalCell;
 
-        if map_Board_BK[pos2] = BoxCell then
-          map_Board_BK[pos2] := FloorCell
-        else
-          map_Board_BK[pos2] := GoalCell;
-          
-        Inc(PushTimes_BK);                                                      // 推动步数
-
         BoxNum_Board_BK[ManPos_BK] := BoxNum_Board_BK[pos2];                    // 新箱子编号
         BoxNum_Board_BK[pos2] := -1;                                            // 原箱子编号
+
+        Inc(PushTimes_BK);                                                      // 推动步数
       end
       else
       begin
-        if (map_Board_BK[pos1] <> FloorCell) and (map_Board_BK[pos1] <> GoalCell) then begin
-          StatusBar1.Panels[7].Text := '遇到了错误的动作符号！';
-          Break;                                                                // 遇到错误
+
+        if (pos1 < 0) or (pos1 >= curMap.MapSize) or                            // 界外，等
+           (not (map_Board_BK[pos1] in [FloorCell, GoalCell]))then begin
+           StatusBar1.Panels[7].Text := '遇到了错误的动作符号！- ' + ch;
+           Break;
         end;
 
         // 人到位
         if (map_Board_BK[pos1] = FloorCell) then                                // 下一格是地板
           map_Board_BK[pos1] := ManCell          
-        else                                                                    // 下一格是目标点
+        else
           map_Board_BK[pos1] := ManGoalCell;
-                                                                              
+
         if map_Board_BK[ManPos_BK] = ManCell then
           map_Board_BK[ManPos_BK] := FloorCell
         else
@@ -4021,6 +4249,7 @@ begin
 
       Inc(MoveTimes_BK);                                                        // 移动步数
 
+      Dec(ReDoPos_BK);
       Inc(UnDoPos_BK);
       UndoList_BK[UnDoPos_BK] := ch;
       ManPos_BK := pos1;                                                        // 人的新位置
@@ -4029,16 +4258,14 @@ begin
       ShowStatusBar();
       StatusBar1.Panels[5].Text := ' ' + GetCur(ManPos_BK mod curMapNode.Cols, ManPos_BK div curMapNode.Cols) + ' - [ ' + IntToStr((ManPos_BK mod curMapNode.Cols) + 1) + ', ' + IntToStr((ManPos_BK div curMapNode.Cols) + 1) + ' ]';       // 标尺
 
+      Dec(Steps);
       if Steps > 0 then GameDelay();                                            // 延时
 
       if (not curMap.isYanShi) and (ch in [ 'L', 'R', 'U', 'D' ]) and (PushTimes_BK > 0)then begin
-        if IsComplete_BK() then                                                 // 解关成功
-        begin
-          IsCompleted := True;
+        if IsComplete_BK() then begin                                           // 逆推过关
+          IsCompleted := True;                             
           Break;
-        end
-        else if IsMeets(ch) then                                                // 正逆相合
-        begin                                                                   
+        end else if IsMeets(ch) then begin                                      // 正逆相合
           isMeet := True;
           Break;
         end;
@@ -4046,79 +4273,67 @@ begin
     end;
   end;
 
-  if mySettings.isIM or isNoDelay then DrawMap();                               // 更新地图显示
-
   StatusBar1.Repaint;
 
-  if IsCompleted then begin
+  if mySettings.isIM or isNoDelay then DrawMap();                               // 更新地图显示
 
-    ReDoPos_BK := 0;
+  if IsCompleted then begin                                                     // 逆推过关，答案转存到正推
 
-    // 逆推答案转存到正推
     Restart(false);                                                             // 正推地图复位
     ReDoPos := 0;
 
-    // 跳过逆推答案中，前面无用的空移动作
+    len := myPathFinder.manTo(false, map_Board, ManPos, ManPos_BK);             // 取得人的“相合”路径
+
+    // 跳过逆推转正推答案时，最后一推后面无用的空移动作
     n := 1;
     while n <= UnDoPos_BK do begin
       if UndoList_BK[n] in [ 'L', 'R', 'U', 'D' ] then Break;
       inc(n);
     end;
 
-
-    for i := n to UnDoPos_BK do
-    begin
-      Inc(ReDoPos);
-      case UndoList_BK[i] of
-        'l':
-          RedoList[ReDoPos] := 'r';
-        'r':
-          RedoList[ReDoPos] := 'l';
-        'u':
-          RedoList[ReDoPos] := 'd';
-        'd':
-          RedoList[ReDoPos] := 'u';
-        'L':
-          RedoList[ReDoPos] := 'R';
-        'R':
-          RedoList[ReDoPos] := 'L';
-        'U':
-          RedoList[ReDoPos] := 'D';
-        'D':
-          RedoList[ReDoPos] := 'U';
-      end
-    end;
-
-    isOK := True;
-    if ManPos <> ManPos_BK then
-    begin
-      len := myPathFinder.manTo(false, map_Board, ManPos, ManPos_BK);
-      for i := len downto 1 do
-      begin
-        if ReDoPos = MaxLenPath then
-        begin
-          isOK := False;
-          ReDoPos := 0;
-          Break;
-        end;
+    // 把逆推undolist_bk中的动作，转送入正推的resolist中
+    if len + UnDoPos_BK - n <= MaxLenPath then begin                                                          // 将逆推答案转送正推中
+      ReDoPos := 0;
+      for i := n to UnDoPos_BK do begin
         Inc(ReDoPos);
-        RedoList[ReDoPos] := ManPath[i];
+        case UndoList_BK[i] of
+          'l':
+            RedoList[ReDoPos] := 'r';
+          'r':
+            RedoList[ReDoPos] := 'l';
+          'u':
+            RedoList[ReDoPos] := 'd';
+          'd':
+            RedoList[ReDoPos] := 'u';
+          'L':
+            RedoList[ReDoPos] := 'R';
+          'R':
+            RedoList[ReDoPos] := 'L';
+          'U':
+            RedoList[ReDoPos] := 'D';
+          'D':
+            RedoList[ReDoPos] := 'U';
+        end
       end;
-    end;
-
-    if isOK then begin                                                          // 逆推过关
+      // 补足人的“相合”动作
+      for i := len downto 1 do begin
+          Inc(ReDoPos);
+          RedoList[ReDoPos] := ManPath[i];
+      end;
       // 自动保存一下答案
-      SaveSolution(2);                                   
+      SaveSolution(2);
+      curMap.isYanShi := True;
       ShowMyInfo('逆推过关！', '恭喜');
-    end else
-      ShowMyInfo('逆推过关！' + #10 + '答案过长，保存失败！', '恭喜');
-
-  end
-  else if isMeet then begin                                                     // 正逆相合
+    end else begin
+      SaveState();                                                            // 保存关卡 XSB 到文档，状态到数据库
+      ShowMyInfo('逆推过关！' + #10 + '因答案过长，仅以状态方式保存！', '恭喜');
+    end;
+  end else if isMeet then begin                                                 // 正逆相合
     // 自动保存一下答案
-    SaveSolution(2);          
+    SaveSolution(2);
+    curMap.isYanShi := True;     
     ShowMyInfo('正逆相合！', '恭喜');
-  end else StatusBar1.Panels[7].Text := '';
+  end;
   
   IsStop    := false;
   isNoDelay := false;                                                           // 是否为无延时动作 -- 至首、至尾功能用
@@ -4133,20 +4348,24 @@ var
   pos1, pos2: Integer;
 
 begin
+  StatusBar1.Panels[7].Text := '';
+
   isSelectMod := False;
   isMoving := True;                                                             // 移动中...
                                                         
   IsBoxAccessibleTips_BK := False;
   IsManAccessibleTips_BK := False;
-  StatusBar1.Panels[7].Text := '';
 
   while (not IsStop) and (Steps > 0) and (UnDoPos_BK > 0) and (ReDoPos_BK < MaxLenPath) do begin
 
+    // 人的位置出现异常
+    if (ManPos_BK < 0) or (ManPos_BK >= curMap.MapSize) or
+       (not (map_Board_BK[ManPos_BK] in [ManCell, ManGoalCell])) then begin
+       StatusBar1.Panels[7].Text := format('人的位置异常！- [%d, %d]', [ManPos_BK mod curMapNode.Cols + 1, ManPos_BK div curMapNode.Cols + 1]);
+       Break;
+    end;
+
     ch := UndoList_BK[UnDoPos_BK];
-    Dec(UnDoPos_BK);
-
-    Dec(Steps);
-
 
     pos1 := -1;
     pos2 := -1;
@@ -4173,53 +4392,52 @@ begin
         end;
     end;
 
-    // 检测是否包含箱子的退回
-    if ch in [ 'L', 'R', 'U', 'D' ] then
-    begin
-    
-//      if (map_Board_BK[pos1] <> BoxCell) and (map_Board_BK[pos1] <> BoxGoalCell) or (map_Board_BK[pos2] <> FloorCell) and (map_Board_BK[pos2] <> GoalCell) then begin
-//        StatusBar1.Panels[7].Text := '遇到了错误的动作符号！';
-//        Break;
-//      end;
+    // 检测是否包含箱子的动作
+    if ch in [ 'L', 'R', 'U', 'D' ] then begin
 
-      Dec(PushTimes_BK);                                                        // 推动步数
-
-      if (map_Board_BK[pos2] = FloorCell) then
-        map_Board_BK[pos2] := BoxCell
-      else 
-        map_Board_BK[pos2] := BoxGoalCell;
+      if (pos2 < 0) or (pos2 >= curMap.MapSize) or                              // 界外，等
+         (pos1 < 0) or (pos1 >= curMap.MapSize) or
+         (not (map_Board_BK[pos1] in [BoxCell, BoxGoalCell])) or
+         (not (map_Board_BK[pos2] in [FloorCell, GoalCell]))then begin
+         StatusBar1.Panels[7].Text := '遇到了错误的动作符号！- ' + ch;
+         Break;
+      end;
 
       if map_Board_BK[pos1] = BoxCell then
         map_Board_BK[pos1] := ManCell
       else
         map_Board_BK[pos1] := ManGoalCell;
-        
+
+      if (map_Board_BK[pos2] = FloorCell) then
+        map_Board_BK[pos2] := BoxCell
+      else
+        map_Board_BK[pos2] := BoxGoalCell;
+
       BoxNum_Board_BK[pos2] := BoxNum_Board_BK[pos1];                           // 新箱子编号
       BoxNum_Board_BK[pos1] := -1;                                              // 原箱子编号
-    end
-    else
-    begin
-    
-//      if (map_Board_BK[pos1] <> FloorCell) and (map_Board_BK[pos1] <> GoalCell) then begin
-//        StatusBar1.Panels[7].Text := '遇到了错误的动作符号！';
-//        Break;
-//      end;
 
+      Dec(PushTimes_BK);                                                        // 推动步数
+    end else begin
+      if (pos1 < 0) or (pos1 >= curMap.MapSize) or                              // 界外，等
+         (not (map_Board_BK[pos1] in [FloorCell, GoalCell])) then begin
+         StatusBar1.Panels[7].Text := '遇到了错误的动作符号！- ' + ch;
+         Break;
+      end;
       if (map_Board_BK[pos1] = FloorCell) then
         map_Board_BK[pos1] := ManCell
       else
         map_Board_BK[pos1] := ManGoalCell;
     end;
 
-    // 前面无差错，这里就应该没有问题了
     // 人的退回
     if (map_Board_BK[ManPos_BK] = ManCell) then
       map_Board_BK[ManPos_BK] := FloorCell
-    else 
+    else
       map_Board_BK[ManPos_BK] := GoalCell;
 
     Dec(MoveTimes_BK);                                                          // 移动步数
 
+    Dec(UnDoPos_BK);
     Inc(ReDoPos_BK);
     RedoList_BK[ReDoPos_BK] := ch;
     ManPos_BK := pos1;                                                          // 人的新位置
@@ -4228,15 +4446,15 @@ begin
     ShowStatusBar();
     StatusBar1.Panels[5].Text := ' ' + GetCur(ManPos_BK mod curMapNode.Cols, ManPos_BK div curMapNode.Cols) + ' - [ ' + IntToStr((ManPos_BK mod curMapNode.Cols) + 1) + ', ' + IntToStr((ManPos_BK div curMapNode.Cols) + 1) + ' ]';       // 标尺
 
+    Dec(Steps);
     if Steps > 0 then GameDelay();                                              // 延时
 
   end;
 
+  StatusBar1.Repaint;
+
   if mySettings.isIM or isNoDelay then DrawMap();                               // 更新地图显示
 
-  StatusBar1.Panels[7].Text := '';
-  StatusBar1.Repaint;
-  
   IsStop    := false;
   isNoDelay := false;                                                           // 是否为无延时动作 -- 至首、至尾功能用
   isYanshi  := false;                                                           // 是否正在演示中 -- 空格键和退格键控制的
@@ -4859,32 +5077,37 @@ begin
     if (myExtName = '') or (myExtName = '.') then
       myFileName := changefileext(myFileName, '.xsb');
 
-    AssignFile(myXSBFile, myFileName);
-    if AnsiSameText(myFileName, AppPath + 'BoxMan.xsb') and FileExists(myFileName) then Append(myXSBFile)   // 周转关卡库，以追加方式保存
-    else ReWrite(myXSBFile);
+    if not FileExists(myFileName) or (MessageBox(Handle, PChar(myFileName + #10 + ' 文档已经存在，覆写它吗？'), '警告', MB_ICONWARNING + MB_OKCANCEL) = idOK) then begin
 
-    for i := 0 to MapList.Count - 1 do
-    begin
-      mapNode := MapList.Items[i];
+      AssignFile(myXSBFile, myFileName);
+      if AnsiSameText(myFileName, AppPath + 'BoxMan.xsb') and FileExists(myFileName) then Append(myXSBFile)   // 周转关卡库，以追加方式保存
+      else ReWrite(myXSBFile);
 
-      Writeln(myXSBFile, '');
-      for j := 0 to mapNode.Map.Count - 1 do
-      begin
-        Writeln(myXSBFile, mapNode.Map[j]);
-      end;
-      if Trim(mapNode.Title) <> '' then
-        Writeln(myXSBFile, 'Title: ' + mapNode.Title);
-      if Trim(mapNode.Author) <> '' then
-        Writeln(myXSBFile, 'Author: ' + mapNode.Author);
-      if Trim(mapNode.Comment) <> '' then
-      begin
-        Writeln(myXSBFile, 'Comment: ');
-        Writeln(myXSBFile, mapNode.Comment);
-        Writeln(myXSBFile, 'Comment_end: ');
+      try
+        for i := 0 to MapList.Count - 1 do
+        begin
+          mapNode := MapList.Items[i];
+
+          Writeln(myXSBFile, '');
+          for j := 0 to mapNode.Map.Count - 1 do
+          begin
+            Writeln(myXSBFile, mapNode.Map[j]);
+          end;
+          if Trim(mapNode.Title) <> '' then
+            Writeln(myXSBFile, 'Title: ' + mapNode.Title);
+          if Trim(mapNode.Author) <> '' then
+            Writeln(myXSBFile, 'Author: ' + mapNode.Author);
+          if Trim(mapNode.Comment) <> '' then
+          begin
+            Writeln(myXSBFile, 'Comment: ');
+            Writeln(myXSBFile, mapNode.Comment);
+            Writeln(myXSBFile, 'Comment_end: ');
+          end;
+        end;
+      finally
+        Closefile(myXSBFile);
       end;
     end;
-
-    Closefile(myXSBFile);
 
     mySettings.MapFileName := myFileName;
     n := Pos(AppPath, mySettings.MapFileName);
@@ -5160,10 +5383,12 @@ end;
 procedure Tmain.pmJijingClick(Sender: TObject);
 begin
   isSelectMod := False;
-//  if mySettings.isBK then
-//    mySettings.isJijing_BK := not mySettings.isJijing_BK
-//  else
-    mySettings.isJijing := not mySettings.isJijing;
+
+  mySettings.isJijing := not mySettings.isJijing;
+  if mySettings.isJijing then
+    pmJijing.Checked := True
+  else
+    pmJijing.Checked := False;
 
   DrawMap();                                  // 更新地图显示
   ShowStatusBar();
@@ -5421,7 +5646,7 @@ var
 
 begin
    if GetStateFromDB(List_State.ItemIndex, x, y, s1, s2) then begin
-      s := GetXSB();
+      s := GetXSB(curMapNode);
       
       len := Length(s1);
       if len > 0 then s := s + s1;
@@ -5453,23 +5678,27 @@ begin
     if (myExtName = '') or (myExtName = '.') then
       myFileName := changefileext(myFileName, '.txt');
 
-    AssignFile(myXSBFile, myFileName);
-    ReWrite(myXSBFile);
+    if not FileExists(myFileName) or (MessageBox(Handle, PChar(myFileName + #10 + ' 文档已经存在，覆写它吗？'), '警告', MB_ICONWARNING + MB_OKCANCEL) = idOK) then begin
+      AssignFile(myXSBFile, myFileName);
+      ReWrite(myXSBFile);
 
-    Write(myXSBFile, GetXSB());
+      try
+        Write(myXSBFile, GetXSB(curMapNode));
 
-    if GetStateFromDB(List_State.ItemIndex, x, y, s1, s2) then begin
-      
-      len := Length(s1);
-      if len > 0 then Write(myXSBFile, s1 + #10);
+        if GetStateFromDB(List_State.ItemIndex, x, y, s1, s2) then begin
 
-      len := Length(s2);
-      if (len > 0) and (x > 0) and (y > 0) then Write(myXSBFile, PChar('[' + IntToStr(x) + ', ' + IntToStr(y) + ']' + s2 + #10));
+          len := Length(s1);
+          if len > 0 then Write(myXSBFile, s1 + #10);
 
-      StatusBar1.Panels[7].Text := 'XSB + Lurd 到文档！';
+          len := Length(s2);
+          if (len > 0) and (x > 0) and (y > 0) then Write(myXSBFile, PChar('[' + IntToStr(x) + ', ' + IntToStr(y) + ']' + s2 + #10));
+
+          StatusBar1.Panels[7].Text := 'XSB + Lurd 到文档！';
+        end;
+      finally
+        Closefile(myXSBFile);
+      end;
     end;
-
-    Closefile(myXSBFile);
   end;
 end;
 
@@ -5584,7 +5813,7 @@ var
 
 begin
    if GetSolutionFromDB(List_Solution.ItemIndex, s1) then begin
-      s := GetXSB();
+      s := GetXSB(curMapNode);
 
       len := Length(s1);
       if len > 0 then begin
@@ -5604,7 +5833,7 @@ var
   solNode: ^TSoltionNode;
 
 begin
-   s := GetXSB();
+   s := GetXSB(curMapNode);
    ss := '';
 
    len0 := List_Solution.Count;
@@ -5643,26 +5872,29 @@ begin
     if (myExtName = '') or (myExtName = '.') then
         myFileName := changefileext(myFileName, '.txt');
 
-    if GetSolutionFromDB(List_Solution.ItemIndex, s1) then begin
+    if not FileExists(myFileName) or (MessageBox(Handle, PChar(myFileName + #10 + ' 文档已经存在，覆写它吗？'), '警告', MB_ICONWARNING + MB_OKCANCEL) = idOK) then begin
+      if GetSolutionFromDB(List_Solution.ItemIndex, s1) then begin
 
-      len := Length(s1);
-      
-      if len > 0 then begin
-         AssignFile(myXSBFile, myFileName);
-         ReWrite(myXSBFile);
+        len := Length(s1);
 
-         Write(myXSBFile, GetXSB());
+        if len > 0 then begin
+           AssignFile(myXSBFile, myFileName);
+           ReWrite(myXSBFile);
 
-         solNode := SoltionList.items[List_Solution.ItemIndex];
-         Write(myXSBFile, 'Solution (Moves: ' + IntToStr(solNode.Moves) + ', Pushs: ' + IntToStr(solNode.Pushs) + '): ' + s1 + #10);
-         StatusBar1.Panels[7].Text := 'XSB + Lurd 到文档！';
-         Closefile(myXSBFile);
-         solNode := nil;
-      end else StatusBar1.Panels[7].Text := '保存 XSB + Lurd 到文档失败！';
+           Write(myXSBFile, GetXSB(curMapNode));
+
+           solNode := SoltionList.items[List_Solution.ItemIndex];
+           Write(myXSBFile, 'Solution (Moves: ' + IntToStr(solNode.Moves) + ', Pushs: ' + IntToStr(solNode.Pushs) + '): ' + s1 + #10);
+           StatusBar1.Panels[7].Text := 'XSB + Lurd 到文档！';
+           Closefile(myXSBFile);
+           solNode := nil;
+        end else StatusBar1.Panels[7].Text := '保存 XSB + Lurd 到文档失败！';
+      end;
     end;
   end;
 end;
 
+// 导出当前关卡及其所有答案
 procedure Tmain.so_XSB_LurdAll_FileClick(Sender: TObject);
 var
   myXSBFile: Textfile;
@@ -5682,25 +5914,82 @@ begin
     if (myExtName = '') or (myExtName = '.') then
        myFileName := changefileext(myFileName, '.txt');
 
-    AssignFile(myXSBFile, myFileName);
-    ReWrite(myXSBFile);
+    if not FileExists(myFileName) or (MessageBox(Handle, PChar(myFileName + #10 + ' 文档已经存在，覆写它吗？'), '警告', MB_ICONWARNING + MB_OKCANCEL) = idOK) then begin
 
-    Write(myXSBFile, GetXSB());
+      AssignFile(myXSBFile, myFileName);
+      ReWrite(myXSBFile);
 
-    len0 := List_Solution.Count;
-    for i := 0 to len0-1 do begin
-       if GetSolutionFromDB(i, s1) then begin
-          len := Length(s1);
-          if len > 0 then begin
-             solNode := SoltionList.items[i];
-             Write(myXSBFile, 'Solution (Moves: ' + IntToStr(solNode.Moves) + ', Pushs: ' + IntToStr(solNode.Pushs) + '): ' + s1 + #10);
-          end;
-       end;
+      try
+        Write(myXSBFile, GetXSB(curMapNode));
+
+        len0 := List_Solution.Count;
+        for i := 0 to len0-1 do begin
+           if GetSolutionFromDB(i, s1) then begin
+              len := Length(s1);
+              if len > 0 then begin
+                 solNode := SoltionList.items[i];
+                 Write(myXSBFile, 'Solution (Moves: ' + IntToStr(solNode.Moves) + ', Pushs: ' + IntToStr(solNode.Pushs) + '): ' + s1 + #10);
+              end;
+           end;
+        end;
+
+        solNode := nil;
+        StatusBar1.Panels[7].Text := 'XSB + Lurd_All 到文档！';
+      finally
+        Closefile(myXSBFile);
+      end;
     end;
+  end;
+end;
 
-    solNode := nil;
-    StatusBar1.Panels[7].Text := 'XSB + Lurd_All 到文档！';
-    Closefile(myXSBFile);
+// 导出全部关卡及其答案
+procedure Tmain.so_XSBAll_LurdAll1_FileClick(Sender: TObject);
+var
+  myXSBFile: Textfile;
+  myFileName, myExtName, str: string;
+  size, n: Integer;
+  solNode: ^TSoltionNode;
+  mapNode: PMapNode;
+
+begin
+  if MapList.Count = 0 then begin
+     StatusBar1.Panels[7].Text := '正在解析关卡文档，请稍后再试！';
+     Exit;
+  end;
+
+  dlgSave1.InitialDir := AppPath;
+  dlgSave1.FileName := '';
+
+  if dlgSave1.Execute then begin
+    myFileName := dlgSave1.FileName;
+
+    myExtName := ExtractFileExt(myFileName);
+
+    if (myExtName = '') or (myExtName = '.') then
+       myFileName := changefileext(myFileName, '.txt');
+
+    if not FileExists(myFileName) or (MessageBox(Handle, PChar(myFileName + #10 + ' 文档已经存在，覆写它吗？'), '警告', MB_ICONWARNING + MB_OKCANCEL) = idOK) then begin
+
+      AssignFile(myXSBFile, myFileName);
+      ReWrite(myXSBFile);
+
+      try
+        size := MapList.Count;
+        for n := 0 to size-1 do begin
+            StatusBar1.Panels[7].Text := '导出：' + IntToStr(n+1) + '/' + IntToStr(size);
+            mapNode := MapList[n];
+            Write(myXSBFile, GetXSB(mapNode));
+
+            str := GetSolution(mapNode);
+            Write(myXSBFile, str);
+        end;
+
+        solNode := nil;
+        StatusBar1.Panels[7].Text := '导出全部关卡及答案！';
+      finally
+        Closefile(myXSBFile);
+      end;
+    end;
   end;
 end;
 
@@ -5878,14 +6167,13 @@ begin
   DrawMap();        // 画地图
 end;
 
-procedure Delay(msecs:integer);
+procedure Delay(msecs: dword);
 var
-  FirstTickCount: longint;
+  FirstTickCount: dword;
+  
 begin
   FirstTickCount := GetTickCount;
-  repeat
-    Application.ProcessMessages;
-  until ((GetTickCount-FirstTickCount) >= Longint(msecs));
+  while GetTickCount-FirstTickCount < msecs do Application.ProcessMessages;
 end;
 
 procedure Tmain.FormMouseWheelDown(Sender: TObject; Shift: TShiftState;
@@ -6098,14 +6386,14 @@ begin
 
   size := mySettings.LaterList.Count;
 
-  if size = 0 then Exit;
-
-  pm_Later.Items.Clear;
-  for i := 0 to size-1 do begin
-      ItemL1 := TMenuItem.Create(Nil);
-      ItemL1.Caption := mySettings.LaterList[i];
-      ItemL1.OnClick := MenuItemClick;
-      pm_Later.Items.Add(ItemL1);
+  if size > 0 then begin
+     pm_Later.Items.Clear;
+     for i := 0 to size-1 do begin
+        ItemL1 := TMenuItem.Create(Nil);
+        ItemL1.Caption := mySettings.LaterList[i];
+        ItemL1.OnClick := MenuItemClick;
+        pm_Later.Items.Add(ItemL1);
+     end;
   end;
   ItemL1 := TMenuItem.Create(Nil);
   ItemL1.Caption := '-';
@@ -6138,16 +6426,7 @@ end;
 
 procedure Tmain.pm_HomeClick(Sender: TObject);
 begin
-  if isMoving then IsStop := True
-  else IsStop := False;
-
-  if (curMapNode = nil) or (curMapNode.Map.Count = 0) then Exit;
-  
-  isNoDelay := True;
-  if mySettings.isBK then UnDo_BK(UnDoPos_BK)
-  else UnDo(UnDoPos);
-  isNoDelay := false;
-  StatusBar1.Panels[7].Text := '重新开始！';
+  N16.Click;
 end;
 
 procedure Tmain.N1Click(Sender: TObject);
@@ -6467,6 +6746,8 @@ begin
   if isMoving then IsStop := True
   else IsStop := False;
 
+  if (curMapNode = nil) or (curMapNode.Map.Count = 0) then Exit;
+  
   if mySettings.isBK then
   begin
     UnDo_BK(GetStep(mySettings.isBK));
@@ -6486,6 +6767,8 @@ begin
   if isMoving then IsStop := True
   else IsStop := False;
 
+  if (curMapNode = nil) or (curMapNode.Map.Count = 0) then Exit;
+  
   if mySettings.isBK then
     ReDo_BK(GetStep2(mySettings.isBK))
   else
@@ -6497,6 +6780,8 @@ begin
   if isMoving then IsStop := True
   else IsStop := False;
 
+  if (curMapNode = nil) or (curMapNode.Map.Count = 0) then Exit;
+  
   if mySettings.isBK then UnDo_BK(1)
   else UnDo(1);
 end;
@@ -6506,6 +6791,8 @@ begin
   if isMoving then IsStop := True
   else IsStop := False;
 
+  if (curMapNode = nil) or (curMapNode.Map.Count = 0) then Exit;
+  
   if mySettings.isBK then ReDo_BK(1)
   else ReDo(1);
 end;
@@ -6515,6 +6802,8 @@ begin
   if isMoving then IsStop := True
   else IsStop := False;
 
+  if (curMapNode = nil) or (curMapNode.Map.Count = 0) then Exit;
+  
   isNoDelay := True;
   if mySettings.isBK then UnDo_BK(UnDoPos_BK)
   else UnDo(UnDoPos);
@@ -6527,6 +6816,8 @@ begin
   if isMoving then IsStop := True
   else IsStop := False;
 
+  if (curMapNode = nil) or (curMapNode.Map.Count = 0) then Exit;
+  
   isNoDelay := True;
   if mySettings.isBK then ReDo_BK(ReDoPos_BK)
   else ReDo(ReDoPos);
@@ -6652,9 +6943,10 @@ end;
 
 procedure Tmain.XSB0Click(Sender: TObject);
 var
-  myXSBFile: Textfile;
+  myXSBFile, myBakFile: Textfile;
   i, j: Integer;
   mapNode: PMapNode;               // 关卡节点
+  line: string;
 
 begin
 
@@ -6669,35 +6961,55 @@ begin
 
     AssignFile(myXSBFile, AppPath + mySettings.MapFileName);
 
-    if FileExists(AppPath + mySettings.MapFileName) then Append(myXSBFile)   // 周转关卡库，以追加方式保存
-    else Rewrite(myXSBFile);                                                 // 创建
-    
-    for i := 0 to MapList.Count - 1 do
-    begin
-      mapNode := MapList.Items[i];
+    // 备份
+    if FileExists(AppPath + mySettings.MapFileName) then CopyFile(PChar(AppPath + mySettings.MapFileName), PChar(AppPath + 'BoxMan.xsb.bak'), False);   // 周转关卡库，以追加方式保存
 
-      Writeln(myXSBFile, '');
-      for j := 0 to mapNode.Map.Count - 1 do
+    Rewrite(myXSBFile);                                                 // 创建
+
+    try
+      // 先写入新的内容
+      for i := 0 to MapList.Count - 1 do
       begin
-        Writeln(myXSBFile, mapNode.Map[j]);
+        mapNode := MapList.Items[i];
+
+        Writeln(myXSBFile, '');
+        for j := 0 to mapNode.Map.Count - 1 do
+        begin
+          Writeln(myXSBFile, mapNode.Map[j]);
+        end;
+        if Trim(mapNode.Title) <> '' then
+          Writeln(myXSBFile, 'Title: ' + mapNode.Title);
+        if Trim(mapNode.Author) <> '' then
+          Writeln(myXSBFile, 'Author: ' + mapNode.Author);
+        if Trim(mapNode.Comment) <> '' then
+        begin
+          Writeln(myXSBFile, 'Comment: ');
+          Writeln(myXSBFile, mapNode.Comment);
+          Writeln(myXSBFile, 'Comment_end: ');
+        end;
       end;
-      if Trim(mapNode.Title) <> '' then
-        Writeln(myXSBFile, 'Title: ' + mapNode.Title);
-      if Trim(mapNode.Author) <> '' then
-        Writeln(myXSBFile, 'Author: ' + mapNode.Author);
-      if Trim(mapNode.Comment) <> '' then
-      begin
-        Writeln(myXSBFile, 'Comment: ');
-        Writeln(myXSBFile, mapNode.Comment);
-        Writeln(myXSBFile, 'Comment_end: ');
+
+      // 再把备份的内容追加进来
+      if FileExists(AppPath + 'BoxMan.xsb.bak') then begin
+         AssignFile(myBakFile, AppPath + 'BoxMan.xsb.bak');
+         Reset(myBakFile);
+         try
+           Writeln(myXSBFile, '');
+           while not eof(myBakFile) do begin
+              readln(myBakFile, line);        // 读取一行
+              Writeln(myXSBFile, line);
+           end;
+         finally
+           Closefile(myBakFile);
+         end;
       end;
+    finally
+      Closefile(myXSBFile);
     end;
-
-    Closefile(myXSBFile);
 
     mySettings.isXSB_Saved := True;            // 当从剪切板导入的 XSB 是否保存过了
 
-    StatusBar1.Panels[7].Text := '已入关卡周转库';
+    StatusBar1.Panels[7].Text := '已入关卡周转库，重新打开“关卡周转库”可查看全部关卡。';
     Caption := AppName + AppVer + ' - ' + ExtractFileName(ChangeFileExt(mySettings.MapFileName, EmptyStr)) + ' ~ [' + inttostr(curMap.CurrentLevel) + '/' + inttostr(MapList.Count) + ']';
   end;
 end;
@@ -6733,7 +7045,7 @@ begin
     StatusBar1.Panels[7].Text := '从剪切板加载 Lurd！';
     if mySettings.isBK and (ManPos_BK_0_2 >= 0) then begin   // 处理人的位置
       myCell := map_Board_OG[ManPos_BK_0_2];
-      if (myCell = FloorCell) or (myCell = GoalCell) then begin
+      if (myCell = FloorCell) or (myCell = BoxCell) then begin
         for i := 0 to curMap.MapSize - 1 do begin
           if map_Board_OG[i] = BoxCell then
             map_Board_BK[i] := GoalCell
@@ -6794,6 +7106,41 @@ begin
   keyPressing := true;
   if LurdToClipboard2(mySettings.isBK) then
      StatusBar1.Panels[7].Text := '后续动作 Lurd 送入剪切板！';
+end;
+
+// 测试代码
+procedure Tmain.SpeedButton1Click(Sender: TObject);
+const
+  Lurd: array[0..7] of Char = ( 'l', 'u', 'r', 'd', 'L', 'U', 'R', 'D' );
+var
+  i, n: Integer;
+begin
+//  UnDoPos_BK := 0;
+//  for i := 1 to 30 do begin
+//      n := Random(8);
+//      Inc(UnDoPos_BK);
+//      UndoList_BK[UnDoPos_BK] := Lurd[n];
+//  end;
+//  reDoPos_bk := 0;
+//  for i := 1 to 30 do begin
+//      n := Random(8);
+//      Inc(reDoPos_bk);
+//      redoList_bk[reDoPos_bk] := Lurd[n];
+//  end;
+//  UnDoPos := 0;
+//  for i := 1 to 30 do begin
+//      n := Random(8);
+//      Inc(UnDoPos);
+//      UndoList[UnDoPos] := Lurd[n];
+//  end;
+//  UndoList[UnDoPos+1] := #0;
+//  caption := PChar(@UndoList);
+//  reDoPos := 0;
+//  for i := 1 to 30 do begin
+//      n := Random(8);
+//      Inc(reDoPos);
+//      redoList[reDoPos] := Lurd[n];
+//  end;
 end;
 
 initialization

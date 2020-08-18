@@ -102,11 +102,13 @@ var
 begin
    Result := False;
 
+   if (UnDoPos <= 0) and (UnDoPos_BK <= 0) then Exit;
+
    if UnDoPos    < MaxLenPath then UndoList[UnDoPos+1]       := #0;
    if UnDoPos_BK < MaxLenPath then UndoList_BK[UnDoPos_BK+1] := #0;
 
    str  := PChar(@UndoList);
-   str1 := '[' + IntToStr(c) + ', ' + IntToStr(r) + ']';
+   str1 := '[' + IntToStr(c+1) + ', ' + IntToStr(r+1) + ']';
    str2 := PChar(@UndoList_BK);
 
    if UnDoPos > 0 then begin
@@ -136,8 +138,8 @@ begin
    if isBK then begin
       if ReDoPos_BK > 0 then begin
          if ReDoPos_BK < MaxLenPath then RedoList_BK[ReDoPos_BK+1] := #0;
-         str  := PChar(@RedoList_BK);
-         Clipboard.SetTextBuf(PChar(str));
+         str := PChar(@RedoList_BK);
+         Clipboard.SetTextBuf(PChar(reversestring(str)));
          Result := true;
       end;
    end else begin
@@ -213,8 +215,10 @@ begin
 
          if p.Count = 2 then begin
             try
-              j := strToInt(p[0]);
-              i := strToInt(p[1]);
+//              j := strToInt(p[0]);
+//              i := strToInt(p[1]);
+              j := strToInt(p[0])-1;
+              i := strToInt(p[1])-1;
               if not ((i < 0) or (j < 0) or (i >= curMapNode.Rows) or (j >= curMapNode.Cols)) then ManPos_BK_0_2 := i * curMapNode.Cols + j;
             except
             end;

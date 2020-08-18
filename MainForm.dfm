@@ -1,6 +1,6 @@
 object main: Tmain
-  Left = 302
-  Top = 137
+  Left = 222
+  Top = 132
   Width = 732
   Height = 530
   Caption = 'BoxMan'
@@ -596,6 +596,14 @@ object main: Tmain
       ShowHint = True
       OnClick = bt_LeftBarClick
     end
+    object SpeedButton1: TSpeedButton
+      Left = 584
+      Top = 4
+      Width = 23
+      Height = 22
+      Visible = False
+      OnClick = SpeedButton1Click
+    end
     object pnl_Trun: TPanel
       Left = 484
       Top = 4
@@ -681,7 +689,7 @@ object main: Tmain
       OnClick = XSB3Click
     end
     object XSB0: TMenuItem
-      Caption = #21152#20837#21608#36716#24211'(BoxMan.xsb)'
+      Caption = #36865#20837#21608#36716#24211'(BoxMan.xsb)'
       ShortCut = 16459
       OnClick = XSB0Click
     end
@@ -763,6 +771,10 @@ object main: Tmain
     object so_XSB_LurdAll_File: TMenuItem
       Caption = 'XSB + Lurd_All '#21040#25991#26723
       OnClick = so_XSB_LurdAll_FileClick
+    end
+    object so_XSBAll_LurdAll1_File: TMenuItem
+      Caption = 'XSB_All + Lurd_All '#21040#25991#26723
+      OnClick = so_XSBAll_LurdAll1_FileClick
     end
     object N6: TMenuItem
       Caption = '-'

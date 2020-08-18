@@ -88,7 +88,7 @@ begin
 
   myTitle := '浏览 [完成率: ' + IntToStr(Solved_Count) + '/' + IntToStr(MapList.Count) + ']';
   if ListView1.ItemIndex < 0 then Caption := myTitle
-  else Caption := myTitle + ' - ' + '【№: ' + IntToStr(ListView1.ItemIndex+1) + '】' + mapNode.Title + ',  作者: ' + mapNode.Author;
+  else Caption := myTitle + ' - ' + '#' + IntToStr(ListView1.ItemIndex+1) + mapNode.Title + ',  作者: ' + mapNode.Author;
 end;
 
 procedure TBrowseForm.FormCreate(Sender: TObject);
@@ -199,7 +199,7 @@ begin
              if mapNode.Map[i][j] in ['.', '*', '+'] then Inc(mapNode.Goals);
          end;
      end;
-     Caption := myTitle + ' - ' + '【№: ' + IntToStr(ListView1.ItemIndex+1) + '，尺寸: ' + IntToStr(mapNode.Cols) + '×' + IntToStr(mapNode.Rows) + '，箱子: ' + IntToStr(mapNode.Boxs) + '，目标: ' + IntToStr(mapNode.Goals) + '】' + mapNode.Title + ',  作者: ' + mapNode.Author;      // 得到对应数据的前地址
+     Caption := myTitle + ' - ' + '#' + IntToStr(ListView1.ItemIndex+1) + '，尺寸: ' + IntToStr(mapNode.Cols) + '×' + IntToStr(mapNode.Rows) + '，箱子: ' + IntToStr(mapNode.Boxs) + '，目标: ' + IntToStr(mapNode.Goals) + mapNode.Title + ',  作者: ' + mapNode.Author;      // 得到对应数据的前地址
   end;
 end;
 

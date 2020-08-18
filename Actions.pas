@@ -130,18 +130,18 @@ begin
   M_X := -1;
   M_Y := -1;
   if isBK then begin             // 逆推
-      i := pos('[', str);
-      j := pos(']', str);
+      i := pos('[', Act);
+      j := pos(']', Act);
       if (i > 0) and (j > 0) and (j > i) then begin
-         str := copy(str, i+1, j-i-1);
-         delete(str, 1, j);
+         str := copy(Act, i+1, j-i-1);
+         delete(Act, 1, j);
          p := TStringList.Create;
          p.CommaText := str;
 
          if p.Count = 2 then begin
             try
-              M_X := strToInt(p[0]);
-              M_Y := strToInt(p[1]);
+              M_X := strToInt(p[0])-1;
+              M_Y := strToInt(p[1])-1;
             except
               M_X := -1;
               M_Y := -1;
@@ -331,11 +331,15 @@ begin
      if (myExtName = '') or (myExtName = '.') then
         myFileName := changefileext(myFileName, '.txt');
 
-     try
-       MemoAct.Lines.SaveToFile(myFileName);
-     except
-       StatusBar1.Panels[0].Text := '写【' + myFileName + '】文档时遇到错误！';
+     if not FileExists(myFileName) or (MessageBox(Handle, PChar(myFileName + #10 + ' 文档已经存在，覆写它吗？'), '警告', MB_ICONWARNING + MB_OKCANCEL) = idOK) then begin
+        try
+          MemoAct.Lines.SaveToFile(myFileName);
+          StatusBar1.Panels[0].Text := '文档 ' + myFileName + '保存成功！';
+        except
+          StatusBar1.Panels[0].Text := '写【' + myFileName + '】文档时遇到错误！';
+        end;
      end;
+     
   end;
 end;
 
