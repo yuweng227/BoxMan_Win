@@ -419,8 +419,8 @@ var
 	ww, hh, r, c, x, y: integer;
 begin
 
-	ww := (cur_Rect.right - cur_Rect.left) div myScale - 4;  // 实际取样尺寸，即周边各让出 2 个像素
-	hh := (cur_Rect.bottom - cur_Rect.top) div myScale - 4;  // 实际取样尺寸，即周边各让出 2 个像素
+	ww := cur_Rect.right - cur_Rect.left - 4;  // 实际取样尺寸，即周边各让出 2 个像素
+	hh := cur_Rect.bottom - cur_Rect.top - 4;  // 实际取样尺寸，即周边各让出 2 个像素
 	img0 := TBitmap.create;
 	img1 := TBitmap.create;
 	img0.width := ww;
@@ -436,19 +436,19 @@ begin
 
 	rt2 := Rect(0, 0, ww, hh);
 
-	rt0 := Rect(cur_Rect.left div myScale + 2, cur_Rect.top div myScale + 2, cur_Rect.left div myScale + 2 + img0.width, cur_Rect.top div myScale + 2 + img0.height);  // 样本范围
-	img0.Canvas.CopyRect(rt2, Image2.Canvas, rt0);                                                    // 样本图片
+	rt0 := Rect(cur_Rect.left + 2, cur_Rect.top + 2, cur_Rect.left + 2 + img0.width, cur_Rect.top + 2 + img0.height);  // 样本范围
+	img0.Canvas.CopyRect(rt2, Image1.Canvas, rt0);                                                    // 样本图片
 	my_Grey0 := getAverageGrey(img0, True, my_Color0, m_SampleArray0);                                // 获取样本的主颜色
 
 	// 从"左上角"开始搜索子图
-	y := Map_Top.Value div myScale;
+	y := Map_Top.Value;
 
 	for r := 0 to PicRows do begin
-		x := Map_Left.Value div myScale;
+		x := Map_Left.Value;
 		for c := 0 to PicCols do begin
       if myMap[r, c] = '-' then begin
               rt1 := Rect(x + 2, y + 2, x + 2 + ww, y + 2 + hh);   // 格子范围
-              img1.Canvas.CopyRect(rt2, Image2.Canvas, rt1);                                   // 格子图片
+              img1.Canvas.CopyRect(rt2, Image1.Canvas, rt1);                                   // 格子图片
               if isSubimage(img1, c, r) then begin
                  case mySelect of
                    1: myMap[r, c] := XSB_Char[1];                                       // 墙壁
@@ -466,16 +466,16 @@ begin
 
 {$IFDEF TEST}
     rt1 := Rect(x + 2, y + 2, x + 2 + ww, y + 2 + hh);   // 格子范围
-    img1.Canvas.CopyRect(rt2, Image2.Canvas, rt1);       // 格子图片
+    img1.Canvas.CopyRect(rt2, Image1.Canvas, rt1);       // 格子图片
     isSubimage(img1, c, r);
     duMap[r, c] := imgDu;
     clMap[r, c] := clrDu;
 {$ENDIF}
 
       end;
-			x := x + Map_ColWidth.Value div myScale;
+			x := x + Map_ColWidth.Value;
 		end;
-		y := y + Map_RowHeight.Value div myScale;
+		y := y + Map_RowHeight.Value;
 	end;
   LoadSkinForm.MyBMPFree(img0);
   LoadSkinForm.MyBMPFree(img1);
@@ -850,6 +850,7 @@ begin
      image2.Width := fullscreen.Width;
      image2.Height := fullscreen.Height;
 
+     myScale := 1;                                // 刚打开图像时，不做缩放
      Image1.Width  := Image2.Width;
      Image1.Height := Image2.Height;
      Image1.Visible := True;

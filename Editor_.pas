@@ -422,7 +422,7 @@ begin
   sb_Help.Hint := '帮助【F1]';
   sb_LoadPic.Hint := '截图识别';
   bt_Skin.Hint := '更换皮肤【F2】'; 
-  sb_Trial.Hint := '演炼场【正推演练：F5/单击；逆推演练：F6/Ctrl + 单击】';  
+  sb_Trial.Hint := '演练场【正推演练：F5/单击；逆推演练：F6/Ctrl + 单击】';
 
   bt_LeftBar.Hint := '切换编辑模式或摆箱子模式【H】';
 
@@ -2318,7 +2318,7 @@ begin
       if flg then dec(right);
   end;
 
-  // 试炼场范围，定义为人的活动范围向外扩充一个单元格
+  // 试练场范围，定义为人的活动范围向外扩充一个单元格
   Dec(top);
   Dec(left);
   Inc(bottom);
@@ -2328,7 +2328,7 @@ begin
 
   PathFinder.init(TrialForm.mapCols, TrialForm.mapRows);
 
-  // 将试炼地图送入试炼场
+  // 将试练地图送入试练场
   for i := top to bottom do begin
       for j := left to right do begin
           case MapBoard_OK[i, j] of
@@ -2343,13 +2343,13 @@ begin
       end;
   end;
 
-  // 进入试炼场
+  // 进入试练场
   if GetKeyState(VK_CONTROL) < 0 then begin  // 是否按下 ctrl 键
-    TrialForm.isBK := True;         // 逆推演炼场
-    TrialForm.Caption := '逆推演炼场';
+    TrialForm.isBK := True;         // 逆推演练场
+    TrialForm.Caption := '逆推演练场';
   end else begin
-    TrialForm.isBK := False;        // 正推演炼场
-    TrialForm.Caption := '正推演炼场';
+    TrialForm.isBK := False;        // 正推演练场
+    TrialForm.Caption := '正推演练场';
   end;
 
   TrialForm.StatusBar1.Panels[5].Text := Format('%d', [ nBox ]);

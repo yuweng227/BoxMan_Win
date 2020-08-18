@@ -367,7 +367,7 @@ const
   SpeedInf: array[0..4] of string = ('最快', '较快', '中速', '较慢', '最慢');
   
   AppName = 'BoxMan';
-  AppVer = ' V2.5';
+  AppVer = ' V2.6';
 
 var
   main: Tmain;
@@ -1492,6 +1492,7 @@ begin
       // 是否“逆推模式”
       if mySettings.isBK then
       begin
+
         map_Image.Canvas.Brush.Style := bsClear;
         map_Image.Canvas.Font.Name := '微软雅黑';
         map_Image.Canvas.Font.Size := 16;
@@ -3356,6 +3357,8 @@ begin
                       map_Board_BK[ManPos_BK] := ManCell
                     else
                       map_Board_BK[ManPos_BK] := ManGoalCell;
+
+                    StatusBar1.Panels[7].Text := '';
                   end
                   else
                   begin
