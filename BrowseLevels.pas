@@ -4,19 +4,20 @@ interface
 
 uses
   Windows, Messages, SysUtils, Variants, Classes, Graphics, Controls, Forms,
-  ComCtrls, ImgList, Math, CommCtrl, Menus, StdCtrls, ExtCtrls, Buttons;
+  ComCtrls, ImgList, Math, CommCtrl, Menus, StdCtrls, ExtCtrls, Buttons, LoadMapUnit;
 
+  
 type
   TBrowseForm = class(TForm)
     ListView1: TListView;
-    ImageList1: TImageList;
     PopupMenu1: TPopupMenu;
     B1: TMenuItem;
     Panel1: TPanel;
     ColorBox1: TColorBox;
     Label1: TLabel;
     SpeedButton1: TSpeedButton;
-    I1: TMenuItem;        // 背景色
+    I1: TMenuItem;
+    ImageList1: TImageList;        // 背景色
 
     procedure ListView1DblClick(Sender: TObject);
     procedure FormShow(Sender: TObject);
@@ -30,6 +31,7 @@ type
     procedure ColorBox1Click(Sender: TObject);
     procedure SpeedButton1Click(Sender: TObject);
     procedure I1Click(Sender: TObject);
+    procedure DrawIcon(cv: TCanvas; mapNode: PMapNode);    // 画图标
 
   private
     { Private declarations }
@@ -39,6 +41,7 @@ type
 
     Map_Icon: TBitmap;       // 关卡图标
     BK_Color: TColor;        // 浏览背景色
+    curIndex: Integer;
     
   end;
 
@@ -50,7 +53,7 @@ var
 implementation
 
 uses
-  LoadSkin, LoadMap, inf;
+  LoadSkin, inf, MainForm, DateModule;
 
 {$R *.dfm}
 
@@ -68,20 +71,24 @@ var
   mapNode: PMapNode;
   
 begin
-  ListView1.Items.Clear;
-  try
-    ListView1.Color := BK_Color;
-  except
-  end;
+  ListView1.Color := BK_Color;
 
   Solved_Count := 0;
-  for i := 0 to MapList.Count-1 do begin   // 添加空 item
-      ListView1.Items.add;
-      mapNode := MapList[i];
-      if mapNode.Solved then inc(Solved_Count);
+  for i := 0 to MapList.Count-1 do begin   // 添加 item
+    mapNode := MapList[i];
+    if mapNode.Solved then inc(Solved_Count);
   end;
-  myTitle := '浏览 [完成: ' + IntToStr(Solved_Count) + '/' + IntToStr(MapList.Count) + ']';
-  Caption := myTitle;
+
+  if (curIndex < 0) or (curIndex >= MapList.Count) then curIndex := 0;
+
+  if ListView1.Items.Count > 0 then begin
+    ListView1.ItemIndex := curIndex;
+    ListView1.Items[curIndex].MakeVisible(True);
+  end;
+
+  myTitle := '浏览 [完成率: ' + IntToStr(Solved_Count) + '/' + IntToStr(MapList.Count) + ']';
+  if ListView1.ItemIndex < 0 then Caption := myTitle
+  else Caption := myTitle + ' - ' + '【№: ' + IntToStr(ListView1.ItemIndex+1) + '】' + mapNode.Title + ',  作者: ' + mapNode.Author;
 end;
 
 procedure TBrowseForm.FormCreate(Sender: TObject);
@@ -105,45 +112,50 @@ begin
 end;
 
 // 画图标
-procedure DrawIcon(cv: TCanvas; mapNode: PMapNode);
+procedure TBrowseForm.DrawIcon(cv: TCanvas; mapNode: PMapNode);
 var
-  i, j, x_Size, y_Size, cell_Size, x, y: Integer;
+  i, j, x_Size, y_Size, cell_Size, x, y, Rows, Cols, len: Integer;
   R: TRect;
+  ch: Char;
 
 begin
-  x_Size := Size_Icon div mapNode.Cols;
-  y_Size := Size_Icon div mapNode.Rows;
-  cell_Size := Min(x_Size, y_Size);
-  x := (Size_Icon - cell_Size * mapNode.Cols) div 2;
-  y := (Size_Icon - cell_Size * mapNode.Rows) div 2;
+  Rows := mapNode.Map.Count;
+  Cols := Length(mapNode.Map[0]);
 
-  for i := 0 to mapNode.Rows-1 do begin
-      for j := 1 to mapNode.Cols do begin
+  x_Size := Size_Icon div Cols;
+  y_Size := Size_Icon div Rows;
+  cell_Size := Min(x_Size, y_Size);
+  x := (Size_Icon - cell_Size * Cols) div 2;
+  y := (Size_Icon - cell_Size * Rows) div 2;
+
+  for i := 0 to Rows-1 do begin
+      len := Length(mapNode.Map[i]);
+      for j := 1 to Cols do begin
           R := Rect((j-1) * cell_Size + x, i * cell_Size + y, j * cell_Size + x, (i+1) * cell_Size + y);
-          case mapNode.Map[i][j] of
-              '#': begin
-                   cv.StretchDraw(R, WallPic);
-              end;
-              '-': begin
-                   cv.StretchDraw(R, FloorPic);
-              end;
-              '.': begin
-                   cv.StretchDraw(R, GoalPic);
-              end;
-              '$': begin
-                   cv.StretchDraw(R, BoxPic);
-              end;
-              '*': begin
-                   cv.StretchDraw(R, BoxGoalPic);
-              end;
-              '@': begin
-                   cv.StretchDraw(R, ManPic);
-              end;
-              '+': begin
-                   cv.StretchDraw(R, ManGoalPic);
-              end;
+          
+          if j > len then ch := '-'
+          else ch := mapNode.Map[i][j];
+
+          case ch of
+            '#': cv.StretchDraw(R, WallPic);
+            '-': cv.StretchDraw(R, FloorPic);
+            '.': cv.StretchDraw(R, GoalPic);
+            '$': cv.StretchDraw(R, BoxPic);
+            '*': cv.StretchDraw(R, BoxGoalPic);
+            '@': cv.StretchDraw(R, ManPic);
+            '+': cv.StretchDraw(R, ManGoalPic);
           end;
       end;
+  end;
+
+  // 不合格的关卡
+  if not mapNode.isEligible then begin
+     cv.Pen.Color := $0000ff;
+     cv.Pen.Width := 2;
+     cv.MoveTo(0, 0);
+     cv.LineTo(Size_Icon, Size_Icon);
+     cv.MoveTo(0, Size_Icon);
+     cv.LineTo(Size_Icon, 0);
   end;
 end;
 
@@ -151,65 +163,44 @@ procedure TBrowseForm.ListView1AdvancedCustomDrawItem(
   Sender: TCustomListView; Item: TListItem; State: TCustomDrawState;
   Stage: TCustomDrawStage; var DefaultDraw: Boolean);
 var
-  R: TRect;    // R 为文字覆盖的范围
-  s: string;
   mapNode: PMapNode;
+  R: TRect;
 
 begin
   mapNode := MapList[Item.index];
-  R := Item.DisplayRect(drBounds);
+  if mapNode.Solved then Sender.Canvas.Brush.Color := $009600;
 
-  // 关卡序号
-  if mapNode.Title = '' then s := '【№' + IntToStr(Item.index+1) + '】'
-  else s := mapNode.Title;
-
-  with ListView1.Canvas do begin
-    // 画图标
-    Map_Icon.Canvas.Brush.Color := BrowseForm.BK_Color;
-    Map_Icon.Canvas.FillRect(Rect(0, 0, Size_Icon, Size_Icon));
-    DrawIcon(Map_Icon.Canvas, mapNode);
-
-    // 缩略图的左下角加上关卡序号
-//    Map_Icon.Canvas.Font.Size := 10;
-    Map_Icon.Canvas.Font.Color := clBlue;
-    Map_Icon.Canvas.TextOut(0, Size_Icon-15, '№' + IntToStr(Item.index+1));
-
-    // 画焦点框
-    if cdsSelected in State then begin
-       Map_Icon.Canvas.DrawFocusRect(Rect(0, 0, Size_Icon, Size_Icon));
-    end;
-    Draw(r.Left + 8, r.top, Map_Icon);
-
-
-    // 画标题
-    r.top := r.top + Size_Icon;
-    r.Bottom := r.Bottom;
-    r.left := r.left;
-    r.right := r.right;
-    SetBkMode(Handle, TRANSPARENT);                // 设定文字为透明
-    if mapNode.Solved then begin                   
-       Sender.Canvas.Brush.Color := $009500;       // 绿色标识已解关卡
-    end else begin
-       Sender.Canvas.Brush.Color := BrowseForm.BK_Color;
-    end;
-    FillRect(r);
-    DrawText(Handle, PChar(s), Length(s), r, DT_WORDBREAK or DT_CENTER);
+  // 如还没有画好图标
+  if Item.ImageIndex < 0 then begin
+     Map_Icon.Canvas.Brush.Color := BK_Color;
+     Map_Icon.Canvas.FillRect(Rect(0, 0, Size_Icon, Size_Icon));
+     DrawIcon(Map_Icon.Canvas, mapNode);
+     R := Item.DisplayRect(drBounds);
+     ListView1.Canvas.Draw(r.Left + 8, r.top, Map_Icon);
+     ImageList1.Add(Map_Icon, nil);
+     Item.ImageIndex := ImageList1.Count-1;
   end;
-  
-  with Sender.Canvas do
-    if Assigned(Font.OnChange) then Font.OnChange(Font);
-
 end;
 
 procedure TBrowseForm.ListView1Click(Sender: TObject);
 var
   mapNode: PMapNode;
+  i, j: Integer;
   
 begin
-  if ListView1.ItemIndex >= 0 then begin
+  if ListView1.ItemIndex < 0 then Caption := myTitle
+  else begin
      mapNode := MapList[ListView1.ItemIndex];
-     Caption := myTitle + ' - ' + mapNode.Title + ',  作者: ' + mapNode.Author;      // 得到对应数据的前地址
-  end else Caption := myTitle;;
+     mapNode.Boxs := 0;
+     mapNode.Goals := 0;
+     for i := 0 to mapNode.Rows-1 do begin
+         for j := 1 to mapNode.Cols do begin
+             if mapNode.Map[i][j] in ['$', '*'] then Inc(mapNode.Boxs);
+             if mapNode.Map[i][j] in ['.', '*', '+'] then Inc(mapNode.Goals);
+         end;
+     end;
+     Caption := myTitle + ' - ' + '【№: ' + IntToStr(ListView1.ItemIndex+1) + '，尺寸: ' + IntToStr(mapNode.Cols) + '×' + IntToStr(mapNode.Rows) + '，箱子: ' + IntToStr(mapNode.Boxs) + '，目标: ' + IntToStr(mapNode.Goals) + '】' + mapNode.Title + ',  作者: ' + mapNode.Author;      // 得到对应数据的前地址
+  end;
 end;
 
 procedure TBrowseForm.FormResize(Sender: TObject);

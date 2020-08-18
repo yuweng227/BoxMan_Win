@@ -1,6 +1,6 @@
 object ActionForm: TActionForm
-  Left = 236
-  Top = 158
+  Left = 222
+  Top = 54
   BorderStyle = bsDialog
   Caption = #21160#20316#32534#36753
   ClientHeight = 513
@@ -13,7 +13,6 @@ object ActionForm: TActionForm
   Font.Style = []
   OldCreateOrder = False
   Position = poScreenCenter
-  OnActivate = FormActivate
   OnCreate = FormCreate
   OnKeyUp = FormKeyUp
   OnShow = FormShow
@@ -170,7 +169,6 @@ object ActionForm: TActionForm
       #23492#23384#22120' 2'
       #23492#23384#22120' 3'
       #23492#23384#22120' 4'
-      #23492#23384#22120' 5'
       #25991#26723)
   end
   object SaveBox: TComboBox
@@ -180,9 +178,7 @@ object ActionForm: TActionForm
     Height = 22
     Style = csOwnerDrawFixed
     ItemHeight = 16
-    ItemIndex = 0
     TabOrder = 11
-    Text = #21098#20999#26495
     OnSelect = SaveBoxSelect
     Items.Strings = (
       #21098#20999#26495
@@ -190,7 +186,6 @@ object ActionForm: TActionForm
       #23492#23384#22120' 2'
       #23492#23384#22120' 3'
       #23492#23384#22120' 4'
-      #23492#23384#22120' 5'
       #25991#26723)
   end
   object StatusBar1: TStatusBar

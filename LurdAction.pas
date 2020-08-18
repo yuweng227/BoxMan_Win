@@ -48,7 +48,7 @@ var
 implementation
 
 uses
-  LoadMap;
+  LoadMapUnit;
 
 
 // 判断是否为有效的 Lurd 行
@@ -65,7 +65,7 @@ begin
   
   k := 1;
   while k <= n do begin
-     if not (str[k] in [ 'l', 'u', 'r', 'd', 'L', 'U', 'R', 'D', ' ' ]) then Break;
+     if not (str[k] in [ 'l', 'u', 'r', 'd', 'L', 'U', 'R', 'D', ' ', #9 ]) then Break;
      Inc(k);
   end;
 
@@ -86,7 +86,7 @@ begin
   
   k := 1;
   while k <= n do begin
-     if not (str[k] in [ 'l', 'u', 'r', 'd', 'L', 'U', 'R', 'D', ',', '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', ' ', '[', ']' ]) then Break;
+     if not (str[k] in [ 'l', 'u', 'r', 'd', 'L', 'U', 'R', 'D', ',', '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', ' ', '[', ']', ' ', #9 ]) then Break;
      Inc(k);
   end;
 

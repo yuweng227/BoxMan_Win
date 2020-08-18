@@ -3,7 +3,7 @@ unit LoadSkin;
 interface
 
 uses
-  Windows, Messages, SysUtils, Variants, Classes, Graphics, Controls, Forms,
+  Windows, Messages, SysUtils, Variants, Classes, Graphics, Controls, Forms, Math,
   Dialogs, StdCtrls, ExtCtrls, StrUtils;
 
 type
@@ -38,7 +38,9 @@ var
   // 现场皮肤
   WallPic, FloorPic, GoalPic, ManPic, ManGoalPic, BoxPic, BoxGoalPic: TBitmap;
   WallPic_lurd, WallPic_lr, WallPic_l, WallPic_r, WallPic_ud, WallPic_u, WallPic_d, WallPic_lu, WallPic_ld, WallPic_ru, WallPic_rd, WallPic_lur, WallPic_ldr, WallPic_uld, WallPic_urd, WallPic_top: TBitmap;        // 无缝墙壁
-  TmpPic, MaskPic: TBitmap;           // 画图书效果用的临时位图、遮罩位图
+  FloorPic2, GoalPic2, ManPic2, ManGoalPic2, BoxPic2, BoxGoalPic2: TBitmap;  // 高亮图元
+  MaskPic: TBitmap;  // 选择单元格掩图
+
   SkinSize      : Integer;            // 皮肤元素尺寸
   LineColor     : TColor;             // 格线颜色
   isFloorLine   : Boolean;            // 地板是否画线
@@ -112,6 +114,13 @@ begin
   ManGoalPic     :=TBitmap.Create;
   BoxPic         :=TBitmap.Create;
   BoxGoalPic     :=TBitmap.Create;
+
+  FloorPic2      :=TBitmap.Create;
+  GoalPic2       :=TBitmap.Create;
+  ManPic2        :=TBitmap.Create;
+  ManGoalPic2    :=TBitmap.Create;
+  BoxPic2        :=TBitmap.Create;
+  BoxGoalPic2    :=TBitmap.Create;
 
   WallPic        :=TBitmap.Create;
   WallPic_lurd   :=TBitmap.Create;
@@ -248,6 +257,37 @@ begin
   
 end;
 
+// 图元亮度调整
+procedure BrightnessChange(const SrcBmp, DestBmp: TBitmap; ValueChange: integer);
+var
+  i, j: integer;
+  SrcRGB, DestRGB: pRGBTriple;
+  
+begin
+  SrcBmp.PixelFormat   :=   pf24Bit;
+  DestBmp.PixelFormat   :=   pf24Bit;
+  for i := 0 to SrcBmp.Height - 1 do
+  begin
+    SrcRGB := SrcBmp.ScanLine[i];
+    DestRGB := DestBmp.ScanLine[i];
+    for j := 0 to SrcBmp.Width - 1 do
+    begin
+      if ValueChange > 0 then
+      begin
+        DestRGB.rgbtRed := Min(255, SrcRGB.rgbtRed + ValueChange);
+        DestRGB.rgbtGreen := Min(255, SrcRGB.rgbtGreen + ValueChange);
+        DestRGB.rgbtBlue := Min(255, SrcRGB.rgbtBlue + ValueChange);
+      end else begin
+        DestRGB.rgbtRed := Max(0, SrcRGB.rgbtRed + ValueChange);
+        DestRGB.rgbtGreen := Max(0, SrcRGB.rgbtGreen + ValueChange);
+        DestRGB.rgbtBlue := Max(0, SrcRGB.rgbtBlue + ValueChange);
+      end;
+      Inc(SrcRGB);
+      Inc(DestRGB);
+    end;
+  end;
+end;
+
 // 加载皮肤
 function TLoadSkinForm.LoadSkin(FileName:string):boolean;
 var
@@ -334,6 +374,26 @@ begin
     BoxGoalPic.Height := size;
     BoxGoalPic.Canvas.CopyMode := SRCCOPY;
     BoxGoalPic.Canvas.CopyRect(R2, pic.Canvas, R1);
+
+    // 高亮图元
+    FloorPic2.Width := size;
+    FloorPic2.Height := size;
+    GoalPic2.Width := size;
+    GoalPic2.Height := size;
+    ManPic2.Width := size;
+    ManPic2.Height := size;
+    ManGoalPic2.Width := size;
+    ManGoalPic2.Height := size;
+    BoxPic2.Width := size;
+    BoxPic2.Height := size;
+    BoxGoalPic2.Width := size;
+    BoxGoalPic2.Height := size;
+    BrightnessChange(FloorPic, FloorPic2, -10);
+    BrightnessChange(GoalPic, GoalPic2, -10);
+    BrightnessChange(ManPic, ManPic2, -10);
+    BrightnessChange(ManGoalPic, ManGoalPic2, -10);
+    BrightnessChange(BoxPic, BoxPic2, -10);
+    BrightnessChange(BoxGoalPic, BoxGoalPic2, -10);
 
     // Wall
     R1 := Rect(size*3, 0, size*4, size);
@@ -534,6 +594,13 @@ begin
   FreeAndNil(ManGoalPic);
   FreeAndNil(BoxPic);
   FreeAndNil(BoxGoalPic);
+
+  FreeAndNil(FloorPic2);
+  FreeAndNil(GoalPic2);
+  FreeAndNil(ManPic2);
+  FreeAndNil(ManGoalPic2);
+  FreeAndNil(BoxPic2);
+  FreeAndNil(BoxGoalPic2);
 
   FreeAndNil(WallPic);
   FreeAndNil(WallPic_lurd);

@@ -75,7 +75,7 @@ end;
 
 procedure TActionForm.FormShow(Sender: TObject);
 begin
-  // 视情况，加载剪贴板中的内容          Clipboard.SetTextBuf(PChar(s + ss));
+  // 视情况，加载剪贴板中的内容
   if (Clipboard.HasFormat(CF_TEXT) or Clipboard.HasFormat(CF_OEMTEXT)) and (MemoAct.Lines.Count = 0) then begin
       MemoAct.Lines.Add(Clipboard.asText);
   end;
@@ -92,7 +92,9 @@ begin
 
   Act := '';
   for i := 0 to len-1 do begin
-      if not isLurd_2(MemoAct.Lines[i]) then begin
+      str := StringReplace(ActionForm.MemoAct.Lines[i], #9, '', [rfReplaceAll]);
+      str := StringReplace(str, ' ', '', [rfReplaceAll]);
+      if (Length(str) > 0) and (not isLurd_2(str)) then begin
          Act := '';
          MessageBox(handle, '包含了无效的动作字符，请检查并修正后再执行！', '错误', MB_ICONERROR or MB_OK);
          Exit;
@@ -283,8 +285,8 @@ begin
   V_Mirror.Caption := '上下翻转(&H)';
   Button1.Caption := '执行(&R)';
   Button2.Caption := '取消(&C)';
-  LoadBox.Items.Text := '剪切板'#13#10'已做动作'#13#10'后续动作'#13#10'寄存器 1'#13#10'寄存器 2'#13#10'寄存器 3'#13#10'寄存器 4'#13#10'寄存器 5'#13#10'文档';
-  SaveBox.Items.Text := '剪切板'#13#10'寄存器 1'#13#10'寄存器 2'#13#10'寄存器 3'#13#10'寄存器 4'#13#10'寄存器 5'#13#10'文档';
+  LoadBox.Items.Text := '剪切板'#13#10'已做动作'#13#10'后续动作'#13#10'寄存器 1'#13#10'寄存器 2'#13#10'寄存器 3'#13#10'寄存器 4'#13#10'文档';
+  SaveBox.Items.Text := '剪切板'#13#10'寄存器 1'#13#10'寄存器 2'#13#10'寄存器 3'#13#10'寄存器 4'#13#10'文档';
 
   KeyPreview := true;
 end;
@@ -376,45 +378,39 @@ begin
       end;
     3:
       try
-         MemoAct.Lines.LoadFromFile('temp\reg1.txt');
+         MemoAct.Lines.LoadFromFile(ExePath + '\temp\reg1.txt');
+         StatusBar1.Panels[0].Text := '【寄存器 1】加载成功！';
       except
          StatusBar1.Panels[0].Text := '【寄存器 1】加载失败！';
       end;
     4:
       try
-         MemoAct.Lines.LoadFromFile('temp\reg2.txt');
+         MemoAct.Lines.LoadFromFile(ExePath + '\temp\reg2.txt');
+         StatusBar1.Panels[0].Text := '【寄存器 2】加载成功！';
       except
          StatusBar1.Panels[0].Text := '【寄存器 2】加载失败！';
       end;
     5:
       try
-         MemoAct.Lines.LoadFromFile('temp\reg3.txt');
+         MemoAct.Lines.LoadFromFile(ExePath + '\temp\reg3.txt');
+         StatusBar1.Panels[0].Text := '【寄存器 3】加载成功！';
       except
          StatusBar1.Panels[0].Text := '【寄存器 3】加载失败！';
       end;
     6:
       try
-         MemoAct.Lines.LoadFromFile('temp\reg4.txt');
+         MemoAct.Lines.LoadFromFile(ExePath + '\temp\reg4.txt');
+         StatusBar1.Panels[0].Text := '【寄存器 4】加载成功！';
       except
          StatusBar1.Panels[0].Text := '【寄存器 4】加载失败！';
       end;
-    7:                             
-      try
-         MemoAct.Lines.LoadFromFile('temp\reg5.txt');
-      except
-         StatusBar1.Panels[0].Text := '【寄存器 5】加载失败！';
-      end;
-    8:                              // 文档
+    7:                              // 文档
       LoadFromFile();
   end;
 end;
 
 // 选择了“存入”列表项
 procedure TActionForm.SaveBoxSelect(Sender: TObject);
-var
-  str, fn: string;
-  myFile: Textfile;
-
 begin
   StatusBar1.Panels[0].Text := '';
   case SaveBox.ItemIndex of
@@ -425,39 +421,36 @@ begin
   1:
     try
        if not DirectoryExists(ExePath+'temp') then ForceDirectories(ExePath+'temp');
-       MemoAct.Lines.SaveToFile('temp\reg1.txt');
+       MemoAct.Lines.SaveToFile(ExePath + '\temp\reg1.txt');
+       StatusBar1.Panels[0].Text := '已存入【寄存器 1】，可在首界面按【F5】快速加载并执行！- 按当前旋转，从当前点，执行一次。';
     except
        StatusBar1.Panels[0].Text := '存入【寄存器 1】失败！';
     end;
   2:
     try
        if not DirectoryExists(ExePath+'temp') then ForceDirectories(ExePath+'temp');
-       MemoAct.Lines.SaveToFile('temp\reg2.txt');
+       MemoAct.Lines.SaveToFile(ExePath + '\temp\reg2.txt');
+       StatusBar1.Panels[0].Text := '已存入【寄存器 2】，可在首界面按【F6】快速加载并执行！- 按当前旋转，从当前点，执行一次。';
     except
        StatusBar1.Panels[0].Text := '存入【寄存器 2】失败！';
     end;
   3:
     try
        if not DirectoryExists(ExePath+'temp') then ForceDirectories(ExePath+'temp');
-       MemoAct.Lines.SaveToFile('temp\reg3.txt');
+       MemoAct.Lines.SaveToFile(ExePath + '\temp\reg3.txt');
+       StatusBar1.Panels[0].Text := '已存入【寄存器 3】，可在首界面按【F7】快速加载并执行！- 按当前旋转，从当前点，执行一次。';
     except
        StatusBar1.Panels[0].Text := '存入【寄存器 3】失败！';
     end;
   4:
     try
        if not DirectoryExists(ExePath+'temp') then ForceDirectories(ExePath+'temp');
-       MemoAct.Lines.SaveToFile('temp\reg4.txt');
+       MemoAct.Lines.SaveToFile(ExePath + '\temp\reg4.txt');
+       StatusBar1.Panels[0].Text := '已存入【寄存器 4】，可在首界面按【F8】快速加载并执行！- 按当前旋转，从当前点，执行一次。';
     except
        StatusBar1.Panels[0].Text := '存入【寄存器 4】失败！';
     end;
-  5:
-    try
-       if not DirectoryExists(ExePath+'temp') then ForceDirectories(ExePath+'temp');
-       MemoAct.Lines.SaveToFile('temp\reg5.txt');
-    except
-       StatusBar1.Panels[0].Text := '存入【寄存器 5】失败！';
-    end;
-  6:                              // 文档
+  5:                              // 文档
     SaveToFile();
   end;
 end;

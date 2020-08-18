@@ -1,6 +1,6 @@
 object BrowseForm: TBrowseForm
-  Left = 497
-  Top = 131
+  Left = 944
+  Top = 135
   Width = 524
   Height = 433
   Caption = #27983#35272
@@ -23,6 +23,7 @@ object BrowseForm: TBrowseForm
     Width = 508
     Height = 370
     Align = alClient
+    Color = clActiveCaption
     Columns = <>
     IconOptions.AutoArrange = True
     LargeImages = ImageList1
@@ -166,13 +167,8 @@ object BrowseForm: TBrowseForm
       OnClick = ColorBox1Click
     end
   end
-  object ImageList1: TImageList
-    Height = 150
-    Width = 150
-    Left = 32
-    Top = 40
-  end
   object PopupMenu1: TPopupMenu
+    AutoHotkeys = maManual
     Left = 120
     Top = 72
     object B1: TMenuItem
@@ -183,5 +179,13 @@ object BrowseForm: TBrowseForm
       Caption = #35814#32454'(&I)...'
       OnClick = I1Click
     end
+  end
+  object ImageList1: TImageList
+    DrawingStyle = dsTransparent
+    Height = 150
+    ShareImages = True
+    Width = 150
+    Left = 48
+    Top = 72
   end
 end
