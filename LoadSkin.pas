@@ -31,7 +31,8 @@ type
 
     procedure LoadDefaultSkin();                       // 默认的简单皮肤
     function  LoadSkin(FileName:string):boolean;       // 加载玩家自定义的皮肤
-    
+    procedure MyBMPFree(pic: TBitmap);
+
   end;
 
 var
@@ -64,6 +65,14 @@ var
 
 
 {$R *.dfm}
+
+procedure TLoadSkinForm.MyBMPFree(pic: TBitmap);
+begin
+  if Assigned(pic) then begin
+     pic.Free;
+     pic := nil;
+  end;
+end;
 
 // 搜索指定目录下的文件
 procedure FindPathFiles(const APath: string; AFiles: TStrings; const APropty: String = '*.*'; IsAddPath: Boolean = False);
@@ -182,7 +191,7 @@ begin
             Label4.Caption := '元格尺寸: ' + IntToStr(size) + '像素';
         end;
         
-        if pic <> nil then FreeAndNil(pic);
+        MyBMPFree(pic);
     except
       Button2.Enabled := False;  // 皮肤文档错误， OK 按钮无效
       Label4.Caption := ' ';
@@ -596,7 +605,7 @@ begin
 
     end;
 
-    if pic <> nil then FreeAndNil(pic);
+    MyBMPFree(pic);
   except
     exit;
   end;
@@ -609,42 +618,42 @@ end;
 procedure TLoadSkinForm.FormDestroy(Sender: TObject);
 begin
   // 释放内存
-  if FloorPic <> nil then FreeAndNil(FloorPic);
-  if GoalPic <> nil then FreeAndNil(GoalPic);
-  if ManPic <> nil then FreeAndNil(ManPic);
-  if ManGoalPic <> nil then FreeAndNil(ManGoalPic);
-  if BoxPic <> nil then FreeAndNil(BoxPic);
-  if BoxGoalPic <> nil then FreeAndNil(BoxGoalPic);
+  MyBMPFree(FloorPic);
+  MyBMPFree(GoalPic);
+  MyBMPFree(ManPic);
+  MyBMPFree(ManGoalPic);
+  MyBMPFree(BoxPic);
+  MyBMPFree(BoxGoalPic);
 
-  if FloorPic2 <> nil then FreeAndNil(FloorPic2);
-  if GoalPic2 <> nil then FreeAndNil(GoalPic2);
-  if ManPic2 <> nil then FreeAndNil(ManPic2);
-  if ManGoalPic2 <> nil then FreeAndNil(ManGoalPic2);
-  if BoxPic2 <> nil then FreeAndNil(BoxPic2);
-  if BoxGoalPic2 <> nil then FreeAndNil(BoxGoalPic2);
+  MyBMPFree(FloorPic2);
+  MyBMPFree(GoalPic2);
+  MyBMPFree(ManPic2);
+  MyBMPFree(ManGoalPic2);
+  MyBMPFree(BoxPic2);
+  MyBMPFree(BoxGoalPic2);
 
-  if WallPic <> nil then FreeAndNil(WallPic);
-  if WallPic_lurd <> nil then FreeAndNil(WallPic_lurd);
+  MyBMPFree(WallPic);
+  MyBMPFree(WallPic_lurd);
 
-  if WallPic_lr <> nil then FreeAndNil(WallPic_lr);
-  if WallPic_l <> nil then FreeAndNil(WallPic_l);
-  if WallPic_r <> nil then FreeAndNil(WallPic_r);
+  MyBMPFree(WallPic_lr);
+  MyBMPFree(WallPic_l);
+  MyBMPFree(WallPic_r);
 
-  if WallPic_ud <> nil then FreeAndNil(WallPic_ud);
-  if WallPic_u <> nil then FreeAndNil(WallPic_u);
-  if WallPic_d <> nil then FreeAndNil(WallPic_d);
+  MyBMPFree(WallPic_ud);
+  MyBMPFree(WallPic_u);
+  MyBMPFree(WallPic_d);
 
-  if WallPic_lu <> nil then FreeAndNil(WallPic_lu);
-  if WallPic_ld <> nil then FreeAndNil(WallPic_ld);
-  if WallPic_ru <> nil then FreeAndNil(WallPic_ru);
-  if WallPic_rd <> nil then FreeAndNil(WallPic_rd);
+  MyBMPFree(WallPic_lu);
+  MyBMPFree(WallPic_ld);
+  MyBMPFree(WallPic_ru);
+  MyBMPFree(WallPic_rd);
 
-  if WallPic_lur <> nil then FreeAndNil(WallPic_lur);
-  if WallPic_ldr <> nil then FreeAndNil(WallPic_ldr);
-  if WallPic_uld <> nil then FreeAndNil(WallPic_uld);
-  if WallPic_urd <> nil then FreeAndNil(WallPic_urd);
+  MyBMPFree(WallPic_lur);
+  MyBMPFree(WallPic_ldr);
+  MyBMPFree(WallPic_uld);
+  MyBMPFree(WallPic_urd);
 
-  if WallPic_top <> nil then FreeAndNil(WallPic_top);
+  MyBMPFree(WallPic_top);
 
 end;
 

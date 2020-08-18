@@ -1,8 +1,8 @@
 object main: Tmain
-  Left = 317
-  Top = 141
+  Left = 225
+  Top = 184
   Width = 732
-  Height = 532
+  Height = 533
   Caption = 'BoxMan'
   Color = clBtnFace
   Font.Charset = ANSI_CHARSET
@@ -159,70 +159,18 @@ object main: Tmain
   OnShow = FormShow
   PixelsPerInch = 96
   TextHeight = 13
-  object StatusBar1: TStatusBar
-    Left = 0
-    Top = 475
-    Width = 716
-    Height = 19
-    Panels = <
-      item
-        Alignment = taRightJustify
-        Bevel = pbNone
-        Text = #31227#21160
-        Width = 32
-      end
-      item
-        Alignment = taCenter
-        Text = '0'
-        Width = 80
-      end
-      item
-        Alignment = taRightJustify
-        Bevel = pbNone
-        Text = #25512#21160
-        Width = 32
-      end
-      item
-        Alignment = taCenter
-        Text = '0'
-        Width = 80
-      end
-      item
-        Alignment = taRightJustify
-        Bevel = pbNone
-        Text = #26631#23610
-        Width = 32
-      end
-      item
-        Text = ' '
-        Width = 120
-      end
-      item
-        Alignment = taCenter
-        Bevel = pbNone
-        Width = 4
-      end
-      item
-        Style = psOwnerDraw
-        Text = ' '
-        Width = 50
-      end>
-    OnDblClick = StatusBar1DblClick
-    OnDrawPanel = StatusBar1DrawPanel
-    OnResize = StatusBar1Resize
-  end
   object pl_Main: TPanel
     Left = 0
     Top = 30
     Width = 716
-    Height = 445
+    Height = 446
     Align = alClient
-    TabOrder = 1
+    TabOrder = 0
     object pl_Side: TPanel
       Left = 1
       Top = 1
       Width = 172
-      Height = 443
+      Height = 444
       Align = alLeft
       BevelInner = bvLowered
       Color = clInactiveCaption
@@ -231,7 +179,7 @@ object main: Tmain
         Left = 2
         Top = 32
         Width = 168
-        Height = 409
+        Height = 410
         Cursor = crHandPoint
         ActivePage = Tab_Solution
         Align = alClient
@@ -243,7 +191,7 @@ object main: Tmain
             Left = 0
             Top = 0
             Width = 160
-            Height = 381
+            Height = 382
             Style = lbOwnerDrawVariable
             Align = alClient
             ImeName = #20013#25991'('#31616#20307') - '#25628#29399#25340#38899#36755#20837#27861
@@ -263,7 +211,7 @@ object main: Tmain
             Left = 0
             Top = 0
             Width = 160
-            Height = 381
+            Height = 382
             Style = lbOwnerDrawVariable
             Align = alClient
             ImeName = #20013#25991'('#31616#20307') - '#25628#29399#25340#38899#36755#20837#27861
@@ -283,7 +231,7 @@ object main: Tmain
             Left = 0
             Top = 0
             Width = 160
-            Height = 381
+            Height = 382
             TabStop = False
             Align = alClient
             ImeName = #20013#25991'('#31616#20307') - '#25628#29399#25340#38899#36755#20837#27861
@@ -333,7 +281,7 @@ object main: Tmain
       Left = 173
       Top = 1
       Width = 542
-      Height = 443
+      Height = 444
       Align = alClient
       Alignment = taLeftJustify
       BevelOuter = bvNone
@@ -344,7 +292,6 @@ object main: Tmain
       Font.Name = #24494#36719#38597#40657
       Font.Style = []
       ParentFont = False
-      PopupMenu = pmBoardBK
       TabOrder = 1
       object map_Image: TImage
         Left = 0
@@ -365,7 +312,7 @@ object main: Tmain
     Height = 30
     Align = alTop
     Color = clInactiveCaption
-    TabOrder = 2
+    TabOrder = 1
     object bt_Pre: TSpeedButton
       Left = 150
       Top = 4
@@ -553,16 +500,16 @@ object main: Tmain
         180000000000B0010000C30E0000C30E00000000000000000000FFFFFFFFFFFF
         FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFDFDFD757575838383000000FFFF
         FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF73737300000025252500
-        0000FFFFFFFFFFFFFFFFFFF1F1F1E4E4E4FAFAFAFFFFFF7E7E7E000000181818
-        C7C7C7000000FFFFFFF1F1F17878782222221717173939395959590000001313
-        13C0C0C0FFFFFF000000F8F8F84F4F4F0F0F0F7F7F7FA4A4A46565650000000A
-        0A0ABCBCBCFFFFFFFFFFFF000000A7A7A7090909C7C7C7FFFFFFFFFFFFFFFFFF
-        949494101010DDDDDDFFFFFFFFFFFF0000005050505B5B5BFFFFFFFFFFFFFFFF
-        FFFFFFFFFCFCFC262626898989FFFFFFFFFFFF000000444444787878FFFFFFFF
-        FFFFFFFFFFFFFFFFFFFFFF3A3A3A767676FFFFFFFFFFFF0000006B6B6B3A3A3A
-        FFFFFFFFFFFFFFFFFFFFFFFFEAEAEA111111A5A5A5FFFFFFFFFFFF000000CFCF
-        CF080808797979F3F3F3FFFFFFE0E0E04747472B2B2BF2F2F2FFFFFFFFFFFF00
-        0000FFFFFF9A9A9A0C0C0C2A2A2A454545181818262626CBCBCBFFFFFFFFFFFF
+        0000FFFFFFFFFFFFFFFFFFF1F1F1E4E4E4FAFAFAFFFFFF7E7E7E000000000000
+        C7C7C7000000FFFFFFF1F1F17878780000001717170000005959590000000000
+        00C0C0C0FFFFFF000000F8F8F84F4F4F0000007F7F7FA4A4A465656500000000
+        0000BCBCBCFFFFFFFFFFFF000000A7A7A7000000C7C7C7FFFFFFFFFFFFFFFFFF
+        949494101010DDDDDDFFFFFFFFFFFF000000505050000000FFFFFFFFFFFFFFFF
+        FFFFFFFFFCFCFC000000898989FFFFFFFFFFFF000000000000787878FFFFFFFF
+        FFFFFFFFFFFFFFFFFFFFFF000000767676FFFFFFFFFFFF0000006B6B6B000000
+        FFFFFFFFFFFFFFFFFFFFFFFFEAEAEA000000A5A5A5FFFFFFFFFFFF000000CFCF
+        CF000000797979F3F3F3FFFFFFE0E0E0474747000000F2F2F2FFFFFFFFFFFF00
+        0000FFFFFF9A9A9A000000000000000000000000000000CBCBCBFFFFFFFFFFFF
         FFFFFF000000FFFFFFFFFFFFD1D1D17D7D7D6565658F8F8FE5E5E5FFFFFFFFFF
         FFFFFFFFFFFFFF000000}
       ParentShowHint = False
@@ -601,7 +548,7 @@ object main: Tmain
       OnClick = bt_LeftBarClick
     end
     object sb_Help: TSpeedButton
-      Left = 584
+      Left = 620
       Top = 4
       Width = 23
       Height = 22
@@ -617,23 +564,23 @@ object main: Tmain
       ShowHint = True
       OnClick = sb_HelpClick
     end
-    object SpeedButton1: TSpeedButton
-      Left = 624
+    object funMenu: TSpeedButton
+      Left = 584
       Top = 4
-      Width = 49
+      Width = 23
       Height = 22
-      Hint = #24110#21161#65306#12304'F1'#12305
-      Caption = #27979#35797
+      Hint = #21151#33021#33756#21333#65306#12304'Alt'#12305
+      Caption = '*'
       Font.Charset = ANSI_CHARSET
       Font.Color = clWindowText
       Font.Height = -13
       Font.Name = #23435#20307
-      Font.Style = [fsBold]
+      Font.Style = []
       ParentFont = False
       ParentShowHint = False
+      PopupMenu = pmBoardBK
       ShowHint = True
-      Visible = False
-      OnClick = SpeedButton1Click
+      OnClick = funMenuClick
     end
     object pnl_Trun: TPanel
       Left = 484
@@ -671,22 +618,74 @@ object main: Tmain
       BevelInner = bvNone
       Ctl3D = False
       ImeName = #20013#25991'('#31616#20307') - '#25628#29399#25340#38899#36755#20837#27861
-      MaxLength = 4
+      MaxLength = 5
       ParentCtl3D = False
       TabOrder = 2
       OnChange = ed_sel_MapChange
       OnKeyPress = ed_sel_MapKeyPress
     end
   end
+  object StatusBar1: TStatusBar
+    Left = 0
+    Top = 476
+    Width = 716
+    Height = 19
+    Panels = <
+      item
+        Alignment = taRightJustify
+        Bevel = pbNone
+        Text = #31227#21160
+        Width = 32
+      end
+      item
+        Alignment = taCenter
+        Text = '0'
+        Width = 80
+      end
+      item
+        Alignment = taRightJustify
+        Bevel = pbNone
+        Text = #25512#21160
+        Width = 32
+      end
+      item
+        Alignment = taCenter
+        Text = '0'
+        Width = 80
+      end
+      item
+        Alignment = taRightJustify
+        Bevel = pbNone
+        Text = #26631#23610
+        Width = 32
+      end
+      item
+        Text = ' '
+        Width = 120
+      end
+      item
+        Alignment = taCenter
+        Bevel = pbNone
+        Width = 4
+      end
+      item
+        Style = psOwnerDraw
+        Text = ' '
+        Width = 50
+      end>
+    OnDblClick = StatusBar1DblClick
+    OnDrawPanel = StatusBar1DrawPanel
+    OnResize = StatusBar1Resize
+  end
   object dlgSave1: TSaveDialog
     Filter = #20851#21345#25991#26723'(*.xsb;*.txt)|*.xsb;*.txt'
-    Left = 71
-    Top = 105
+    Left = 127
+    Top = 89
   end
   object pmBoardBK: TPopupMenu
     AutoHotkeys = maManual
-    Left = 263
-    Top = 48
+    Left = 583
+    Top = 40
     object pmGoal: TMenuItem
       Caption = #22266#23450#30340#30446#26631#20301
       OnClick = pmGoalClick
@@ -694,6 +693,13 @@ object main: Tmain
     object pmJijing: TMenuItem
       Caption = #21363#26223#30446#26631#20301
       OnClick = pmJijingClick
+    end
+    object N28: TMenuItem
+      Caption = '-'
+    end
+    object N29: TMenuItem
+      Caption = #21452#20987#32534#21495
+      OnClick = N29Click
     end
     object N3: TMenuItem
       Caption = '-'
@@ -757,10 +763,10 @@ object main: Tmain
   end
   object pmSolution: TPopupMenu
     AutoHotkeys = maManual
-    Left = 64
-    Top = 153
+    Left = 24
+    Top = 89
     object N2: TMenuItem
-      Caption = #23548#20837#31572#26696' '#8592' '#26597#30475#25552#20132#21015#34920
+      Caption = #26597#30475#25552#20132#21015#34920
       OnClick = N2Click
     end
     object N1: TMenuItem
@@ -807,17 +813,16 @@ object main: Tmain
     end
     object N26: TMenuItem
       Caption = '-'
-      Visible = False
     end
     object N27: TMenuItem
       Caption = #23548#20837#31572#26696
-      Visible = False
+      OnClick = N27Click
     end
   end
   object pmState: TPopupMenu
     AutoHotkeys = maManual
-    Left = 95
-    Top = 153
+    Left = 76
+    Top = 89
     object sa_Lurd: TMenuItem
       Caption = #27491#25512' Lurd '#21040#21098#20999#26495
       OnClick = sa_LurdClick
@@ -855,19 +860,13 @@ object main: Tmain
   end
   object pm_Later: TPopupMenu
     AutoHotkeys = maManual
-    Left = 45
-    Top = 24
-  end
-  object ApplicationEvents1: TApplicationEvents
-    OnDeactivate = ApplicationEvents1Minimize
-    OnMinimize = ApplicationEvents1Minimize
-    Left = 213
-    Top = 47
+    Left = 49
+    Top = 16
   end
   object pm_Up_Bt: TPopupMenu
     AutoHotkeys = maManual
-    Left = 61
-    Top = 183
+    Left = 149
+    Top = 19
     object N12: TMenuItem
       Caption = #19978#19968#20851
       OnClick = bt_PreClick
@@ -883,8 +882,8 @@ object main: Tmain
   end
   object pm_Down_Bt: TPopupMenu
     AutoHotkeys = maManual
-    Left = 93
-    Top = 183
+    Left = 179
+    Top = 19
     object N13: TMenuItem
       Caption = #19979#19968#20851
       OnClick = bt_NextClick
@@ -900,8 +899,8 @@ object main: Tmain
   end
   object pm_UnDo_Bt: TPopupMenu
     AutoHotkeys = maManual
-    Left = 55
-    Top = 215
+    Left = 211
+    Top = 19
     object N14: TMenuItem
       Caption = #25764#38144#21333#27493
       OnClick = N14Click
@@ -917,8 +916,8 @@ object main: Tmain
   end
   object pm_ReDo_Bt: TPopupMenu
     AutoHotkeys = maManual
-    Left = 87
-    Top = 216
+    Left = 241
+    Top = 20
     object N17: TMenuItem
       Caption = #37325#20570#21333#27493
       OnClick = N17Click
@@ -931,5 +930,15 @@ object main: Tmain
       Caption = #36827#33267#23614
       OnClick = N19Click
     end
+  end
+  object OpenDialog1: TOpenDialog
+    Left = 127
+    Top = 127
+  end
+  object ApplicationEvents1: TApplicationEvents
+    OnDeactivate = ApplicationEvents1Minimize
+    OnMinimize = ApplicationEvents1Minimize
+    Left = 253
+    Top = 71
   end
 end

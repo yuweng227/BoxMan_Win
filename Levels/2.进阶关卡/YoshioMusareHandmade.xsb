@@ -1,0 +1,719 @@
+Author: Yoshio Murase
+Comment:
+Copyright: Yoshio Murase <yoshio@asahi.email.ne.jp>
+
+(Levels # 18 and # 36 are combination works by
+Yoshio Murase and Masato Hiramatsu.)
+
+Downloaded from http://sokomind.home.pages.de/
+The original levels can be found at
+http://www.ne.jp/asahi/ai/yoshio/sokoban/main.htm
+
+You are not allowed to use the level maps from this
+file in order to distribute them. If you would like
+to include Yoshio Murase's maps, you have to read
+and follow the terms and conditions at the above
+mentioned original URL.
+Comment-End:
+
+;Level 1
+###################
+#---...--@--...---#
+#-$$$--#####--$$$-#
+##---###___###---##
+_##--#_______##--#_
+__####________####_
+Title: YM Handmade 1
+Author: Yoshio Murase
+
+;Level 2
+__####_
+###--##
+#---$-#
+#-#.#@#
+#-#$-.#
+#--.$-#
+##---##
+_#####_
+Title: YM Handmade 2
+Author: Yoshio Murase
+
+;Level 3
+__#####_
+###---#_
+#-$-#-##
+#-$.$.-#
+#-##.--#
+#--@-###
+######__
+Title: YM Handmade 3
+Author: Yoshio Murase
+
+;Level 4
+__#####__
+###---###
+#-.-$-.-#
+#-#.$.#-#
+#-$-#-$-#
+###-@-###
+__#####__
+Title: YM Handmade 4
+Author: Yoshio Murase
+
+;Level 5
+__#####__
+__#---###
+###.#---#
+#-$.$-#-#
+#-#*-$--#
+#@-.-####
+######___
+Title: YM Handmade 5
+Author: Yoshio Murase
+
+;Level 6
+__#####__
+__#---##_
+###$---##
+#--.$.$-#
+#-#.#.#-#
+#--*$*--#
+###---###
+__#-@-#__
+__#####__
+Title: YM Handmade 6
+Author: Yoshio Murase
+
+;Level 7
+__#####__
+__#---#__
+###-#$#__
+#--.$.###
+#-#$+$--#
+#--.$-#-#
+###-#.--#
+__#---###
+__#####__
+Title: YM Handmade 7
+Author: Yoshio Murase
+
+;Level 8
+###########__
+#@$---....##_
+#-$$$$#....#_
+#-$--$..***##
+##---#-##..-#
+#-$$$#--##--#
+#----##-#--##
+#--$$-#----#_
+#-----###--#_
+#######_####_
+Title: YM Handmade 8
+Author: Yoshio Murase
+
+;Level 9
+_######__
+##----##_
+#--##--#_
+#-#--#-#_
+#.--.#$##
+#-#-*-$-#
+#-#-*-$@#
+#--..-$-#
+#########
+Title: YM Handmade 9
+Author: Yoshio Murase
+
+;Level 10
+####_____
+#--####__
+#-----###
+#--#$-.-#
+##-#.#$-#
+#--#-@*-#
+#---*--##
+####--##_
+___####__
+Title: YM Handmade 10
+Author: Yoshio Murase
+
+;Level 11
+__#####_
+###---##
+#--.-*-#
+#-.$.#@#
+##-#-$-#
+_#-$-#-#
+_###---#
+___#####
+Title: YM Handmade 11
+Author: Yoshio Murase
+
+;Level 12
+___#####_
+___#---#_
+___#.-$#_
+___#-$-#_
+####..-##
+#-$-**--#
+#-.--@$-#
+#########
+Title: YM Handmade 12
+Author: Yoshio Murase
+
+;Level 13
+_____#########
+_____#...--.-#
+__####-#.#.--#
+###----......#
+#---$-$-$#..##
+#-$####..####_
+#--$---###--##
+#-$$$-$-$-$@-#
+#--$-$-$-$-$-#
+##----------##
+_############_
+Title: YM Handmade 13
+Author: Yoshio Murase
+
+;Level 14
+____######___
+#####----###_
+#----.##.--##
+#-.$##---#--#
+##$$-#--$---#
+#-.--##$#$-##
+#--@-.--.-##_
+###########__
+Title: YM Handmade 14
+Author: Yoshio Murase
+
+;Level 15
+_#####_
+_#---#_
+_#.-$#_
+_#-$-#_
+##..-##
+#-**$-#
+#--@--#
+#######
+Title: YM Handmade 15
+Author: Yoshio Murase
+
+;Level 16
+######__
+#----#__
+#-.*-###
+#-.$.$-#
+##-$--@#
+_####--#
+____####
+Title: YM Handmade 16
+Author: Yoshio Murase
+
+;Level 17
+____#####_
+_####---#_
+_#.##.-$#_
+##$#--$-#_
+#-*--..-##
+#---#**$-#
+#####-@--#
+____######
+Title: YM Handmade 17
+Author: Yoshio Murase
+
+;Level 18
+_####_______
+_#--######__
+_#-$##-@-###
+##.-##--.--#
+#-.----$.$-#
+#-*$-#$#.###
+###--#---#__
+__########__
+Title: YM Handmade 18
+Author: Yoshio Murase
+
+;Level 19
+_####___
+##@-####
+#-$*-*-#
+#--*-#-#
+#--*---#
+#-#*.--#
+#---#--#
+########
+Title: YM Handmade 19
+Author: Yoshio Murase
+
+;Level 20
+__#####__
+_##---##_
+_#--$..##
+##$-#.$.#
+#---#...#
+#-$###$-#
+#--$-$-##
+##@----#_
+_#######_
+Title: YM Handmade 20
+Author: Yoshio Murase
+
+;Level 21
+____####_
+#####--#_
+#-$-.--#_
+#---*$-#_
+###..$-#_
+_###@###_
+_#-$.-###
+_#-$*.--#
+_#--.-$-#
+_#--#####
+_####____
+Title: YM Handmade 21
+Author: Yoshio Murase
+
+;Level 22
+__#####___
+__#---####
+###$---$-#
+#--$-#---#
+#-#-.##-##
+#.**.##$#_
+#-@-.---#_
+#########_
+Title: YM Handmade 22
+Author: Yoshio Murase
+
+;Level 23
+#########
+#--@-.--#
+#--.#*$-#
+#-$.-.$-#
+##$.##$-#
+_#--##--#
+_########
+Title: YM Handmade 23
+Author: Yoshio Murase
+
+;Level 24
+__#####__
+__#-@-#__
+###-#-###
+#-$$#$$-#
+#-..-.--#
+##--#.$##
+_#---.-#_
+_#######_
+Title: YM Handmade 24
+Author: Yoshio Murase
+
+;Level 25
+#####____
+#---##___
+#-*$-##__
+#@-*--##_
+#-.#$--#_
+##-...$##
+_###-$*-#
+___#----#
+___######
+Title: YM Handmade 25
+Author: Yoshio Murase
+
+;Level 26
+__####___
+###--##__
+#-..--###
+#-*.*---#
+#@$$.$$-#
+#--##---#
+#########
+Title: YM Handmade 26
+Author: Yoshio Murase
+
+;Level 27
+########
+#------#
+#-$$#$-#
+#-$.*--#
+##-...##
+_##.$##_
+##...-##
+#--*.$-#
+#-$#$$-#
+#--@---#
+########
+Title: YM Handmade 27
+Author: Yoshio Murase
+
+;Level 28
+__#####_
+###---#_
+#-$$.$#_
+#-.-.-#_
+#-#-#-#_
+#-..*-##
+###@$$-#
+__#----#
+__######
+Title: YM Handmade 28
+Author: Yoshio Murase
+
+;Level 29
+__######_
+__#----#_
+###$$--#_
+#-$-#$-#_
+#-$-#--#_
+#-$-@#-##
+#-$#.*.-#
+#--$*-#.#
+##--.-#.#
+_###...-#
+___#----#
+___######
+Title: YM Handmade 29
+Author: Yoshio Murase
+
+;Level 30
+__#####__
+_##-@-##_
+_#-.$.-#_
+_#-*-*-#_
+_#$-#.*#_
+##--#--##
+#-$.$.$-#
+#---#---#
+#########
+Title: YM Handmade 30
+Author: Yoshio Murase
+
+;Level 31
+__####___
+__#--#___
+__#.-#___
+__#-$#___
+__#.-#___
+###-$###_
+#--.$--##
+#-#-$$--#
+#-.##.-@#
+##-*--$##
+_#--.--#_
+_#######_
+Title: YM Handmade 31
+Author: Yoshio Murase
+
+;Level 32
+__#####__
+###---###
+#--$..$-#
+#-#-##--#
+#-#-##@##
+#--$..$#_
+###-#$-#_
+__#-.-.#_
+__#$#-.#_
+__#--$-#_
+__###--#_
+____####_
+Title: YM Handmade 32
+Author: Yoshio Murase
+
+;Level 33
+____####____
+_####--###__
+_#--$--$-#__
+_#$..$-.-###
+##-#.##..--#
+#--..$@$-$-#
+#-$-.-#.-###
+####$--$-#__
+___#--####__
+___####_____
+Title: YM Handmade 33
+Author: Yoshio Murase
+
+;Level 34
+___######__
+_###----##_
+_#-$$$$--#_
+_#--*..*-#_
+_#--$.-$.#_
+##-$#.$#.##
+#--$.-$.--#
+#-$$*$#.#-#
+#--....-#-#
+#######--@#
+______#####
+Title: YM Handmade 34
+Author: Yoshio Murase
+
+;Level 35
+__#####___
+__#-@-##__
+###$$$-###
+#--.#-.--#
+#-#.#-.#-#
+#--.-#.#-#
+#-*$$$---#
+###--#-###
+__##---#__
+___#####__
+Title: YM Handmade 35
+Author: Yoshio Murase
+
+;Level 36
+__#####__
+_##-.@##_
+_#--*--#_
+_#-$*$-#_
+_#..#..#_
+##$-.-$##
+#-$-#-$-#
+#---#---#
+#########
+Title: YM Handmade 36
+Author: Yoshio Murase
+
+;Level 37
+__####___
+__#--###_
+###-$--##
+#-$...$-#
+#-##.-#-#
+#--.$.#-#
+#-$#.-$-#
+##-#$##@#
+_#------#
+_########
+Title: YM Handmade 37
+Author: Yoshio Murase
+
+;Level 38
+__######__
+###--.-###
+#-$.$$$--#
+#-#-#.-#-#
+#-@.-.-#-#
+####-$---#
+___#$.####
+___#--#___
+___####___
+Title: YM Handmade 38
+Author: Yoshio Murase
+
+;Level 39
+_#####__
+##--@###
+#--**--#
+#-#--#-#
+#-#*$--#
+#-#--#.#
+#--*$.-#
+###---##
+__#####_
+Title: YM Handmade 39
+Author: Yoshio Murase
+
+;Level 40
+__#####_
+__#---##
+###$.@-#
+#--$.--#
+#-#-*-##
+#---###_
+#####___
+Title: YM Handmade 40
+Author: Yoshio Murase
+
+;Level 41
+_##########
+_#--------#
+_#-##$#-#-#
+_#-.....#-#
+###$$$$$--#
+#--*-.@*###
+#--$$$$$--#
+#-#-...##-#
+#--.#.-.#-#
+###-#$#---#
+__#---#####
+__#####____
+Title: YM Handmade 41
+Author: Yoshio Murase
+
+;Level 42
+__#######
+__#-----#
+###-###-#
+#--*$--.#
+#--*-$#.#
+##-*@$-.#
+_#$$*-.-#
+_#-#-.###
+_#-##-#__
+_#----#__
+_######__
+Title: YM Handmade 42
+Author: Yoshio Murase
+
+;Level 43
+_#####___
+##---###_
+#-....-#_
+#-#.-#-#_
+#-$$$$-#_
+#-$.@$###
+#-$$$$--#
+##$..$#-#
+_#-..-#-#
+_#.##.--#
+_#----###
+_######__
+Title: YM Handmade 43
+Author: Yoshio Murase
+
+;Level 44
+___####_
+####--#_
+#-.$*-##
+#---$--#
+#-.#-.-#
+#-*#$@##
+##----#_
+_######_
+Title: YM Handmade 44
+Author: Yoshio Murase
+
+;Level 45
+__###___
+__#.#___
+_##$###_
+##-*--#_
+#-*--*##
+#-*--*-#
+#--**--#
+#-*---##
+##-@-##_
+_#####__
+Title: YM Handmade 45
+Author: Yoshio Murase
+
+;Level 46
+_#####____
+##--######
+#--$-$---#
+#----#.--#
+##@####-##
+_#---#.-##
+##-#-#$$-#
+#-**-#-..#
+#--*##-$$#
+##----..-#
+_#####---#
+_____#####
+Title: YM Handmade 46
+Author: Yoshio Murase
+
+;Level 47
+___#####
+___#---#
+####..-#
+#------#
+#******#
+#------#
+#-$$####
+#-@-#___
+#####___
+Title: YM Handmade 47
+Author: Yoshio Murase
+
+;Level 48
+__#####__
+__#---#__
+###$#-###
+#---#.@-#
+#---*.#-#
+#---#-#-#
+###$#---#
+__#---###
+__#####__
+Title: YM Handmade 48
+Author: Yoshio Murase
+
+;Level 49
+########
+#---*--#
+#-*-.--#
+#-***-##
+#-$-*-#_
+##-@--#_
+_######_
+Title: YM Handmade 49
+Author: Yoshio Murase
+
+;Level 50
+#########
+#---.---#
+#-##$##-#
+#-#-*---#
+#-#-*@#-#
+#-#-$-#-#
+#-#-###-#
+#---.---#
+#########
+Title: YM Handmade 50
+Author: Yoshio Murase
+
+;Level 51
+###########
+#----*----#
+#@#-*-.-#-#
+#-#*****#-#
+#-#-$-*-#-#
+#----*----#
+######--###
+_____####__
+Title: YM Handmade 51
+Author: Yoshio Murase
+
+;Level 52
+######_
+#----#_
+#----#_
+##$-###
+#-$---#
+#.***.#
+#--@--#
+#######
+Title: YM Handmade 52
+Author: Yoshio Murase
+
+;Level 53
+_#####__
+##---#__
+#--#-###
+#-*-$--#
+#.-*-#@#
+#-*-*--#
+##-*--##
+_######_
+Title: YM Handmade 53
+Author: Yoshio Murase
+
+;Level 54
+__#####__
+__#-@-#__
+###-*-###
+#--...--#
+#-##$##-#
+#-$---$-#
+###---###
+__#---#__
+__#####__
+Title: YM Handmade 54
+Author: Yoshio Murase

@@ -236,6 +236,7 @@ type
     { Private declarations }
   public
     { Public declarations }
+    procedure MyStringListFree(var _StringList_: TStringList);
   end;
 
 var
@@ -262,11 +263,12 @@ var
 
   rUnDoList, rReDoList: TStringList;
 
-  procedure LoadSkin;         // 换肤
+  procedure LoadSkin_;         // 换肤
 
 implementation
 
-uses LoadSkin, Editor_;
+uses
+  LoadSkin, Editor_;
 
 const
   cursorWall_     = 11;
@@ -306,8 +308,18 @@ var
 {$R *.dfm}
 {$R MyCursor_.res}
 
+// 释放 TStringList 的内存
+procedure TRecogForm_.MyStringListFree(var _StringList_: TStringList);
+begin
+  if Assigned(_StringList_) then begin
+     _StringList_.Clear;
+     _StringList_.Free;
+     _StringList_ := nil;
+  end;
+end;
+
 // 换肤
-procedure LoadSkin;
+procedure LoadSkin_;
 begin
   if LoadSkinForm.ShowModal = mrOK then
   begin
@@ -465,8 +477,8 @@ begin
 		end;
 		y := y + Map_RowHeight.Value div myScale;
 	end;
-  if img0 <> nil then FreeAndNil(img0);
-  if img1 <> nil then FreeAndNil(img1);
+  LoadSkinForm.MyBMPFree(img0);
+  LoadSkinForm.MyBMPFree(img1);
 end;
 
 // 两个色相数组是否相近
@@ -679,7 +691,7 @@ begin
       end;
     end;
   finally
-    if image <> nil then FreeAndNil(image);
+    LoadSkinForm.MyBMPFree(image);
   end;
 end;
 
@@ -723,10 +735,10 @@ var
   tmpBmp: TBitmap;
 begin
   if OpenPictureDialog1.Execute then begin
+     tmpBmp := TBitmap.Create;
      try
        mySelect := 0;
        SetSelect;
-       tmpBmp := TBitmap.Create;
        Image2.Picture.LoadFromFile(OpenPictureDialog1.FileName);
        tmpBmp.Assign(Image2.Picture.Graphic);
        Image2.Picture.Bitmap := tmpBmp;
@@ -794,7 +806,7 @@ begin
 
        myDraw;
      finally
-       if tmpBmp <> nil then FreeAndNil(tmpBmp);
+       LoadSkinForm.MyBMPFree(tmpBmp);
      end;
   end;
 end;
@@ -900,7 +912,7 @@ begin
 
      myDraw;
    finally
-     if fullscreen <> nil then FreeAndNil(fullscreen);
+     LoadSkinForm.MyBMPFree(fullscreen);
    end;
 
    SendMessage(Application.Handle, WM_SYSCOMMAND, SC_RESTORE, 0);
@@ -2216,11 +2228,11 @@ end;
 
 procedure TRecogForm_.FormDestroy(Sender: TObject);
 begin
-  if rUnDoList <> nil then FreeAndNil(rUnDoList);
-  if rReDoList <> nil then FreeAndNil(rReDoList);
+  MyStringListFree(rUnDoList);
+  MyStringListFree(rReDoList);
 
 {$IFDEF TEST}
-  if tmpPic <> nil then FreeAndNil(tmpPic);
+  LoadSkinForm.MyBMPFree(tmpPic);
 {$ENDIF}
 end;
 
@@ -2320,7 +2332,7 @@ begin
           end;
       end;
   finally
-      if MyXSB <> nil then FreeAndNil(MyXSB);
+      MyStringListFree(MyXSB);
   end;
 end;
 
@@ -2352,7 +2364,7 @@ end;
 
 procedure TRecogForm_.bt_SkinClick(Sender: TObject);
 begin
-  Recog_.LoadSkin;
+  Recog_.LoadSkin_;
   myDraw;
 end;
 

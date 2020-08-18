@@ -1,9 +1,10 @@
 object InfForm: TInfForm
   Left = 234
   Top = 161
-  Width = 729
-  Height = 578
-  Caption = #35814#32454
+  BorderStyle = bsToolWindow
+  Caption = #35828#26126
+  ClientHeight = 262
+  ClientWidth = 384
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
   Font.Color = clWindowText
@@ -12,22 +13,28 @@ object InfForm: TInfForm
   Font.Style = []
   OldCreateOrder = False
   OnCreate = FormCreate
+  OnDeactivate = FormDeactivate
   PixelsPerInch = 96
   TextHeight = 13
   object Memo1: TMemo
     Left = 0
     Top = 0
-    Width = 713
-    Height = 540
+    Width = 384
+    Height = 262
     Align = alClient
+    BevelInner = bvNone
+    BevelOuter = bvNone
+    BorderStyle = bsNone
+    Color = clSilver
     Font.Charset = DEFAULT_CHARSET
-    Font.Color = clWindowText
-    Font.Height = -24
-    Font.Name = #26999#20307
+    Font.Color = clBlack
+    Font.Height = -19
+    Font.Name = #23435#20307
     Font.Style = []
+    ImeName = #20013#25991'('#31616#20307') - '#25628#29399#25340#38899#36755#20837#27861
     ParentFont = False
     ReadOnly = True
-    ScrollBars = ssBoth
+    ScrollBars = ssVertical
     TabOrder = 0
   end
 end

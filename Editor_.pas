@@ -50,7 +50,6 @@ type
     SaveDialog1: TSaveDialog;
     StatusBar1: TStatusBar;
     sb_LoadPic: TSpeedButton;
-    N5: TMenuItem;
     N6: TMenuItem;
     N7: TMenuItem;
     bt_Skin: TSpeedButton;
@@ -63,9 +62,7 @@ type
     N10: TMenuItem;
     N11: TMenuItem;
     N12: TMenuItem;
-    InPlace: TMenuItem;
-    N13: TMenuItem;
-    N14: TMenuItem;
+    bt_LeftBar: TSpeedButton;
     procedure SetSelect;
     procedure img_WallClick(Sender: TObject);
     procedure img_BoxClick(Sender: TObject);
@@ -155,7 +152,9 @@ type
     procedure N9Click(Sender: TObject);
     procedure N10Click(Sender: TObject);
     procedure N11Click(Sender: TObject);
-    procedure InPlaceClick(Sender: TObject);  private                     // 读取关卡 -- 从剪切板加载 XSB
+    procedure bt_LeftBarClick(Sender: TObject);
+    procedure bt_LeftBarMouseMove(Sender: TObject; Shift: TShiftState; X,
+      Y: Integer);  private                     // 读取关卡 -- 从剪切板加载 XSB
     procedure SetUnDoReDo(isReDo: Boolean = false);                             // Set UnDo
     function LurdToXSB(mStr: String): boolean;                                  // 用答案倒推关卡
     function isLurd(str: String): boolean;                                      // 是否 Lurd 字符串
@@ -216,8 +215,14 @@ var
   i: Integer;
 
 begin
+
+  if mySelect = 8 then begin      // 摆箱子模式
+     DrawGrid1.Cursor := cursorBoxM;
+     DrawGrid1.PopupMenu := PopupMenu4;
+     Exit;
+  end;
+
   DrawGrid1.PopupMenu := PopupMenu2;
-  if InPlace.Checked then mySelect := 2;
   for i := 0 to 5 do begin
       case i of
       0: begin
@@ -238,12 +243,7 @@ begin
       2: begin
            if mySelect = i then begin
               pl_Box.Color := clRed;
-              if InPlace.Checked then begin
-                 DrawGrid1.Cursor := cursorBoxM;
-                 DrawGrid1.PopupMenu := PopupMenu4;
-              end else begin
-                 DrawGrid1.Cursor := cursorBox;
-              end;
+              DrawGrid1.Cursor := cursorBox;
            end
            else pl_Box.Color := clInactiveCaption;
          end;
@@ -389,7 +389,7 @@ begin
   pl_Floor.Color := $DBCDBF;
   pl_Select.Color := $DBCDBF;
 
-  Caption := '关卡编辑器 v19.12';
+  Caption := '关卡编辑器 v20.01';
 
   StatusBar1.Panels[0].Text := '行';
   StatusBar1.Panels[2].Text := '列';
@@ -406,10 +406,10 @@ begin
   N9.Caption := '清除箱子';
   N10.Caption := '清除目标点';
   N11.Caption := '仅保留墙壁';
-  N14.Caption := '摆箱子模式    【F8】';
-  N14.Checked := False;
-  InPlace.Caption := '摆箱子模式    【F8】';
-  InPlace.Checked := False;
+//  N14.Caption := '摆箱子模式【H】';
+//  N14.Checked := False;
+//  InPlace.Caption := '摆箱子模式    【F8】';
+//  InPlace.Checked := False;
 
   sb_SaveToFile.Hint := '保存到文档【Ctrl + S】';
   sb_Save.Hint := '复制 - 送入剪切板【Ctrl + C】';
@@ -423,6 +423,8 @@ begin
   sb_LoadPic.Hint := '截图识别';
   bt_Skin.Hint := '更换皮肤【F2】'; 
   sb_Trial.Hint := '演炼场【正推演练：F5/单击；逆推演练：F6/Ctrl + 单击】';  
+
+  bt_LeftBar.Hint := '切换编辑模式或摆箱子模式【H】';
 
   img_Wall.Hint := '绘制 -- 『墙壁』';
   img_Box.Hint := '绘制 -- 『箱子』';
@@ -485,77 +487,77 @@ begin
        Inc(curCell.X);
        Inc(curCell.Y);
        Cell := MapBoard[curCell.Y, curCell.X];
-       if mySelect in [1, 2, 3, 4, 5] then SetUnDoReDo;
+       if mySelect in [1, 2, 3, 4, 5, 8] then SetUnDoReDo;
 
-       if InPlace.Checked then begin      // 摆箱子模式
-          if Cell in [ 4, 5 ] then begin
-             manPos.X := 0;
-             manPos.Y := 0;
-          end;
-          if Cell in [ 1, 5 ] then MapBoard[curCell.Y, curCell.X] := 3
-          else if Cell in [ 0, 4 ] then MapBoard[curCell.Y, curCell.X] := 2
-          else if Cell = 2 then MapBoard[curCell.Y, curCell.X] := 0
-          else if Cell = 3 then MapBoard[curCell.Y, curCell.X] := 1;
-       end else begin                     // 正常编辑模式
-         case mySelect of
-           1: Begin           // Wall
-              if Cell in [ 4, 5 ] then begin
-                manPos.X := 0;
-                manPos.Y := 0;
-              end;
-              MapBoard[curCell.Y, curCell.X] := 6;
-              isSaved := False;
-           end;
-           2: Begin           // Box
-              if Cell in [ 4, 5 ] then begin
-                 manPos.X := 0;
-                 manPos.Y := 0;
-              end;
-              if Cell in [ 1, 2, 5] then MapBoard[curCell.Y, curCell.X] := 3
-              else MapBoard[curCell.Y, curCell.X] := 2;
-              isSaved := False;
-           end;
-           3: Begin           // Goal
-              if Cell in [ 4, 5 ] then begin
-                manPos.X := 0;
-                manPos.Y := 0;
-              end;
-              if Cell in [ 1, 2, 5] then MapBoard[curCell.Y, curCell.X] := 3
-              else MapBoard[curCell.Y, curCell.X] := 1;
-              isSaved := False;
-           end;
-           4: Begin           // Floor
-              if Cell in [ 4, 5 ] then begin
-                manPos.X := 0;
-                manPos.Y := 0;
-              end;
-              MapBoard[curCell.Y, curCell.X] := 0;
-              isSaved := False;
-           end;
-           5: Begin           // Player
-              if (not (Cell in [ 4, 5 ])) and (manPos.X > 0) and (manPos.Y > 0) then begin
-                if MapBoard[manPos.Y, manPos.X] = 4 then MapBoard[manPos.Y, manPos.X] := 0
-                else if MapBoard[manPos.Y, manPos.X] = 5 then MapBoard[manPos.Y, manPos.X] := 1;
-              end;
-              if Cell in [1, 3, 4] then MapBoard[curCell.Y, curCell.X] := 5
-              else MapBoard[curCell.Y, curCell.X] := 4;
-              manPos.X := curCell.X;
-              manPos.Y := curCell.Y;
-              isSaved := False;
-           end;
-           6: Begin           // Select
-              SelPoint_LT.X := curCell.X;
-              SelPoint_LT.Y := curCell.Y;
-              SelPoint_RB.X := curCell.X;
-              SelPoint_RB.Y := curCell.Y;
-           end;
+       case mySelect of
+         1: Begin           // Wall
+            if Cell in [ 4, 5 ] then begin
+              manPos.X := 0;
+              manPos.Y := 0;
+            end;
+            MapBoard[curCell.Y, curCell.X] := 6;
+            isSaved := False;
+         end;
+         2: Begin           // Box
+            if Cell in [ 4, 5 ] then begin
+               manPos.X := 0;
+               manPos.Y := 0;
+            end;
+            if Cell in [ 1, 2, 5] then MapBoard[curCell.Y, curCell.X] := 3
+            else MapBoard[curCell.Y, curCell.X] := 2;
+            isSaved := False;
+         end;
+         3: Begin           // Goal
+            if Cell in [ 4, 5 ] then begin
+              manPos.X := 0;
+              manPos.Y := 0;
+            end;
+            if Cell in [ 1, 2, 5] then MapBoard[curCell.Y, curCell.X] := 3
+            else MapBoard[curCell.Y, curCell.X] := 1;
+            isSaved := False;
+         end;
+         4: Begin           // Floor
+            if Cell in [ 4, 5 ] then begin
+              manPos.X := 0;
+              manPos.Y := 0;
+            end;
+            MapBoard[curCell.Y, curCell.X] := 0;
+            isSaved := False;
+         end;
+         5: Begin           // Player
+            if (not (Cell in [ 4, 5 ])) and (manPos.X > 0) and (manPos.Y > 0) then begin
+              if MapBoard[manPos.Y, manPos.X] = 4 then MapBoard[manPos.Y, manPos.X] := 0
+              else if MapBoard[manPos.Y, manPos.X] = 5 then MapBoard[manPos.Y, manPos.X] := 1;
+            end;
+            if Cell in [1, 3, 4] then MapBoard[curCell.Y, curCell.X] := 5
+            else MapBoard[curCell.Y, curCell.X] := 4;
+            manPos.X := curCell.X;
+            manPos.Y := curCell.Y;
+            isSaved := False;
+         end;
+         6: Begin           // Select
+            SelPoint_LT.X := curCell.X;
+            SelPoint_LT.Y := curCell.Y;
+            SelPoint_RB.X := curCell.X;
+            SelPoint_RB.Y := curCell.Y;
+         end;
+         8: Begin           // 摆箱子模式
+            if Cell in [ 4, 5 ] then begin
+               manPos.X := 0;
+               manPos.Y := 0;
+            end;
+            if Cell in [ 1, 5 ] then MapBoard[curCell.Y, curCell.X] := 3
+            else if Cell in [ 0, 4 ] then MapBoard[curCell.Y, curCell.X] := 2
+            else if Cell = 2 then MapBoard[curCell.Y, curCell.X] := 0
+            else if Cell = 3 then MapBoard[curCell.Y, curCell.X] := 1;
          end;
        end;
+
        Invalidate;
     end;
     isDrawing := True;
   end else if Button = mbright then begin                                       // 右键，擦除
-    if InPlace.Checked or (mySelect = 0) then begin      // 摆箱子模式或浏览模式
+    if mySelect in [0, 8] then begin      // 摆箱子模式或浏览模式
     end else begin
       with Sender as TDrawGrid do begin
          MouseToCell(x, y, curCell.X, curCell.Y);
@@ -563,11 +565,19 @@ begin
          Inc(curCell.Y);
          Cell := MapBoard[curCell.Y, curCell.X];
 
+         SetUnDoReDo;
+         
          if Cell in [ 4, 5 ] then begin
             manPos.X := 0;
             manPos.Y := 0;
          end;
-         MapBoard[curCell.Y, curCell.X] := 0;
+         
+         if Cell in [3, 5] then begin
+            MapBoard[curCell.Y, curCell.X] := 1;
+         end else begin
+            MapBoard[curCell.Y, curCell.X] := 0;
+         end;
+
          isSaved := False;
          isMouseRrghtDown := True;;
 
@@ -592,72 +602,68 @@ begin
         Col := xx;
       end;
     end;
-    if InPlace.Checked then begin      // 摆箱子模式
-//        if Cell in [ 4, 5 ] then begin
-//          manPos.X := 0;
-//          manPos.Y := 0;
-//        end;
-//        if Cell in [1, 3, 5] then MapBoard[yy, xx] := 3
-//        else MapBoard[yy, xx] := 2;
-//        isSaved := False;
-    end else begin
-      if isDrawing then begin
-         Inc(xx);
-         Inc(yy);
-         if (xx <> curCell.X) or (yy <> curCell.Y) then begin
-           Cell := MapBoard[yy, xx];
-           if isMouseRrghtDown then begin
-              if Cell in [ 4, 5 ] then begin
-                manPos.X := 0;
-                manPos.Y := 0;
-              end;
+
+    if isDrawing then begin
+       Inc(xx);
+       Inc(yy);
+       if (xx <> curCell.X) or (yy <> curCell.Y) then begin
+         Cell := MapBoard[yy, xx];
+         if isMouseRrghtDown then begin
+            if Cell in [ 4, 5 ] then begin
+              manPos.X := 0;
+              manPos.Y := 0;
+            end;
+            if Cell in [ 3, 5 ] then begin
+              MapBoard[yy, xx] := 1;
+            end else begin
               MapBoard[yy, xx] := 0;
-              isSaved := False;
-           end else begin
-             case mySelect of
-               1: Begin           // Wall
-                  if Cell in [ 4, 5 ] then begin
-                    manPos.X := 0;
-                    manPos.Y := 0;
-                  end;
-                  MapBoard[yy, xx] := 6;
-                  isSaved := False;
-               end;
-               2: Begin           // Box
-                  if Cell in [ 4, 5 ] then begin
-                    manPos.X := 0;
-                    manPos.Y := 0;
-                  end;
-                  if Cell in [1, 3, 5] then MapBoard[yy, xx] := 3
-                  else MapBoard[yy, xx] := 2;
-                  isSaved := False;
-               end;
-               3: Begin           // Goal
-                  if Cell in [2, 3] then MapBoard[yy, xx] := 3
-                  else if  Cell in [4, 5] then MapBoard[yy, xx] := 5
-                  else MapBoard[yy, xx] := 1;
-                  isSaved := False;
-               end;
-               4: Begin           // Floor
-                  if Cell in [ 4, 5 ] then begin
-                    manPos.X := 0;
-                    manPos.Y := 0;
-                  end;
-                  MapBoard[yy, xx] := 0;
-                  isSaved := False;
-               end;
-               6: Begin           // Select
-                  SelPoint_LT.X := xx;
-                  SelPoint_LT.Y := yy;
-                  SelPoint_RB.X := xx;
-                  SelPoint_RB.Y := yy;
-               end;
+            end;
+
+            isSaved := False;
+         end else begin
+           case mySelect of
+             1: Begin           // Wall
+                if Cell in [ 4, 5 ] then begin
+                  manPos.X := 0;
+                  manPos.Y := 0;
+                end;
+                MapBoard[yy, xx] := 6;
+                isSaved := False;
+             end;
+             2: Begin           // Box
+                if Cell in [ 4, 5 ] then begin
+                  manPos.X := 0;
+                  manPos.Y := 0;
+                end;
+                if Cell in [1, 3, 5] then MapBoard[yy, xx] := 3
+                else MapBoard[yy, xx] := 2;
+                isSaved := False;
+             end;
+             3: Begin           // Goal
+                if Cell in [2, 3] then MapBoard[yy, xx] := 3
+                else if  Cell in [4, 5] then MapBoard[yy, xx] := 5
+                else MapBoard[yy, xx] := 1;
+                isSaved := False;
+             end;
+             4: Begin           // Floor
+                if Cell in [ 4, 5 ] then begin
+                  manPos.X := 0;
+                  manPos.Y := 0;
+                end;
+                MapBoard[yy, xx] := 0;
+                isSaved := False;
+             end;
+             6: Begin           // Select
+                SelPoint_LT.X := xx;
+                SelPoint_LT.Y := yy;
+                SelPoint_RB.X := xx;
+                SelPoint_RB.Y := yy;
              end;
            end;
-           curCell.X := xx;
-           curCell.Y := yy;
          end;
-      end;
+         curCell.X := xx;
+         curCell.Y := yy;
+       end;
     end;
   end;
 end;
@@ -742,6 +748,19 @@ end;
 
 procedure TEditorForm_.FormShow(Sender: TObject);
 begin
+  // 左侧边栏
+  if mySelect = 8 then begin
+     Panel3.Visible := False;
+     bt_LeftBar.Caption := '>';
+//     InPlace.Checked := True;
+//     N14.Checked := True;
+  end else begin
+     Panel3.Visible := True;
+     bt_LeftBar.Caption := '<';
+//     InPlace.Checked := False;
+//     N14.Checked := False;
+  end;
+
   DrawGrid1.SetFocus;
 end;
 
@@ -1129,7 +1148,7 @@ begin
       end;
     end;
 
-    if data_Text <> nil then FreeAndNil(data_Text);
+    RecogForm_.MyStringListFree(data_Text);
   end;
   
   // 仅仅解析第一个 XSB 即可
@@ -1364,8 +1383,6 @@ begin
       sb_Trial.Click;
     VK_F6:                         // F6，逆推演练
       sb_Trial.Click;
-    VK_F8:                         // F8，摆箱子模式
-      InPlace.Click;
     37:                                                    // Ctrl + ←，左移列
       if ssCtrl in Shift then begin
          N2.Click;
@@ -1425,6 +1442,8 @@ procedure TEditorForm_.FormKeyUp(Sender: TObject; var Key: Word;
 begin
 //  Caption := IntToStr(ord(Key));
   case Key of
+    72:                  // H,   摆箱子模式
+      bt_LeftBar.Click;
     71:                  // G
          N6.Click;
     84:                  // T
@@ -1551,7 +1570,7 @@ begin
          end;
       end;
   end;
-  if MyXSB <> nil then FreeAndNil(MyXSB);
+  RecogForm_.MyStringListFree(MyXSB);
 end;
 
 // UnDo
@@ -2039,7 +2058,7 @@ end;
 
 procedure TEditorForm_.bt_SkinClick(Sender: TObject);
 begin
-  Recog_.LoadSkin;
+  Recog_.LoadSkin_;
   DrawGrid1.Invalidate;
 end;
 
@@ -2147,9 +2166,9 @@ end;
 
 procedure TEditorForm_.FormDestroy(Sender: TObject);
 begin
-  if MapNode.Map <> nil then FreeAndNil(MapNode.Map);
-  if UnDoList <> nil then FreeAndNil(UnDoList);
-  if ReDoList <> nil then FreeAndNil(ReDoList);
+  RecogForm_.MyStringListFree(MapNode.Map);
+  RecogForm_.MyStringListFree(UnDoList);
+  RecogForm_.MyStringListFree(ReDoList);
 end;
 
 procedure TEditorForm_.sb_TrialMouseMove(Sender: TObject;
@@ -2404,17 +2423,25 @@ begin
   DrawGrid1.Invalidate;
 end;
 
-procedure TEditorForm_.InPlaceClick(Sender: TObject);
+procedure TEditorForm_.bt_LeftBarClick(Sender: TObject);
 begin
-   if InPlace.Checked then begin
-      InPlace.Checked := False;
-      N14.Checked := False;
+   if mySelect = 8 then begin
+      Panel3.Visible := True;
+      bt_LeftBar.Caption := '<';
+      mySelect := 0;
    end else begin
-      InPlace.Checked := True;
-      N14.Checked := True;
+      Panel3.Visible := False;
+      bt_LeftBar.Caption := '>';
+      mySelect := 8;
    end;
-   mySelect := 2;
+
    SetSelect;
+end;
+
+procedure TEditorForm_.bt_LeftBarMouseMove(Sender: TObject;
+  Shift: TShiftState; X, Y: Integer);
+begin
+  StatusBar1.Panels[8].Text := bt_LeftBar.Hint;
 end;
 
 end.

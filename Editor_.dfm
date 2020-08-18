@@ -1,9 +1,9 @@
 object EditorForm_: TEditorForm_
-  Left = 335
-  Top = 140
+  Left = 477
+  Top = 192
   Width = 800
   Height = 561
-  Caption = #20851#21345#32534#36753#22120' v19.12'
+  Caption = #20851#21345#32534#36753#22120' v20.01'
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
   Font.Color = clWindowText
@@ -396,7 +396,7 @@ object EditorForm_: TEditorForm_
     ParentFont = False
     TabOrder = 0
     object sb_Load: TSpeedButton
-      Left = 100
+      Left = 131
       Top = 5
       Width = 35
       Height = 26
@@ -463,7 +463,7 @@ object EditorForm_: TEditorForm_
       OnMouseMove = sb_LoadMouseMove
     end
     object sb_Save: TSpeedButton
-      Left = 53
+      Left = 84
       Top = 5
       Width = 35
       Height = 26
@@ -530,7 +530,7 @@ object EditorForm_: TEditorForm_
       OnMouseMove = sb_SaveMouseMove
     end
     object sb_Xsb_OK: TSpeedButton
-      Left = 335
+      Left = 366
       Top = 5
       Width = 33
       Height = 26
@@ -579,7 +579,7 @@ object EditorForm_: TEditorForm_
       OnMouseMove = sb_Xsb_OKMouseMove
     end
     object sb_Inf: TSpeedButton
-      Left = 288
+      Left = 319
       Top = 5
       Width = 35
       Height = 26
@@ -646,7 +646,7 @@ object EditorForm_: TEditorForm_
       OnMouseMove = sb_InfMouseMove
     end
     object sb_Clear: TSpeedButton
-      Left = 241
+      Left = 272
       Top = 5
       Width = 35
       Height = 26
@@ -714,7 +714,7 @@ object EditorForm_: TEditorForm_
       OnMouseMove = sb_ClearMouseMove
     end
     object sb_UnDo: TSpeedButton
-      Left = 147
+      Left = 178
       Top = 5
       Width = 35
       Height = 26
@@ -751,7 +751,7 @@ object EditorForm_: TEditorForm_
       OnMouseMove = sb_UnDoMouseMove
     end
     object sb_Help: TSpeedButton
-      Left = 477
+      Left = 508
       Top = 5
       Width = 35
       Height = 26
@@ -782,7 +782,7 @@ object EditorForm_: TEditorForm_
       OnMouseMove = sb_HelpMouseMove
     end
     object sb_ReDo: TSpeedButton
-      Left = 194
+      Left = 225
       Top = 5
       Width = 35
       Height = 26
@@ -819,7 +819,7 @@ object EditorForm_: TEditorForm_
       OnMouseMove = sb_ReDoMouseMove
     end
     object sb_SaveToFile: TSpeedButton
-      Left = 6
+      Left = 37
       Top = 5
       Width = 35
       Height = 26
@@ -886,7 +886,7 @@ object EditorForm_: TEditorForm_
       OnMouseMove = sb_SaveToFileMouseMove
     end
     object sb_LoadPic: TSpeedButton
-      Left = 429
+      Left = 460
       Top = 5
       Width = 35
       Height = 26
@@ -942,7 +942,7 @@ object EditorForm_: TEditorForm_
       OnMouseMove = sb_LoadPicMouseMove
     end
     object bt_Skin: TSpeedButton
-      Left = 382
+      Left = 413
       Top = 5
       Width = 35
       Height = 26
@@ -1017,7 +1017,7 @@ object EditorForm_: TEditorForm_
       OnMouseMove = bt_SkinMouseMove
     end
     object sb_Trial: TSpeedButton
-      Left = 525
+      Left = 556
       Top = 5
       Width = 35
       Height = 26
@@ -1073,6 +1073,24 @@ object EditorForm_: TEditorForm_
       ShowHint = True
       OnClick = sb_TrialClick
       OnMouseMove = sb_TrialMouseMove
+    end
+    object bt_LeftBar: TSpeedButton
+      Left = 2
+      Top = 5
+      Width = 25
+      Height = 26
+      Cursor = crHandPoint
+      Hint = #20999#25442#32534#36753#27169#24335#25110#25670#31665#23376#27169#24335
+      Font.Charset = DEFAULT_CHARSET
+      Font.Color = clWindowText
+      Font.Height = -13
+      Font.Name = #23435#20307
+      Font.Style = []
+      ParentFont = False
+      ParentShowHint = False
+      ShowHint = True
+      OnClick = bt_LeftBarClick
+      OnMouseMove = bt_LeftBarMouseMove
     end
   end
   object Panel2: TPanel
@@ -3415,13 +3433,6 @@ object EditorForm_: TEditorForm_
     object N12: TMenuItem
       Caption = '-'
     end
-    object InPlace: TMenuItem
-      Caption = #25670#31665#23376#27169#24335'    '#12304'F8'#12305
-      OnClick = InPlaceClick
-    end
-    object N5: TMenuItem
-      Caption = '-'
-    end
     object N6: TMenuItem
       Caption = #21442#32771#22270
       OnClick = N6Click
@@ -3454,13 +3465,6 @@ object EditorForm_: TEditorForm_
     AutoHotkeys = maManual
     Left = 360
     Top = 51
-    object N14: TMenuItem
-      Caption = #25670#31665#23376#27169#24335'    '#12304'F8'#12305
-      OnClick = InPlaceClick
-    end
-    object N13: TMenuItem
-      Caption = '-'
-    end
     object N9: TMenuItem
       Caption = #28165#38500#31665#23376
       OnClick = N9Click

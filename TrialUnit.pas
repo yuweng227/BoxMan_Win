@@ -586,7 +586,9 @@ begin
   bt_GoThrough.Hint := '穿越开关【G】';
   bt_OddEven.Hint := '奇偶格位【E】';
   bt_Save.Hint := '导出演练场的 XSB + Lurd【Ctrl + C】';
-  
+  bt_UnDo.Hint := '撤销【Z/退格键/滚轮】';
+  bt_ReDo.Hint := '重做【X/空格键/回车键/滚轮】';
+
   StatusBar1.Panels[0].Text := '移动';
   StatusBar1.Panels[2].Text := '推动';
   StatusBar1.Panels[4].Text := '箱子数';
@@ -1006,8 +1008,11 @@ end;
 
 procedure TTrialForm.FormDestroy(Sender: TObject);
 begin
-  if myPathFinder <> nil then FreeAndNil(myPathFinder);
-  if MaskPic <> nil then FreeAndNil(MaskPic);
+  if Assigned(myPathFinder) then begin
+     myPathFinder.Free;
+     myPathFinder := nil;
+  end;
+  LoadSkinForm.MyBMPFree(MaskPic);
 end;
 
 // 是否允许穿越
@@ -1376,6 +1381,17 @@ begin
         else UnDo(UnDoPos);
         StatusBar1.Panels[7].Text := '已至首！';
       end;
+    8:                          // 退格键，Undo
+      begin
+        bt_UnDo.Click;
+      end;
+    32, 13:                         // 空格键/回车键，Redo
+      begin
+        if (ssCtrl in Shift) or (ssAlt in Shift) or (ssShift in Shift) then begin
+        end else begin
+           bt_ReDo.Click;
+        end;
+      end;
   end;
 end;
 
@@ -1711,7 +1727,7 @@ begin
   
   if UnDoPos > 0 then begin
      if UnDoPos < MaxLenPath then UndoList[UnDoPos+1] := #0;
-     str := str + PChar(@UndoList) + #10;
+     str := str + #10 + PChar(@UndoList) + #10;
   end;
   
   // 送入剪切板

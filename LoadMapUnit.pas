@@ -3,15 +3,21 @@ unit LoadMapUnit;    // 关卡文本解析单元
 interface
 
 uses
-  windows, classes, StrUtils, SysUtils, Clipbrd, Graphics, Math, CRC_32, SQLiteTable3;
+  windows, classes, StrUtils, SysUtils, Clipbrd, Math, CRC_32, SQLiteTable3;
 
 type
-  TLoadMapThread = class(TThread)         // 后台加载地图文档线程
+  TLoadMapThread = class(TThread)         // 解析并加载全部关卡的后台线程
+  protected
+    procedure Execute; override;
+  public
+  end;
+
+type
+  TLoadAnsThread = class(TThread)         // 导入答案的后台线程
   protected
     procedure UpdateCaption;
     procedure Execute; override;
   public
-    isRunning: Boolean;
   end;
 
 type                  // 关卡节点 -- 关卡集中的各个关卡
@@ -19,55 +25,62 @@ type                  // 关卡节点 -- 关卡集中的各个关卡
     Map_Thin: string;           // 最简关卡 XSB
     Map: TStringList;           // 关卡 XSB
     Rows, Cols: integer;        // 关卡尺寸
-    Boxs: integer;        // 箱子数
-    Goals: integer;        // 目标点数
-    Trun: integer;        // 关卡旋转登记
-    Title: string;         // 标题
-    Author: string;         // 作者
-    Comment: string;         // 关卡描述信息
-    CRC32: integer;        // CRC32
-    CRC_Num: integer;        // 若当前地图为 0 转，最小 CRC 位于第几转？
-    Solved: Boolean;        // 是否由答案
+    Boxs: integer;              // 箱子数
+    Goals: integer;             // 目标数
+    Trun: integer;              // 关卡旋转登记
+    Title: string;              // 标题
+    Author: string;             // 作者
+    Comment: string;            // 关卡描述信息
+    CRC32: integer;             // CRC32
+    CRC_Num: integer;           // 若当前地图为 0 转，最小 CRC 位于第几转？
+    Solved: Boolean;            // 是否由答案
     isEligible: Boolean;        // 是否合格的关卡XSB
-    Num: integer;        // 关卡序号 -- 仅加载文档最后一个关卡时使用
+    Num: integer;               // 关卡序号 -- 仅加载文档最后一个关卡时使用
   end;
 
-  PMapNode = ^TMapNode;              // 关卡节点指针
+  PMapNode = ^TMapNode;         // 关卡节点指针
 
-function GetXSB(mapNpde: PMapNode): string;                    // 取得关卡 XSB
+function LoadMapsFromTextList(data_Text: TStringList; isAns: Boolean): boolean;                   // 加载关卡 -- 从 TStringList 中，isAns -- 是否加载答案
 
-function GetXSB_2(): string;                                   // 取得现场 XSB
+procedure QuicklyLoadMap(data_Text: TStringList; number: Integer; var curMap: PMapNode);  // 迅速的加载指定序号 number 的关卡
 
-procedure XSBToClipboard();                                    // XSB 送入剪切板
+function GetMapNumber(data_Text: TStringList): Integer;              // 取得关卡数
 
-procedure XSBToClipboard_2();                                  // 现场 XSB 送入剪切板
+function FindClipbrd(num: Integer): Integer;                         // 在关卡列表中，查找剪切板中的关卡，返回找到的序号，没找到则返回 -1
 
-function LoadMapsFromText(text: string): boolean;             // 加载关卡 -- 从剪切板或文本字符串
+function MapNormalize(var mapNode: PMapNode): Boolean;               // 地图标准化，包括：简单标准化 -- 保留关卡的墙外造型；精准标准化 -- 不保留关卡的墙外造型，同时计算 CRC 等
 
-function QuicklyLoadMap(FileName: string; number: Integer): PMapNode;  // 迅速的加载指定文档的第 number 号地图
+function isSolution(mapNode: PMapNode; sol: PChar): Boolean;         // 答案验证
 
-function MapNormalize(var mapNode: PMapNode): Boolean;         // 地图标准化，包括：简单标准化 -- 保留关卡的墙外造型；精准标准化 -- 不保留关卡的墙外造型，同时计算 CRC 等
+procedure MyStringListFree(var _StringList_: TStringList);           // 释放 TStringList 的内存
 
-function isSolution(mapNode: PMapNode; sol: PChar): Boolean;   // 答案验证
+procedure MyListClear(var _List_: TList);                            // 清空关卡列表
 
-procedure MyListClear(var _List_: TList);                      // 清空关卡列表，并释放内存
+function GetXSB(mapNpde: PMapNode): string;                          // 取得关卡 XSB
+
+function GetXSB_2(): string;                                        // 取得现场 XSB
+
+procedure XSBToClipboard();                                         // XSB 送入剪切板
+
+procedure XSBToClipboard_2();                                       // 现场 XSB 送入剪切板
+
+procedure Split(src: string; var myList: TStringList);              // 分割字符串
 
 var
-  isStopThread: Boolean;                              // 是否终止后台线程
-  LoadMapThread: TLoadMapThread;                     // 后台加载地图文档线程
-  ManPos_BK_0: integer;                       // 人的位置 -- 逆推，玩家已经指定的位置
-  ManPos_BK_0_2: integer;                     // 人的位置 -- 逆推，解析出来的位置
+  isStopThread: Boolean;                   // 是否终止后台线程
+  isStopThread_Ans: Boolean;               // 是否终止后台线程
+  ManPos_BK_0: integer;                    // 人的位置 -- 逆推，玩家已经指定的位置
+  ManPos_BK_0_2: integer;                  // 人的位置 -- 逆推，解析出来的位置
 
-  sMoves, sPushs: integer;                            // 验证答案时，记录移动数和推动数
+  sMoves, sPushs: integer;                 // 验证答案时，记录移动数和推动数
+
+  sumSolution: Integer;                    // 成功导入的答案个数
 
   MapCount: Integer;                       // 已经解析出来的关卡数
   MapList: TList;                          // 关卡列表
   MapArray: array[0..99, 0..99] of Char;   // 标准化用关卡数组
   Mark: array[0..99, 0..99] of Boolean;    // 标准化用标志数组
   curMapNode: PMapNode;                    // 当前关卡节点
-  SolvedLevel: array[0..30] of Integer;    // 当后台没有加载完关卡时，临时登记加载期间玩家解开的关卡序号
-
-  isOnlyXSB: boolean;                      // 打开关卡文档时，仅解析XSB -- 忽略答案
 
   tmp_Board: array[0..9999] of integer;    // 临时地图
 
@@ -86,8 +99,7 @@ var
 implementation
 
 uses
-  LogFile, OpenFile, BrowseLevels, //
-  LurdAction, MainForm, LoadSkin;
+  MainForm, LogFile, OpenFile;
 
 const
   EmptyCell = 0;
@@ -99,24 +111,41 @@ const
   ManCell = 6;
   ManGoalCell = 7;
 
+  // 四邻常量：左、右、上、下
+  dr4 : array[0..3] of Integer = (  0, 0, -1, 1 );
+  dc4 : array[0..3] of Integer = ( -1, 1,  0, 0 );
+
 var
   pt: array[0..9999] of Integer;        // 在“关卡标准化功能中，用数组替代“队列”
 
-// 清空关卡列表，并释放内存
+// 释放 TStringList 的内存
+procedure MyStringListFree(var _StringList_: TStringList);
+begin
+  if Assigned(_StringList_) then begin
+     _StringList_.Clear;
+     _StringList_.Free;
+     _StringList_ := nil;
+  end;
+end;
+
+// 清空关卡列表（TList类型）
 procedure MyListClear(var _List_: TList);
 var
   i, len: Integer;
 begin
-  if _List_ = nil then exit;
-  
-  len := _List_.Count;
-  for i := len-1 downto 0 do begin
-      if _List_.Items[i] <> nil then begin
-         Dispose(_List_.Items[i]);
-         _List_.Items[i] := nil;
-      end;
+  if not Assigned(_List_) then exit;
+
+  if Assigned(_List_) then begin
+    len := _List_.Count;
+    for i := len-1 downto 0 do begin
+        if Assigned(PMapNode(_List_.Items[i])) then begin
+           MyStringListFree(PMapNode(_List_.Items[i]).Map);
+           Dispose(PMapNode(_List_.Items[i]));
+           _List_.Items[i] := nil;
+        end;
+    end;
+    _List_.Clear;
   end;
-  _List_.Clear;
 end;
 
 // 取得子串最后出现的位置
@@ -126,15 +155,55 @@ var
 begin
   Result := 0;
   Idx := StrUtils.PosEx(SubStr, Str);
-  if Idx = 0 then
-    Exit;
-  while Idx > 0 do
-  begin
+  if Idx = 0 then Exit;
+  while Idx > 0 do begin
     Result := Idx;
     Idx := StrUtils.PosEx(SubStr, Str, Idx + 1);
   end;
 end;
+
+// 判断是否为有效的 Lurd 行
+function isLurd(str: String; is_BK: Boolean = False): boolean;
+var
+  n, k: Integer;
+
+begin
+  result := False;
+
+  n := Length(str);
+
+  if n = 0 then exit;    
   
+  k := 1;
+  while k <= n do begin
+     if not (str[k] in [ 'l', 'u', 'r', 'd', 'L', 'U', 'R', 'D', ' ', #9 ]) then Break;
+     k := k+1;
+  end;
+
+  result := k > n;
+end;
+
+// 判断是否为有效的 Lurd 行
+function isLurd_2(str: String): boolean;
+var
+  n, k: Integer;
+
+begin
+  result := False;
+
+  n := Length(str);
+
+  if n = 0 then exit;    
+  
+  k := 1;
+  while k <= n do begin
+     if not (str[k] in [ 'l', 'u', 'r', 'd', 'L', 'U', 'R', 'D', ',', '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', ' ', '[', ']', ' ', #9 ]) then Break;
+     k := k+1;
+  end;
+
+  result := k > n;
+end;
+
 // 判断是否为有效的 XSB 行
 function isXSB(str: string): boolean;
 var
@@ -144,26 +213,20 @@ begin
 
   n := Length(str);
 
-  if n = 0 then
-    exit;
+  if n = 0 then exit;
 
   k := 1;
   // 检查是否是空行 -- 仅有空格和跳格符
-  while k <= n do
-  begin
-    if (str[k] <> #20) and (str[k] <> #9) or (str[k] = '') then
-      Break;
-    Inc(k);
+  while k <= n do begin
+    if (str[k] <> #20) and (str[k] <> #9) or (str[k] = '') then Break;
+    k := k+1;
   end;
-  if k > n then
-    Exit;
+  if k > n then Exit;
 
   k := 1;
-  while k <= n do
-  begin
-    if not (str[k] in [ #9, ' ', '_', '-', '#', '.', '$', '*', '@', '+']) then
-      Break;
-    Inc(k);
+  while k <= n do begin
+    if not (str[k] in [ #9, ' ', '_', '-', '#', '.', '$', '*', '@', '+']) then Break;
+    k := k+1;
   end;
 
   result := k > n;
@@ -183,10 +246,8 @@ begin
   Rows := mapNode.Rows;
   Cols := mapNode.Cols;
   size := Rows * Cols;
-  for i := 0 to Rows - 1 do
-  begin
-    for j := 1 to Cols do
-    begin
+  for i := 0 to Rows - 1 do begin
+    for j := 1 to Cols do begin
       ch := mapNode.Map[i][j];
       case ch of
         '#':
@@ -207,23 +268,32 @@ begin
         tmp_Board[i * Cols + j] := EmptyCell;
       end;
 
-      if ch in ['@', '+'] then
-        mpos := i * Cols + j;
+      if ch in ['@', '+'] then mpos := i * Cols + j;
     end;
   end;
 
-  if mpos < 0 then
-    Exit;
+  if mpos < 0 then Exit;
+  
   sPushs := 0;
   sMoves := 0;
 
   // 答案验证
   len := Length(sol);
-  for i := 0 to len - 1 do
-  begin
+  for i := 0 to len - 1 do begin
     pos1 := -1;
     pos2 := -1;
     ch := sol[i];
+    // 按关卡旋转变换动作字符
+//    case ch of
+//       'l': ch := ActDir[mapNode.Trun, 0];
+//       'u': ch := ActDir[mapNode.Trun, 1];
+//       'r': ch := ActDir[mapNode.Trun, 2];
+//       'd': ch := ActDir[mapNode.Trun, 3];
+//       'L': ch := ActDir[mapNode.Trun, 4];
+//       'U': ch := ActDir[mapNode.Trun, 5];
+//       'R': ch := ActDir[mapNode.Trun, 6];
+//       'D': ch := ActDir[mapNode.Trun, 7];
+//    end;
     case ch of
       'l', 'L':
         begin
@@ -246,56 +316,59 @@ begin
           pos2 := mpos + mapNode.Cols * 2;
         end;
     end;
-    isPush := ch in ['L', 'R', 'U', 'D'];
 
-    if (pos1 < 0) or (pos1 >= size) or (isPush and ((pos1 < 0) or (pos1 >= size))) then
-      Exit;             // 界外
+    if (pos1 < 0) or (pos1 >= size) then   // pos1 界外
+       Exit;
 
-    if isPush then
-    begin                                                                                 // 无效推动
-      if (tmp_Board[pos1] <> BoxCell) and (tmp_Board[pos1] <> BoxGoalCell) or (tmp_Board[pos2] <> FloorCell) and (tmp_Board[pos2] <> GoalCell) then
-        Exit;
-      if tmp_Board[pos2] = FloorCell then
-        tmp_Board[pos2] := BoxCell
-      else
-        tmp_Board[pos2] := BoxGoalCell;
-      if tmp_Board[pos1] = BoxCell then
-        tmp_Board[pos1] := ManCell
-      else
-        tmp_Board[pos1] := ManGoalCell;
-      if tmp_Board[mpos] = ManCell then
-        tmp_Board[mpos] := FloorCell
-      else
-        tmp_Board[mpos] := GoalCell;
-    end
+    isPush := False;
+    if tmp_Board[pos1] = FloorCell then begin
+       tmp_Board[pos1] := ManCell;
+    end else if tmp_Board[pos1] = GoalCell then begin
+       tmp_Board[pos1] := ManGoalCell;
+    end else if tmp_Board[pos1] = BoxCell then begin
+       if (pos2 < 0) or (pos2 >= size) then // pos2 界外
+          Exit;
+
+       if tmp_Board[pos2] = FloorCell then begin
+          tmp_Board[pos2] := BoxCell;
+       end else if tmp_Board[pos2] = GoalCell then begin
+          tmp_Board[pos2] := BoxGoalCell;
+       end else Exit;                       // 错误
+
+       tmp_Board[pos1] := ManCell;
+
+       isPush := True;
+    end else if tmp_Board[pos1] = BoxGoalCell then begin
+       if (pos2 < 0) or (pos2 >= size) then // pos2 界外
+          Exit;
+          
+       if tmp_Board[pos2] = FloorCell then begin
+          tmp_Board[pos2] := BoxCell;
+       end else if tmp_Board[pos2] = GoalCell then begin
+          tmp_Board[pos2] := BoxGoalCell;
+       end else Exit;                       // 错误
+
+       tmp_Board[pos1] := ManGoalCell;
+
+       isPush := True;
+    end else Exit;;                        // 错误
+
+    if tmp_Board[mpos] = ManCell then
+      tmp_Board[mpos] := FloorCell
     else
-    begin
-      if (tmp_Board[pos1] <> FloorCell) and (tmp_Board[pos1] <> GoalCell) then
-        Exit;                    // 无效移动
-      if tmp_Board[pos1] = FloorCell then
-        tmp_Board[pos1] := ManCell
-      else
-        tmp_Board[pos1] := ManGoalCell;
-      if tmp_Board[mpos] = ManCell then
-        tmp_Board[mpos] := FloorCell
-      else
-        tmp_Board[mpos] := GoalCell;
-    end;
+      tmp_Board[mpos] := GoalCell;
 
-    if isPush then
-      Inc(sPushs);
-    Inc(sMoves);
+    if isPush then sPushs := sPushs+1;
+    sMoves := sMoves+1;
 
     mpos := pos1;
 
     okNum := 0;
-    for j := 0 to size - 1 do
-    begin
+    for j := 0 to size - 1 do begin
       if (tmp_Board[j] = BoxGoalCell) then
-        Inc(okNum);
+        okNum := okNum+1;
 
-      if okNum = mapNode.Goals then
-      begin                     // 能够解关，为有效答案
+      if okNum = mapNode.Boxs then begin                     // 能够解关，为有效答案
         Result := True;
         Exit;
       end;
@@ -309,10 +382,10 @@ end;
 procedure NewMapNode(var mpList: TList);
 var
   mapNode: PMapNode;               // 关卡节点
-
 begin
   New(mapNode);
   mapNode.Map := TStringList.Create;
+
   mapNode.Map_Thin := '';
   mapNode.Rows := 0;
   mapNode.Cols := 0;
@@ -325,10 +398,28 @@ begin
   mapNode.Solved := false;
 
   mpList.Add(mapNode);          // 加入关卡集列表
-
+  mapNode := nil;
 end;
 
-// 剪切板导入时，若发现答案，则导入答案库
+// 原始 XSB 送入剪切板
+procedure XSBToClipboard();
+begin
+  if Assigned(curMapNode) and (curMapNode.Map.Count > 0) then
+  begin
+    Clipboard.SetTextBuf(PChar(GetXSB(curMapNode)));
+  end;
+end;
+
+// 现场 XSB 送入剪切板
+procedure XSBToClipboard_2();
+begin
+  if Assigned(curMapNode) and (curMapNode.Map.Count > 0) then
+  begin
+    Clipboard.SetTextBuf(PChar(GetXSB_2()));
+  end;
+end;
+
+// 导入时，若发现答案，则导入答案库
 procedure SetSolved(mapNode: PMapNode; var Solitions: TStringList);
 var
   sldb: TSQLiteDatabase;
@@ -345,15 +436,12 @@ begin
   try
     if sldb.TableExists('Tab_Solution') then begin
       // 若解析到了答案，则验证答案并将答案入库
-      if Solitions.Count > 0 then
-      begin
+      if Solitions.Count > 0 then begin
         l := Solitions.Count;
-        for i := l - 1 downto 0 do
-        begin
-          if isSolution(mapNode, PChar(Solitions[i])) then      // 对答案进行验证
-          begin
+        for i := l - 1 downto 0 do begin
+          if isSolution(mapNode, PChar(Solitions[i])) then begin       // 对答案进行验证
             // 保存答案到数据库
-            sSQL := 'select * from Tab_Solution where XSB_CRC32 = ' + IntToStr(mapNode.CRC32) + ' and Goals = ' + IntToStr(mapNode.Goals);
+            sSQL := 'select * from Tab_Solution where XSB_CRC32 = ' + IntToStr(mapNode.CRC32) + ' and Goals = ' + IntToStr(mapNode.Boxs);
             sltb := slDb.GetTable(sSQL);
 
             try
@@ -374,7 +462,7 @@ begin
                          'VALUES (' +
                          IntToStr(mapNode.CRC32) + ', ' +
                          IntToStr(mapNode.CRC_Num) + ', ' +
-                         IntToStr(mapNode.Goals) + ', ' +
+                         IntToStr(mapNode.Boxs) + ', ' +
                          IntToStr(solCRC) + ', ' +
                          IntToStr(sMoves) + ', ' +
                          IntToStr(sPushs) + ', ''' +
@@ -385,6 +473,7 @@ begin
                  sldb.ExecSQL(sSQL);
 
                  sldb.Commit;
+                 sumSolution := sumSolution + 1;           // 成功导入的答案个数
               end;
             finally
               sltb.free;
@@ -400,7 +489,7 @@ begin
       if is_Solved then mapNode.Solved := is_Solved
       else begin
         // 数据库中是否有解
-        sSQL := 'select * from Tab_Solution where XSB_CRC32 = ' + IntToStr(mapNode.CRC32) + ' and Goals = ' + IntToStr(mapNode.Goals);
+        sSQL := 'select id from Tab_Solution where XSB_CRC32 = ' + IntToStr(mapNode.CRC32) + ' and Goals = ' + IntToStr(mapNode.Boxs);
         sltb := slDb.GetTable(sSQL);
         try
           mapNode.Solved := sltb.Count > 0;
@@ -414,7 +503,7 @@ begin
   end;
 end;
 
-// 后台线程加载关卡集文档时，若发现答案，则导入答案库
+// 导入答案入答案库
 procedure SetSolved_2(mapNode: PMapNode; var Solitions: TStringList);
 var
   sldb: TSQLiteDatabase;
@@ -431,15 +520,12 @@ begin
   try
     if sldb.TableExists('Tab_Solution') then begin
       // 若解析到了答案，则验证答案并将答案入库
-      if Solitions.Count > 0 then
-      begin
+      if Solitions.Count > 0 then begin
         l := Solitions.Count;
-        for i := l - 1 downto 0 do
-        begin
-          if isSolution(mapNode, PChar(Solitions[i])) then      // 对答案进行验证
-          begin   
-                // 保存答案到数据库
-            sSQL := 'select * from Tab_Solution where XSB_CRC32 = ' + IntToStr(mapNode.CRC32) + ' and Goals = ' + IntToStr(mapNode.Goals);
+        for i := l - 1 downto 0 do begin
+          if isSolution(mapNode, PChar(Solitions[i])) then begin       // 对答案进行验证
+            // 保存答案到数据库
+            sSQL := 'select * from Tab_Solution where XSB_CRC32 = ' + IntToStr(mapNode.CRC32) + ' and Goals = ' + IntToStr(mapNode.Boxs);
             sltb := slDb.GetTable(sSQL);
 
             try
@@ -460,7 +546,7 @@ begin
                          'VALUES (' +
                          IntToStr(mapNode.CRC32) + ', ' +
                          IntToStr(mapNode.CRC_Num) + ', ' +
-                         IntToStr(mapNode.Goals) + ', ' +
+                         IntToStr(mapNode.Boxs) + ', ' +
                          IntToStr(solCRC) + ', ' +
                          IntToStr(sMoves) + ', ' +
                          IntToStr(sPushs) + ', ''' +
@@ -471,6 +557,7 @@ begin
                  sldb.ExecSQL(sSQL);
 
                  sldb.Commit;
+                 sumSolution := sumSolution + 1;           // 成功导入的答案个数
               end;
             finally
               sltb.free;
@@ -486,7 +573,7 @@ begin
       if is_Solved then mapNode.Solved := is_Solved
       else begin
         // 数据库中是否有解
-        sSQL := 'select * from Tab_Solution where XSB_CRC32 = ' + IntToStr(mapNode.CRC32) + ' and Goals = ' + IntToStr(mapNode.Goals);
+        sSQL := 'select id from Tab_Solution where XSB_CRC32 = ' + IntToStr(mapNode.CRC32) + ' and Goals = ' + IntToStr(mapNode.Boxs);
         sltb := slDb.GetTable(sSQL);
         try
           mapNode.Solved := sltb.Count > 0;
@@ -500,411 +587,410 @@ begin
   end;
 end;
 
-
-// 迅速的加载指定文档的第 num 号地图
-function QuicklyLoadMap(FileName: string; number: Integer): PMapNode;
+// 迅速加载指定序号的关卡
+procedure QuicklyLoadMap(data_Text: TStringList; number: Integer; var curMap: PMapNode);
 var
-  txtFile: TextFile;
   line, line2: string;
   is_XSB: Boolean;                 // 是否正在解析关卡XSB
   is_Comment: Boolean;             // 是否正在解析关卡说明信息
-  num, n: Integer;                 // XSB的解析控制
-
+  n, k, len, num: Integer;         // XSB的解析控制
 begin
+  curMap.Map := TStringList.Create;
 
   try
-    AssignFile(txtFile, FileName);
-    Reset(txtFile);
-
-    New(Result);
-    Result.Map := TStringList.Create;
-    Result.Map_Thin := '';
-    Result.Rows := 0;
-    Result.Cols := 0;
-    Result.Trun := 0;
-    Result.Title := '';
-    Result.Author := '';
-    Result.Comment := '';
-    Result.CRC32 := -1;
-    Result.CRC_Num := -1;
-    Result.Solved := false;
-    Result.isEligible := True;      // 默认是合格的关卡 XSB
+    curMap.Map_Thin := '';
+    curMap.Rows := 0;
+    curMap.Cols := 0;
+    curMap.Trun := 0;
+    curMap.Title := '';
+    curMap.Author := '';
+    curMap.Comment := '';
+    curMap.CRC32 := -1;
+    curMap.CRC_Num := -1;
+    curMap.Solved := false;
+    curMap.isEligible := True;      // 默认是合格的关卡 XSB
+    curMap.Num := 0;
 
     is_XSB := False;
     is_Comment := False;
+
+    len := data_Text.Count;
+    k := 0;
     num := 0;
-
-    while not eof(txtFile) do
-    begin
-
-      readln(txtFile, line);        // 读取一行
+    while (k < len) do begin
+      line  := data_Text.Strings[k];
       line2 := Trim(line);
+      k := k+1;
 
-      if (not is_Comment) and isXSB(line) then
-      begin       // 检查是否为 XSB 行
-        if not is_XSB then
-        begin     // 开始 XSB 块
+      if (not is_Comment) and isXSB(line) then begin       // 检查是否为 XSB 行
+        if not is_XSB then begin     // 开始 XSB 块
 
-          if (Result.Rows > 2) or (num = 0) then
-            inc(num);     // 遇到的到 num 个 XSB 块
+          if (curMap.Rows > 2) or (num = 0) then
+             num := num+1;     // 遇到的第 num 个 XSB 块
 
-          if num > number then
-            Break;
+          if num > number then  Break;
 
           is_XSB := True;    // 开始关卡 XSB 块
           is_Comment := False;
-          Result.Map.Clear;
-          Result.Rows := 0;
-          Result.Num := num;
+          curMap.Map.Clear;
+          curMap.Rows := 0;
+          curMap.Num := num;
         end;
 
-        if num = number then
-        begin
-          Result.Map.Add(line);      // 各 XSB 行
+        if num = number then begin
+           curMap.Map.Add(line);      // 各 XSB 行
         end;
-        inc(Result.Rows);
+        curMap.Rows := curMap.Rows+1;
 
       end
-      else if (not is_Comment) and (AnsiStartsText('title', line2)) then
-      begin   // 匹配 Title，标题
-        if num = number then
-        begin
-          n := Pos(':', line2);
-          if n > 0 then
-            Result.Title := trim(Copy(line2, n + 1, MaxInt))
-          else
-            Result.Title := trim(Copy(line2, 6, MaxInt));
+      else if (not is_Comment) and (AnsiStartsText('title', line2)) and (curMap.Title = '') then begin   // 匹配 Title，标题
+        if num = number then begin
+           n := Pos(':', line2);
+           if n > 0 then
+              curMap.Title := trim(Copy(line2, n + 1, MaxInt))
+           else
+              curMap.Title := trim(Copy(line2, 6, MaxInt));
         end;
 
-        if is_XSB then
-          is_XSB := false;      // 结束关卡SXB的解析
+        if is_XSB then is_XSB := false;      // 结束关卡SXB的解析
       end
-      else if (not is_Comment) and (AnsiStartsText('author', line2)) then
-      begin  // 匹配 Author，作者
-        if num = number then
-        begin
-          n := Pos(':', line2);
-          if n > 0 then
-            Result.Author := trim(Copy(line2, n + 1, MaxInt))
-          else
-            Result.Author := trim(Copy(line2, 7, MaxInt));
+      else if (not is_Comment) and (AnsiStartsText('author', line2)) and (curMap.Author = '') then begin  // 匹配 Author，作者
+        if num = number then begin
+           n := Pos(':', line2);
+           if n > 0 then
+             curMap.Author := trim(Copy(line2, n + 1, MaxInt))
+           else
+             curMap.Author := trim(Copy(line2, 7, MaxInt));
         end;
 
-        if is_XSB then
-          is_XSB := false;      // 结束关卡SXB的解析
+        if is_XSB then is_XSB := false;      // 结束关卡SXB的解析
       end
-      else if (AnsiStartsText('comment-end', line2)) or (AnsiStartsText('comment_end', line2)) then
-      begin  // 匹配"注释"块结束
+      else if (AnsiStartsText('comment-end', line2)) or (AnsiStartsText('comment_end', line2)) then begin  // 匹配"注释"块结束
         is_Comment := False;   // 结束"注释"块
       end
-      else if (AnsiStartsText('comment', line2)) then
-      begin  //匹配"注释"块开始
-        if is_XSB then
-          is_XSB := false;      // 结束关卡SXB的解析
+      else if AnsiStartsText('comment', line2) and (curMap.Comment = '') then begin  //匹配"注释"块开始
+        if is_XSB then is_XSB := false;      // 结束关卡SXB的解析
         n := Pos(':', line2);
         if n > 0 then
           line := trim(Copy(line2, n + 1, MaxInt))
         else
           line := trim(Copy(line2, 8, MaxInt));
 
-        if Length(line) > 0 then
-        begin
+        if Length(line) > 0 then begin
           if num = number then
-            Result.Comment := line;     // 单行"注释"
+            curMap.Comment := line;     // 单行"注释"
         end
         else
           is_Comment := True;          // 多行"注释"块
-
-        if is_XSB then
-          is_XSB := false;      // 结束关卡SXB的解析
       end
-      else if is_Comment then
-      begin  // "说明"信息
-        if num = number then
-        begin
-          if Length(Result.Comment) > 0 then
-            Result.Comment := Result.Comment + #10 + line
+      else if is_Comment then begin  // "说明"信息
+        if num = number then begin
+          if Length(curMap.Comment) > 0 then
+            curMap.Comment := curMap.Comment + #10 + line
           else
-            Result.Comment := line;
+            curMap.Comment := line;
         end;
       end
-      else
-      begin
-        if is_XSB then
-          is_XSB := false;      // 结束关卡SXB块的解析
+      else begin
+        if is_XSB then is_XSB := false;      // 结束关卡SXB块的解析
       end;
     end;
 
     // 检查最后的节点，若没有 XSB 数据，则将其删除
-    if Result.Rows > 2 then
-      MapNormalize(Result)
-    else
-    begin
-      Result.Map.Clear;
-      Result.Rows := 0;
+    if (curMap.Rows > 2) then begin
+       MapNormalize(curMap);
+    end else begin
+      curMap.Map.Clear;
+      curMap.Rows := 0;
     end;
-
-    CloseFile(txtFile);                //关闭打开的文件
   except
-    Result.Map.Clear;
-    Result.Rows := 0;
+    curMap.Map.Clear;
+    curMap.Rows := 0;
   end;
 end;
-
+
+// 取得包含的关卡总数
+function GetMapNumber(data_Text: TStringList): Integer;
+var
+  line, line2: string;
+  is_XSB: Boolean;                 // 是否正在解析关卡XSB
+  is_Comment: Boolean;             // 是否正在解析关卡说明信息
+  n, k, len, Rows: Integer;        // XSB的解析控制
+begin
+  Result := 0;
+
+  Rows := 0;
+
+  try
+
+    is_XSB := False;
+    is_Comment := False;
+
+    len := data_Text.Count;
+    k := 0;
+    while (k < len) do begin
+      line  := data_Text.Strings[k];
+      line2 := Trim(line);
+      k := k+1;
+
+      if (not is_Comment) and isXSB(line) then begin       // 检查是否为 XSB 行
+        if not is_XSB then begin     // 开始 XSB 块
+
+          if (Rows > 2) or (Result = 0) then
+             Result := Result+1;     // 遇到的第 num 个 XSB 块
+
+          if Result >= MaxInt then begin
+             Break;
+          end;
+
+          is_XSB := True;    // 开始关卡 XSB 块
+          is_Comment := False;
+          Rows := 0;
+        end;
+
+        Rows := Rows+1;
+
+      end
+      else if (AnsiStartsText('comment-end', line2)) or (AnsiStartsText('comment_end', line2)) then begin  // 匹配"注释"块结束
+        is_Comment := False;   // 结束"注释"块
+      end
+      else if AnsiStartsText('comment', line2) then begin  //匹配"注释"块开始
+        if is_XSB then is_XSB := false;      // 结束关卡SXB的解析
+        n := Pos(':', line2);
+        if n > 0 then
+          line := trim(Copy(line2, n + 1, MaxInt))
+        else
+          line := trim(Copy(line2, 8, MaxInt));
+
+        if Length(line) <= 0 then is_Comment := True;          // 多行"注释"块
+      end
+      else if is_Comment then begin  // "说明"信息
+      end
+      else begin
+        if is_XSB then is_XSB := false;      // 结束关卡SXB块的解析
+      end;
+    end;
+
+  finally
+    // 检查最后的节点，若没有 XSB 数据，则将其删除
+    if (Rows < 3) then begin
+       Result := Result - 1;
+    end;
+  end;
+end;
+
 // 分割字符串
-function Split(src: string): TStringList;
+procedure Split(src: string; var myList: TStringList);
 var
   i: integer;
   str: string;
 begin
-  result := TStringList.Create;
-
   src := StringReplace(src, #13, #10, [rfReplaceAll]);
-  i := 1;
-  while i > 0 do begin
+//  i := 1;
+//  while i > 0 do begin
      src := StringReplace(src, #10#10, #10, [rfReplaceAll]);
-     i := pos(#10#10, src);
-  end;
+//     i := pos(#10#10, src);
+//  end;
 
   repeat
     i := pos(#10, src);
     str := copy(src, 1, i - 1);
     if (str = '') and (i > 0) then
     begin
-      result.Add('');
+      myList.Add('');
       delete(src, 1, 1);
       continue;
     end;
     if i > 0 then
     begin
-      result.Add(str);
+      myList.Add(str);
       delete(src, 1, i);
     end;
   until i <= 0;
   if src <> '' then
-    result.Add(src);
+    myList.Add(src);
 end;
 
-// 读取关卡 -- 从剪切板或文本字符串，text = nil 时，自动从剪切板加载
-function LoadMapsFromText(text: string): boolean;
+// 解析 TStringList 中的关卡信息
+function LoadMapsFromTextList(data_Text: TStringList; isAns: Boolean): boolean;
 var
   line, line2: string;
   is_XSB: Boolean;                 // 是否正在解析关卡XSB
   is_Solution: Boolean;            // 是否答案行
   is_Comment: Boolean;             // 是否正在解析关卡说明信息
-  num, n, k, size: Integer;        // XSB的解析控制
+  num, n, k, len: Integer;              // XSB的解析控制
   mapNode: PMapNode;               // 解析出的当前关卡节点指针
   mapSolution: TStringList;        // 关卡答案
-  XSB_Text: string;
-  data_Text: TStringList;
   tmpList: TList;
-  R: TRect;
-
 begin
   Result := False;
 
-  if text = '' then begin
-     // 查询剪贴板中特定格式的数据内容
-     if (Clipboard.HasFormat(CF_TEXT) or Clipboard.HasFormat(CF_OEMTEXT)) then begin
-        XSB_Text := Clipboard.asText;
-        data_Text := Split(XSB_Text);
-     end else Exit;
-  end else data_Text := Split(text);     // 从字符串加载
+  if (not Assigned(data_Text)) or (data_Text.Count <= 0) then Exit;
 
   MyListClear(MapList);
-  tmpList := TList.Create;
-  mapSolution := TStringList.Create;
+  tmpList := TList.Create;                    // 临时关卡列表
 
-  NewMapNode(tmpList);                // 先创建一个关卡节点
-  is_XSB := False;
-  is_Comment := False;
-  is_Solution := False;
-  mapNode := tmpList.Items[0];        // 指向最新创建的节点
-  mapNode.isEligible := True;         // 默认是合格的关卡XSB
-  k := 0;
+  try
+    mapSolution := TStringList.Create;
 
-  while k < data_Text.Count do
-  begin
+    try
 
-    line := data_Text.Strings[k];       // 读取一行
-    Inc(k);
-    line2 := Trim(line);
+      NewMapNode(tmpList);                // 先创建一个关卡节点
+      mapNode := tmpList.Items[0];        // 指向最新创建的节点
+      mapNode.isEligible := True;         // 默认是合格的关卡XSB
+      is_XSB := False;
+      is_Comment := False;
+      is_Solution := False;
 
-    if (not is_Comment) and isXSB(line) then
-    begin       // 检查是否为 XSB 行
-      if not is_XSB then
-      begin     // 开始 XSB 块
+      sumSolution := 0;
+      k := 0;
+      len := data_Text.Count;
+      while k < len do begin
 
-        if mapNode.Map.Count > 2 then
-        begin   // 前面有解析过的关卡 XSB，则把当前关卡加入关卡集列表
+        line := data_Text.Strings[k];     // 读取一行
+        k := k+1;
+        line2 := Trim(line);
+
+        if (not is_Comment) and isXSB(line) then begin       // 检查是否为 XSB 行
+          if not is_XSB then begin     // 开始 XSB 块
+
+            if mapNode.Map.Count > 2 then begin   // 前面有解析过的关卡 XSB，则把当前关卡加入关卡集列表
               // 做关卡的标准化，计算CRC等
-          if MapNormalize(mapNode) then
-          begin
-            SetSolved(mapNode, mapSolution);
+              if MapNormalize(mapNode) then begin
+                 if isAns then SetSolved(mapNode, mapSolution);
+              end;
+
+              NewMapNode(tmpList);                                  // 创建一个新的关卡节点
+              num := tmpList.Count - 1;
+              mapNode := tmpList.Items[num];                        // 指向最新创建的节点
+              mapNode.isEligible := True;                           // 默认是合格的关卡XSB
+            end
+            else mapNode.Map.Clear;
+
+            is_XSB := True;    // 开始关卡 XSB 块
+            is_Comment := False;
+            is_Solution := False;
+            mapNode.Rows := 0;
+            mapNode.Cols := 0;
+            mapNode.Title := '';
+            mapNode.Author := '';
+            mapNode.Comment := '';
           end;
 
-          NewMapNode(tmpList);                                  // 创建一个新的关卡节点
-          num := tmpList.Count - 1;
-          mapNode := tmpList.Items[num];                        // 指向最新创建的节点
-          mapNode.isEligible := True;                           // 默认是合格的关卡XSB
+          mapNode.Map.Add(line);    // 各 XSB 行
 
         end
-        else
-          mapNode.Map.Clear;
+        else if (not is_Comment) and (AnsiStartsText('title', line2)) and (mapNode.Title = '') then begin   // 匹配 Title，标题
+          n := Pos(':', line2);
+          if n > 0 then
+            mapNode.Title := trim(Copy(line2, n + 1, MaxInt))
+          else
+            mapNode.Title := trim(Copy(line2, 6, MaxInt));
 
-        is_XSB := True;    // 开始关卡 XSB 块
-        is_Comment := False;
-        is_Solution := False;
-        mapNode.Rows := 0;
-        mapNode.Cols := 0;
-        mapNode.Title := '';
-        mapNode.Author := '';
-        mapNode.Comment := '';
+          if is_XSB then is_XSB := false;      // 结束关卡SXB的解析
+        end
+        else if (not is_Comment) and (AnsiStartsText('author', line2)) and (mapNode.Author = '') then begin  // 匹配 Author，作者
+          n := Pos(':', line2);
+          if n > 0 then
+            mapNode.Author := trim(Copy(line2, n + 1, MaxInt))
+          else
+            mapNode.Author := trim(Copy(line2, 7, MaxInt));
+
+          if is_XSB then is_XSB := false;      // 结束关卡SXB的解析
+        end
+        else if (not is_Comment) and (isAns) and (AnsiStartsText('solution', line2)) then begin  // 匹配 Solution，答案
+          n := LastPos(':', line2);
+          if n = 0 then
+            n := Pos(')', line2);
+
+          if n > 0 then
+            line := trim(Copy(line2, n + 1, MaxInt))
+          else
+            line := trim(Copy(line2, 9, MaxInt));
+
+          if Length(line) > 0 then
+            mapSolution.Add(line)
+          else
+            mapSolution.Add('');
+
+          if is_XSB then is_XSB := false;      // 结束关卡SXB的解析
+          is_Solution := true;                 // 开始答案解析
+        end
+        else if (AnsiStartsText('comment-end', line2)) or (AnsiStartsText('comment_end', line2)) then begin  // 匹配"注释"块结束
+          is_Comment := False;   // 结束"注释"块
+        end
+        else if AnsiStartsText('comment', line2) and (mapNode.Comment = '') then begin  //匹配"注释"块开始
+          if is_XSB then is_XSB := false;      // 结束关卡SXB的解析
+
+          n := Pos(':', line2);
+          if n > 0 then
+            line := trim(Copy(line2, n + 1, MaxInt))
+          else
+            line := trim(Copy(line2, 8, MaxInt));
+
+          if Length(line) > 0 then
+            mapNode.Comment := line     // 单行"注释"
+          else
+            is_Comment := True;         // 开始"注释"块
+        end
+        else if is_Comment then begin  // "说明"信息
+          if Length(mapNode.Comment) > 0 then
+            mapNode.Comment := mapNode.Comment + #10 + line
+          else
+            mapNode.Comment := line;
+        end
+        else if is_Solution then begin  // 答案行
+          line2 := StringReplace(line2, #9, '', [rfReplaceAll]);
+          line2 := StringReplace(line2, ' ', '', [rfReplaceAll]);
+          if isLurd(line2) then begin
+             n := mapSolution.Count - 1;
+             mapSolution[n] := mapSolution[n] + line2;
+          end;
+        end
+        else begin
+          if is_XSB then is_XSB := false;      // 结束关卡SXB块的解析
+        end;
       end;
 
-      mapNode.Map.Add(line);    // 各 XSB 行
-
-    end
-    else if (not is_Comment) and (AnsiStartsText('title', line2)) then
-    begin   // 匹配 Title，标题
-      n := Pos(':', line2);
-      if n > 0 then
-        mapNode.Title := trim(Copy(line2, n + 1, MaxInt))
-      else
-        mapNode.Title := trim(Copy(line2, 6, MaxInt));
-
-      if is_XSB then
-        is_XSB := false;      // 结束关卡SXB的解析
-    end
-    else if (not is_Comment) and (AnsiStartsText('author', line2)) then
-    begin  // 匹配 Author，作者
-      n := Pos(':', line2);
-      if n > 0 then
-        mapNode.Author := trim(Copy(line2, n + 1, MaxInt))
-      else
-        mapNode.Author := trim(Copy(line2, 7, MaxInt));
-
-      if is_XSB then
-        is_XSB := false;      // 结束关卡SXB的解析
-    end
-    else if (not is_Comment) and (AnsiStartsText('solution', line2)) then
-    begin  // 匹配 Solution，答案
-      n := LastPos(':', line2);
-      if n = 0 then
-        n := Pos(')', line2);
-
-      if n > 0 then
-        line := trim(Copy(line2, n + 1, MaxInt))
-      else
-        line := trim(Copy(line2, 9, MaxInt));
-
-      if Length(line) > 0 then
-        mapSolution.Add(line)
-      else
-        mapSolution.Add('');
-
-      if is_XSB then
-        is_XSB := false;      // 结束关卡SXB的解析
-      is_Solution := true;                 // 开始答案解析
-    end
-    else if (AnsiStartsText('comment-end', line2)) or (AnsiStartsText('comment_end', line2)) then
-    begin  // 匹配"注释"块结束
-      is_Comment := False;   // 结束"注释"块
-    end
-    else if (AnsiStartsText('comment', line2)) then
-    begin  //匹配"注释"块开始
-      if is_XSB then
-        is_XSB := false;      // 结束关卡SXB的解析
-
-      n := Pos(':', line2);
-      if n > 0 then
-        line := trim(Copy(line2, n + 1, MaxInt))
-      else
-        line := trim(Copy(line2, 8, MaxInt));
-
-      if Length(line) > 0 then
-        mapNode.Comment := line     // 单行"注释"
-      else
-        is_Comment := True;         // 开始"注释"块
-    end
-    else if is_Comment then
-    begin  // "说明"信息
-      if Length(mapNode.Comment) > 0 then
-        mapNode.Comment := mapNode.Comment + #10 + line
-      else
-        mapNode.Comment := line;
-
-      if is_XSB then
-        is_XSB := false;      // 结束关卡SXB的解析
-    end
-    else if is_Solution then
-    begin  // 答案行
-      line2 := StringReplace(line2, #9, '', [rfReplaceAll]);
-      line2 := StringReplace(line2, ' ', '', [rfReplaceAll]);
-      if isLurd(line2) then
-      begin
-        n := mapSolution.Count - 1;
-        mapSolution[n] := mapSolution[n] + line2;
-      end;
-    end
-    else
-    begin
-      if is_XSB then
-        is_XSB := false;      // 结束关卡SXB块的解析
-    end;
-  end;
-
-  // 检查最后的节点，若没有 XSB 数据，则将其删除
-  num := tmpList.Count - 1;
-  mapNode := tmpList.Items[num];
-  if mapNode.Map.Count < 3 then
-    tmpList.Delete(num)
-  else
-  begin
-    if MapNormalize(mapNode) then
-    begin
-      SetSolved(mapNode, mapSolution);
-    end
-    else
-      tmpList.Delete(num);
-  end;
-
-  if tmpList.Count > 0 then
-  begin
-    // 生成关卡列表项
-    BrowseForm.ImageList1.Clear;
-    BrowseForm.ListView1.Items.Clear;
-
-    R := Rect(0, 0, BrowseForm.Map_Icon.Width, BrowseForm.Map_Icon.Height);
-    size := tmpList.Count;
-    try
-      for k := 0 to size - 1 do
-      begin
-        mapNode := tmpList[k];
-
-        BrowseForm.ListView1.Items.add;
-
-        if mapNode.Title = '' then
-          BrowseForm.ListView1.Items[k].Caption := '_#' + IntToStr(k + 1) + '_'
-        else
-          BrowseForm.ListView1.Items[k].Caption := mapNode.Title;
-
-        BrowseForm.ListView1.Items[k].ImageIndex := -1;       // 先默认没有图标
-
-      end;
+      Result := True;
     finally
+      // 检查最后的节点，若没有 XSB 数据，则将其删除
+      num := tmpList.Count - 1;
+      if num >= 0 then begin
+         mapNode := tmpList.Items[num];
+         if mapNode.Map.Count < 3 then begin
+            MyStringListFree(mapNode.Map);
+            tmpList.Delete(num);
+            Dispose(mapNode);
+         end else begin
+           if MapNormalize(mapNode) then begin
+              if isAns then SetSolved(mapNode, mapSolution);
+           end;
+         end;
+      end else if Assigned(mapNode) then begin
+         if mapNode.Map.Count > 0 then begin
+            MyStringListFree(mapNode.Map);
+         end;
+         Dispose(mapNode);
+      end;
       mapNode := nil;
+
+      MyStringListFree(mapSolution);
     end;
-
-    MapList := tmpList;
-    tmpList := nil;
-    Result := true;
+  finally
+    if Assigned(tmpList) then begin
+       if tmpList.Count > 0 then begin
+          MapList := tmpList;
+       end else begin
+          MyListClear(tmpList);
+       end;
+       tmpList := nil;
+    end;
   end;
-
-  if tmpList <> nil then FreeAndNil(tmpList);
-  if mapSolution <> nil then FreeAndNil(mapSolution);
-
 end;
+
+// 从 TStringList 中导入答案
+//procedure TLoadMapThread2.Execute;
 
 // 地图标准化，包括：简单标准化 -- 保留关卡的墙外造型；精准标准化 -- 不保留关卡的墙外造型，同时计算 CRC 等
 function MapNormalize(var mapNode: PMapNode): Boolean;
@@ -922,8 +1008,7 @@ begin
   nRen := 0;
   Rows := mapNode.Map.Count;
   Cols := 0;
-  for i := 0 to Rows - 1 do
-  begin
+  for i := 0 to Rows - 1 do begin
     nLen := Length(mapNode.Map[i]);
     if Cols < nLen then
       Cols := nLen;
@@ -932,16 +1017,14 @@ begin
   mapNode.Rows := Rows;
   mapNode.Cols := Cols;
 
-  if (Rows >= 100) or (Cols >= 100) then
-  begin
+  if (Rows >= 100) or (Cols >= 100) then begin
     mapNode.Rows := 100;
     mapNode.Cols := 100;
     mapNode.isEligible := False;        // 不合格的关卡XSB
     Exit;
   end;
 
-  for i := 0 to Rows - 1 do
-  begin
+  for i := 0 to Rows - 1 do begin
     nLen := Length(mapNode.Map[i]);
     for j := 0 to Cols - 1 do
     begin
@@ -958,7 +1041,7 @@ begin
         '@', '+':
           begin
             MapArray[i, j] := ch;
-            Inc(nRen);
+            nRen := nRen+1;
             mr := i;
             mc := j;
           end;
@@ -969,14 +1052,12 @@ begin
     end;
   end;
 
-  if nRen <> 1 then
-  begin  // 仓管员 <> 1
+  if nRen <> 1 then begin  // 仓管员 <> 1
     mapNode.isEligible := False;        // 不合格的关卡XSB
     Exit;
   end;
 
-  for i := 0 to Rows - 1 do
-  begin
+  for i := 0 to Rows - 1 do begin
     for j := 0 to Cols - 1 do
     begin
       Mark[i][j] := false;
@@ -1001,23 +1082,23 @@ begin
     case MapArray[mr, mc] of
       '$':
         begin
-          Inc(nBox);
+          nBox := nBox+1;
         end;
       '*':
         begin
-          Inc(nBox);
-          Inc(nDst);
+          nBox := nBox+1;
+          nDst := nDst+1;
         end;
       '.', '+':
         begin
-          Inc(nDst);
+          nDst := nDst+1;
         end;
     end;
     for k := 0 to 3 do begin   // 仓管员向四个方向走
       mr2 := mr + dr4[k];
       mc2 := mc + dc4[k];
       if (mr2 < 0) or (mr2 >= Rows) or (mc2 < 0) or (mc2 >= Cols) or    // 出界
-         (Mark[mr2, mc2]) or (MapArray[mr2, mc2] = '#') then             // 已访问或遇到墙
+         (Mark[mr2, mc2]) or (MapArray[mr2, mc2] = '#') then            // 已访问或遇到墙
           continue;
 
       // 调整四至
@@ -1032,16 +1113,16 @@ begin
 
       Mark[mr2][mc2] := true;  //标记为已访问
       pos := (mc2 shl 16) or mr2;
-      Inc(tail);
+      tail := tail+1;
       pt[tail] := pos;
     end;
-    Inc(p);
+    p := p+1;
   end;
 
+  mapNode.Boxs  := nBox;
   mapNode.Goals := nDst;
 
-  if (nBox <> nDst) or (nBox < 1) or (nDst < 1) then
-  begin  // 可达区域内的箱子与目标点数不正确
+  if (nBox <> nDst) or (nBox < 1) or (nDst < 1) then begin  // 可达区域内的箱子与目标点数不正确
     mapNode.isEligible := False;        // 不合格的关卡XSB
     exit;
   end;
@@ -1051,8 +1132,7 @@ begin
   nCols := right - left + 1 + 2;
 
   // 整理关卡元素
-  for i := 0 to Rows - 1 do
-  begin
+  for i := 0 to Rows - 1 do begin
     for j := 0 to Cols - 1 do
     begin
       ch := MapArray[i, j];
@@ -1092,61 +1172,50 @@ begin
   mLeft := 0;
   mBottom := Rows - 1;
   mRight := Cols - 1;
-  for k := 0 to Rows - 1 do
-  begin
+  for k := 0 to Rows - 1 do begin
     t := 0;
     while (t < Cols) and (MapArray[k, t] = '_') do
-      Inc(t);
+      t := t+1;
 
     if t = Cols then
-      Inc(mTop)
+      mTop := mTop+1
     else
       break;
   end;
-  for k := Rows - 1 downto mTop + 1 do
-  begin
+  for k := Rows - 1 downto mTop + 1 do begin
     t := 0;
     while (t < Cols) and (MapArray[k, t] = '_') do
-      Inc(t);
+      t := t+1;
     if t = Cols then
-      Dec(mBottom)
+      mBottom := mBottom-1
     else
       break;
   end;
-  if mBottom - mTop < 2 then
-  begin
-    Exit;
-  end;
+  if mBottom - mTop < 2 then Exit;
 
-  for k := 0 to Cols - 1 do
-  begin
+  for k := 0 to Cols - 1 do begin
     t := mTop;
     while (t <= mBottom) and (MapArray[t, k] = '_') do
-      Inc(t);
+      t := t+1;
     if t > mBottom then
-      Inc(mLeft)
+      mLeft := mLeft+1
     else
       break;
   end;
-  for k := Cols - 1 downto mLeft + 1 do
-  begin
+  for k := Cols - 1 downto mLeft + 1 do begin
     t := mTop;
     while (t <= mBottom) and (MapArray[t, k] = '_') do
-      Inc(t);
+      t := t+1;
     if t > mBottom then
-      Dec(mRight)
+      mRight := mRight-1
     else
       break;
   end;
-  if mRight - mLeft < 2 then
-  begin
-    Exit;
-  end;
+  if mRight - mLeft < 2 then Exit;
 
   // 关卡原貌，已做简单标准化（保留墙外造型）
   mapNode.Map.Clear;
-  for i := mTop to mBottom do
-  begin
+  for i := mTop to mBottom do begin
     s1 := '';  // 保持关卡原貌，对墙外造型部分不再清理
     for j := mLeft to mRight do
     begin
@@ -1154,28 +1223,21 @@ begin
     end;
     mapNode.Map.Add(s1);
   end;
-//  mapNode.Rows := mBottom-mTop+1;
-//  mapNode.Cols := mRight-mLeft+1;
   mapNode.Rows := mapNode.Map.Count;
   mapNode.Cols := Length(mapNode.Map[0]);
 
   // 标准化关卡的四周填充 '_'
-  for i := 0 to nRows - 1 do
-  begin
-    for j := 0 to nCols - 1 do
-    begin
+  for i := 0 to nRows - 1 do begin
+    for j := 0 to nCols - 1 do begin
       if (i = 0) or (j = 0) or (i = nRows - 1) or (j = nCols - 1) then
         aMap0[i, j] := '_';
     end;
   end;
 
   // 标准化
-  for i := 1 to nRows - 2 do
-  begin
-    for j := 1 to nCols - 2 do
-    begin
-      if (aMap0[i, j] <> '_') and (aMap0[i, j] <> '#') then
-      begin  // 探查内部有效元素的八个方位，是否可以安排墙壁
+  for i := 1 to nRows - 2 do begin
+    for j := 1 to nCols - 2 do begin
+      if (aMap0[i, j] <> '_') and (aMap0[i, j] <> '#') then begin  // 探查内部有效元素的八个方位，是否可以安排墙壁
         if (aMap0[i - 1, j] = '_') then
           aMap0[i - 1, j] := '#';
         if (aMap0[i + 1, j] = '_') then
@@ -1199,10 +1261,8 @@ begin
   mapNode.Map_Thin := '';
 
   // 标准化后的八转：关卡先顺时针旋转（得到：0转、1转、2转、3转），4转为0转的左右镜像，4转再顺时针旋转（得到：4转、5转、6转、7转）
-  for i := 0 to nRows - 1 do
-  begin
-    for j := 0 to nCols - 1 do
-    begin
+  for i := 0 to nRows - 1 do begin
+    for j := 0 to nCols - 1 do begin
       mapNode.Map_Thin := mapNode.Map_Thin + aMap0[i, j];
       aMap1[j, nRows - 1 - i] := aMap0[i, j];
       aMap2[nRows - 1 - i, nCols - 1 - j] := aMap0[i, j];
@@ -1254,8 +1314,7 @@ begin
 //  Writeln(myLogFile, inttostr(key8[7]));
 
 
-  for i := 1 to 7 do
-  begin
+  for i := 1 to 7 do begin
     if mapNode.CRC32 > key8[i] then
     begin
       mapNode.CRC32 := key8[i];
@@ -1263,6 +1322,8 @@ begin
     end;
   end;
 
+  mapNode.Num := 0;       // 该属性仅在关卡预览时，标识是否做过“有解”检测
+  
   Result := True;
 end;
 
@@ -1273,18 +1334,15 @@ var
 begin
   Result := #10;
 
-  if mapNpde.Map.Count > 0 then
-  begin
-    for i := 0 to mapNpde.Map.Count - 1 do
-    begin
+  if mapNpde.Map.Count > 0 then begin
+    for i := 0 to mapNpde.Map.Count - 1 do begin
       Result := Result + mapNpde.Map.Strings[i] + #10;
     end;
     if Trim(mapNpde.Title) <> '' then
       Result := Result + 'Title: ' + mapNpde.Title + #10;
     if Trim(mapNpde.Author) <> '' then
       Result := Result + 'Author: ' + mapNpde.Author + #10;
-    if Trim(mapNpde.Comment) <> '' then
-    begin
+    if Trim(mapNpde.Comment) <> '' then begin
       Result := Result + 'Comment: ' + mapNpde.Comment + #10;
       Result := Result + 'Comment_end: ' + #10;
     end;
@@ -1300,16 +1358,11 @@ var
 begin
   Result := #10;
 
-  if curMapNode = nil then begin
-     Exit;
-  end;
+  if (not Assigned(curMapNode)) then Exit;
 
-  if curMapNode.Map.Count > 0 then
-  begin
-    for i := 0 to curMapNode.Rows - 1 do
-    begin
-      for j := 0 to curMapNode.Cols - 1 do
-      begin
+  if curMapNode.Map.Count > 0 then begin
+    for i := 0 to curMapNode.Rows - 1 do begin
+      for j := 0 to curMapNode.Cols - 1 do begin
         pos := i * curMapNode.Cols + j;
         if main.mySettings.isBK then begin                // 逆推
            if main.mySettings.isJijing then begin              // 即景目标位
@@ -1363,163 +1416,263 @@ begin
   end;
 end;
 
-// XSB 送入剪切板
-procedure XSBToClipboard();
-begin
-  if (curMapNode <> nil) and (curMapNode.Map.Count > 0) then
-  begin
-    Clipboard.SetTextBuf(PChar(GetXSB(curMapNode)));
-  end;
-end;
-
-// XSB 送入剪切板
-procedure XSBToClipboard_2();
-begin
-  if (curMapNode <> nil) and (curMapNode.Map.Count > 0) then
-  begin
-    Clipboard.SetTextBuf(PChar(GetXSB_2()));
-  end;
-end;
-
-// 更新主窗口标题
-procedure TLoadMapThread.UpdateCaption;
-var
-  i: Integer;
-  mNode: PMapNode;               // 解析出的当前关卡节点指针
-
-begin
-  for i := 0 to MapList.Count do begin
-      if SolvedLevel[i] > 0 then begin
-         mNode := MapList[SolvedLevel[i]-1];
-         mNode.Solved := True;
-      end;
-      Break;
-  end;
-  main.LoadSolution;
-end;
-
 // 在后台线程中加载地图文档
 procedure TLoadMapThread.Execute;
 var
   FileName: string;
-  is_zhouzhuan: Boolean;           // 是否周转关卡库 -- 周转库文档（BoaMan.xsb）在解析时，只能解析前100个关卡，保存关卡到周转库时，会以“追加”方式，添加到文档尾部且不受100个数限制
-  txtFile: TextFile;
   line, line2: string;
   is_XSB: Boolean;                 // 是否正在解析关卡XSB
-  is_Solution: Boolean;            // 是否答案行
   is_Comment: Boolean;             // 是否正在解析关卡说明信息
-  num, n, k, size: Integer;        // XSB的解析控制
+  num, n, k: Integer;              // XSB的解析控制
   mapNode: PMapNode;               // 解析出的当前关卡节点指针
   mapSolution: TStringList;        // 关卡答案
   tmpMapList: TList;               // 临时关卡列表
-  R: TRect;
+  txtLines: Integer;
 
-begin
+begin
+  FreeOnTerminate := True;
 
-  isRunning := True;
+  main.bt_View.Enabled := False;
+  
   isStopThread := False;
 
   MyListClear(MapList);
-  FileName := main.mySettings.MapFileName;
-  is_zhouzhuan := AnsiSameText(FileName, 'BoxMan.xsb');    // 是否解析的周转库文档
 
-  if Pos(':', FileName) =0 then FileName := AppPath + FileName;
-  if FileExists(FileName) then
-  begin
+  FileName := main.mySettings.MapFileName;
+
+  if Pos(':', FileName) = 0 then FileName := AppPath + FileName;
+  if FileExists(FileName) then begin
 
     MapCount := 1;
     
     tmpMapList := TList.Create;             // 关卡列表
 
     try
-      AssignFile(txtFile, FileName);
-      Reset(txtFile);
+      txtLines := main.txtList.Count;         // 文本行数
 
       mapSolution := TStringList.Create;
 
-      NewMapNode(tmpMapList);              // 先创建一个关卡节点
-      is_XSB := False;
-      is_Comment := False;
-      is_Solution := False;
-      mapNode := tmpMapList.Items[0];      // 指向最新创建的节点
-      mapNode.isEligible := True;          // 默认是合格的关卡XSB
+      try
+        NewMapNode(tmpMapList);              // 先创建一个关卡节点
+        mapNode := tmpMapList.Items[0];      // 指向最新创建的节点
+        mapNode.isEligible := True;          // 默认是合格的关卡XSB
+        is_XSB := False;
+        is_Comment := False;
 
-      while not eof(txtFile) and (not isStopThread) do
-      begin
+        k := 0;
+        while (k < txtLines) and (not isStopThread) do begin
+          line  := main.txtList.Strings[k];
+          line2 := Trim(line);
 
-        readln(txtFile, line);            // 读取一行      WideToAnsi
+          if (not is_Comment) and isXSB(line) then begin       // 检查是否为 XSB 行
+            if not is_XSB then begin       // 开始 XSB 块
 
-        line2 := Trim(line);
+              if mapNode.Map.Count > 2 then begin   // 前面有解析过的关卡 XSB，则把当前关卡加入关卡集列表
 
-        if (not is_Comment) and isXSB(line) then
-        begin       // 检查是否为 XSB 行
-          if not is_XSB then
-          begin       // 开始 XSB 块
+                MapCount := MapCount + 1;
 
-            if mapNode.Map.Count > 2 then
-            begin   // 前面有解析过的关卡 XSB，则把当前关卡加入关卡集列表
-                    // 做关卡的标准化，计算CRC等
+                MapNormalize(mapNode);         // 做关卡的标准化，计算CRC等
 
-              Inc(MapCount);
-              main.Caption := AppName + AppVer + ' - ' + ExtractFileName(ChangeFileExt(main.mySettings.MapFileName, EmptyStr)) + ' ~ [' + inttostr(main.curMap.CurrentLevel) + '/' + inttostr(MapCount) + ']';
-              main.Caption := main.Caption + '，尺寸: ' + IntToStr(curMapNode.Cols) + '×' + IntToStr(curMapNode.Rows) + '，箱子: ' + IntToStr(curMapNode.Boxs) + '，目标: ' + IntToStr(curMapNode.Goals);
+                NewMapNode(tmpMapList);                      // 创建一个新的关卡节点
+                num := tmpMapList.Count - 1;
+                mapNode := tmpMapList.Items[num];            // 指向最新创建的节点
+                mapNode.isEligible := True;               // 默认是合格的关卡XSB
 
-              if MapNormalize(mapNode) then
-              begin
-                SetSolved_2(mapNode, mapSolution);
+              end else mapNode.Map.Clear;
+
+              is_XSB := True;    // 开始关卡 XSB 块
+              is_Comment := False;
+              mapNode.Rows := 0;
+              mapNode.Cols := 0;
+              mapNode.Title := '';
+              mapNode.Author := '';
+              mapNode.Comment := '';
+            end;
+
+            mapNode.Map.Add(line);    // 各 XSB 行
+
+          end
+          else if (not is_Comment) and (AnsiStartsText('title', line2)) and (mapNode.Title = '') then begin   // 匹配 Title，标题
+            n := Pos(':', line2);
+            if n > 0 then
+              mapNode.Title := trim(Copy(line2, n + 1, MaxInt))
+            else
+              mapNode.Title := trim(Copy(line2, 6, MaxInt));
+
+            if is_XSB then is_XSB := false;      // 结束关卡SXB的解析
+          end
+          else if (not is_Comment) and (AnsiStartsText('author', line2)) and (mapNode.Author = '') then begin  // 匹配 Author，作者
+            n := Pos(':', line2);
+            if n > 0 then
+              mapNode.Author := trim(Copy(line2, n + 1, MaxInt))
+            else
+              mapNode.Author := trim(Copy(line2, 7, MaxInt));
+
+            if is_XSB then is_XSB := false;      // 结束关卡SXB的解析
+          end
+          else if (AnsiStartsText('comment-end', line2)) or (AnsiStartsText('comment_end', line2)) then begin  // 匹配"注释"块结束
+            is_Comment := False; // 结束"注释"块
+          end
+          else if AnsiStartsText('comment', line2) and (mapNode.Comment = '') then begin  //匹配"注释"块开始
+            if is_XSB then is_XSB := false;      // 结束关卡SXB的解析
+            n := Pos(':', line2);
+            if n > 0 then
+              line := trim(Copy(line2, n + 1, MaxInt))
+            else
+              line := trim(Copy(line2, 8, MaxInt));
+            if Length(line) > 0 then
+              mapNode.Comment := line     // 单行"注释"
+            else
+              is_Comment := True;     // 开始"注释"块
+          end
+          else if is_Comment then begin  // "说明"信息
+            if Length(mapNode.Comment) > 0 then
+              mapNode.Comment := mapNode.Comment + #10 + line
+            else
+              mapNode.Comment := line;
+          end
+          else begin
+            if is_XSB then is_XSB := false;      // 结束关卡SXB块的解析
+          end;
+          k := k+1;
+        end;
+
+      finally
+        // 检查最后的节点，若没有 XSB 数据，则将其删除
+        num := tmpMapList.Count - 1;
+        if num >= 0 then begin
+           mapNode := tmpMapList.Items[num];
+           if mapNode.Map.Count < 3 then begin
+              MyStringListFree(mapNode.Map);
+              tmpMapList.Delete(num);
+              Dispose(mapNode);
+           end else begin
+             MapNormalize(mapNode);
+           end;
+        end else if Assigned(mapNode) then begin
+           if mapNode.Map.Count > 0 then begin
+              MyStringListFree(mapNode.Map);
+           end;
+           Dispose(mapNode);
+        end;
+        mapNode := nil;
+
+        MyStringListFree(mapSolution);
+      end;
+    finally
+      if Assigned(tmpMapList) then begin
+         if tmpMapList.Count > 0 then begin
+            MapList := tmpMapList;
+         end else begin
+            MyListClear(tmpMapList);
+         end;
+         tmpMapList := nil;
+      end;
+    end;
+  end;
+  
+  isStopThread := True;
+  main.bt_View.Enabled := True;
+end;
+
+// 更新主窗口标题
+procedure TLoadAnsThread.UpdateCaption;
+begin
+  try
+    MyOpenFile.Label1.Caption := '共导入答案 ' + IntToStr(sumSolution) + ' 个';
+  except
+  end;
+end;
+
+// 导入答案的后台线程
+procedure TLoadAnsThread.Execute;
+var
+  line, line2: string;
+  is_XSB: Boolean;                 // 是否正在解析关卡XSB
+  is_Solution: Boolean;            // 是否答案行
+  is_Comment: Boolean;             // 是否正在解析关卡说明信息
+  num, n, k: Integer;              // XSB的解析控制
+  mapNode: PMapNode;               // 解析出的当前关卡节点指针
+  mapSolution: TStringList;        // 关卡答案
+  data_Text: TStringList;          // 文本行
+begin
+  FreeOnTerminate := True;
+
+  isStopThread_Ans := False;
+  
+  data_Text := TStringList.Create;          // 文本行
+
+  try
+
+    data_Text.LoadFromFile(MyOpenFile.FileListBox1.FileName);    // 文本行
+
+    mapSolution := TStringList.Create;      // 答案缓存
+
+    try
+
+      New(mapNode);                         // 关卡节点
+
+      try
+        // 节点默认值
+        mapNode.Map_Thin := '';
+        mapNode.Rows := 0;
+        mapNode.Cols := 0;
+        mapNode.Trun := 0;
+        mapNode.Title := '';
+        mapNode.Author := '';
+        mapNode.Comment := '';
+        mapNode.CRC32 := -1;
+        mapNode.CRC_Num := -1;
+        mapNode.Solved := false;
+        mapNode.isEligible := True;
+
+        mapNode.Map := TStringList.Create;    // 地图行
+      
+        try
+          is_XSB := False;
+          is_Comment := False;
+          is_Solution := False;
+
+
+          num := 0;
+          sumSolution := 0;
+          k := 0;
+          while (k < data_Text.Count) and (not isStopThread_Ans) do begin
+
+            line := data_Text.Strings[k];     // 读取一行
+            k := k+1;
+            line2 := Trim(line);
+
+            if (not is_Comment) and isXSB(line) then begin       // 检查是否为 XSB 行
+              if not is_XSB then begin     // 开始 XSB 块
+
+                if mapNode.Map.Count > 2 then begin   // 前面有解析过的关卡 XSB，则把当前关卡加入关卡集列表
+
+                  MyOpenFile.Caption := '导入答案 ~ 关卡：' + IntToStr(num);
+
+                  // 做关卡的标准化，计算CRC等
+                  if MapNormalize(mapNode) then begin
+                     num := num + 1;
+                     SetSolved_2(mapNode, mapSolution);
+                  end;
+                end;
+
+                mapNode.Map.Clear;
+
+                is_XSB := True;    // 开始关卡 XSB 块
+                is_Comment := False;
+                is_Solution := False;
+                mapNode.Rows := 0;
+                mapNode.Cols := 0;
+                mapNode.Title := '';
+                mapNode.Author := '';
+                mapNode.Comment := '';
               end;
 
-              if is_zhouzhuan and (tmpMapList.Count >= 100) then Break;
-
-              NewMapNode(tmpMapList);                      // 创建一个新的关卡节点
-              num := tmpMapList.Count - 1;
-              mapNode := tmpMapList.Items[num];            // 指向最新创建的节点
-              mapNode.isEligible := True;               // 默认是合格的关卡XSB
+              mapNode.Map.Add(line);    // 各 XSB 行
 
             end
-            else
-              mapNode.Map.Clear;
-
-            is_XSB := True;    // 开始关卡 XSB 块
-            is_Comment := False;
-            is_Solution := False;
-            mapNode.Rows := 0;
-            mapNode.Cols := 0;
-            mapNode.Title := '';
-            mapNode.Author := '';
-            mapNode.Comment := '';
-          end;
-
-          mapNode.Map.Add(line);    // 各 XSB 行
-
-        end
-        else if (not is_Comment) and (AnsiStartsText('title', line2)) and (mapNode.Title = '') then
-        begin   // 匹配 Title，标题
-          n := Pos(':', line2);
-          if n > 0 then
-            mapNode.Title := trim(Copy(line2, n + 1, MaxInt))
-          else
-            mapNode.Title := trim(Copy(line2, 6, MaxInt));
-
-          if is_XSB then
-            is_XSB := false;      // 结束关卡SXB的解析
-        end
-        else if (not is_Comment) and (AnsiStartsText('author', line2)) and (mapNode.Author = '') then
-        begin  // 匹配 Author，作者
-          n := Pos(':', line2);
-          if n > 0 then
-            mapNode.Author := trim(Copy(line2, n + 1, MaxInt))
-          else
-            mapNode.Author := trim(Copy(line2, 7, MaxInt));
-
-          if is_XSB then
-            is_XSB := false;      // 结束关卡SXB的解析
-        end
-        else if (not is_Comment) and (AnsiStartsText('solution', line2)) then
-        begin  // 匹配 Solution，答案
-          is_Solution := not isOnlyXSB;     // 开始答案解析
-
-          if is_Solution then begin
+            else if (not is_Comment) and (AnsiStartsText('solution', line2)) then begin  // 匹配 Solution，答案
               n := LastPos(':', line2);
               if n = 0 then
                 n := Pos(')', line2);
@@ -1533,120 +1686,112 @@ begin
                 mapSolution.Add(line)
               else
                 mapSolution.Add('');
+
+              if is_XSB then is_XSB := false;      // 结束关卡SXB的解析
+              is_Solution := true;                 // 开始答案解析
+            end
+            else if (AnsiStartsText('comment-end', line2)) or (AnsiStartsText('comment_end', line2)) then begin  // 匹配"注释"块结束
+              is_Comment := False;   // 结束"注释"块
+            end
+            else if AnsiStartsText('comment', line2) and (mapNode.Comment = '') then begin  //匹配"注释"块开始
+              if is_XSB then is_XSB := false;      // 结束关卡SXB的解析
+
+              n := Pos(':', line2);
+              if n > 0 then
+                line := trim(Copy(line2, n + 1, MaxInt))
+              else
+                line := trim(Copy(line2, 8, MaxInt));
+
+              if Length(line) <= 0 then is_Comment := True;         // 开始"注释"块
+            end
+            else if is_Solution then begin  // 答案行
+              line2 := StringReplace(line2, #9, '', [rfReplaceAll]);
+              line2 := StringReplace(line2, ' ', '', [rfReplaceAll]);
+              if isLurd(line2) then begin
+                 n := mapSolution.Count - 1;
+                 mapSolution[n] := mapSolution[n] + line2;
+              end;
+            end
+            else if is_Comment then begin  // "说明"信息
+            end
+            else begin
+              if is_XSB then is_XSB := false;      // 结束关卡SXB块的解析
+            end;
           end;
-          if is_XSB then
-            is_XSB := false;   // 结束关卡SXB的解析
-        end
-        else if (AnsiStartsText('comment-end', line2)) or (AnsiStartsText('comment_end', line2)) then
-        begin  // 匹配"注释"块结束
-          is_Comment := False; // 结束"注释"块
-        end
-        else if (AnsiStartsText('comment', line2) and (mapNode.Comment = '')) then
-        begin  //匹配"注释"块开始
-          if is_XSB then
-            is_XSB := false;      // 结束关卡SXB的解析
-          n := Pos(':', line2);
-          if n > 0 then
-            line := trim(Copy(line2, n + 1, MaxInt))
-          else
-            line := trim(Copy(line2, 8, MaxInt));
-          if Length(line) > 0 then
-            mapNode.Comment := line     // 单行"注释"
-          else
-            is_Comment := True;     // 开始"注释"块
-        end
-        else if is_Comment then
-        begin  // "说明"信息
-          if Length(mapNode.Comment) > 0 then
-            mapNode.Comment := mapNode.Comment + #10 + line
-          else
-            mapNode.Comment := line;
-
-          if is_XSB then
-            is_XSB := false;      // 结束关卡SXB的解析
-        end
-        else if is_Solution then
-        begin  // 答案行
-          line2 := StringReplace(line2, #9, '', [rfReplaceAll]);
-          line2 := StringReplace(line2, ' ', '', [rfReplaceAll]);
-          if isLurd(line2) then
-          begin
-            n := mapSolution.Count - 1;
-            mapSolution[n] := mapSolution[n] + line2;
+        finally
+          if (mapNode.Map.Count > 2) and (not isStopThread_Ans) then begin
+            if MapNormalize(mapNode) then begin
+               SetSolved_2(mapNode, mapSolution);
+            end;
           end;
-        end
-        else
-        begin
-          if is_XSB then
-            is_XSB := false;      // 结束关卡SXB块的解析
-        end;
-      end;
-
-      // 检查最后的节点，若没有 XSB 数据，则将其删除
-      num := tmpMapList.Count - 1;
-      mapNode := tmpMapList.Items[num];
-      if mapNode.Map.Count < 3 then begin
-       tmpMapList.Delete(num)
-      end else
-      begin
-        if MapNormalize(mapNode) then
-        begin
-          SetSolved_2(mapNode, mapSolution);
-        end
-        else begin
-          tmpMapList.Delete(num);
-        end;
-      end;
-
-    finally
-      CloseFile(txtFile);                //关闭打开的文件
-      if mapSolution <> nil then FreeAndNil(mapSolution);
-    end;
-
-    if (not isStopThread) and (tmpMapList.Count > 0) then
-    begin         // 不是非正常结束
-
-      // 生成关卡列表项
-      BrowseForm.ImageList1.Clear;
-      BrowseForm.ListView1.Items.Clear;
-
-      R := Rect(0, 0, BrowseForm.Map_Icon.Width, BrowseForm.Map_Icon.Height);
-      size := tmpMapList.Count;
-      try
-        for k := 0 to size - 1 do
-        begin
-          mapNode := tmpMapList[k];
-
-          BrowseForm.ListView1.Items.add;
-
-          if mapNode.Title = '' then
-            BrowseForm.ListView1.Items[k].Caption := '_#' + IntToStr(k + 1) + '_'
-          else
-            BrowseForm.ListView1.Items[k].Caption := mapNode.Title;
-
-          BrowseForm.ListView1.Items[k].ImageIndex := -1;       // 先默认没有图标
+          MyStringListFree(mapNode.Map);
         end;
       finally
+        Dispose(mapNode);
         mapNode := nil;
       end;
-
-      MapList := tmpMapList;
-      tmpMapList := nil;
-
-      MapCount := MapList.Count;
-      main.Caption := AppName + AppVer + ' - ' + ExtractFileName(ChangeFileExt(main.mySettings.MapFileName, EmptyStr)) + ' ~ [' + inttostr(main.curMap.CurrentLevel) + '/' + inttostr(MapCount) + ']';
-      main.Caption := main.Caption + '，尺寸: ' + IntToStr(curMapNode.Cols) + '×' + IntToStr(curMapNode.Rows) + '，箱子: ' + IntToStr(curMapNode.Boxs) + '，目标: ' + IntToStr(curMapNode.Goals);
-      synchronize(UpdateCaption);     // 更新主窗口标题
+    finally
+      MyStringListFree(mapSolution);
     end;
-
-    if tmpMapList <> nil then FreeAndNil(tmpMapList);
-
+  finally
+    MyStringListFree(data_Text);
   end;
 
-  isRunning := False;
-  isStopThread := True;
-
+  synchronize(UpdateCaption);     // 更新主窗口提示
+  isStopThread_Ans := True;
 end;
 
+function FindClipbrd(num: Integer): Integer;                                       // 在关卡列表中，查找剪切板中的关卡，返回找到的序号，没找到则返回 -1
+var
+  mapNode: PMapNode;
+  str: string;
+  i, len: Integer;
+begin
+  Result := -1;
+
+  len := MapList.Count;
+  if len = 0 then Exit;
+
+  New(mapNode);
+
+  try
+    mapNode.Map := TStringList.Create;
+    try
+      mapNode.Map_Thin := '';
+      mapNode.Rows := 0;
+      mapNode.Cols := 0;
+      mapNode.Trun := 0;
+      mapNode.Title := '';
+      mapNode.Author := '';
+      mapNode.Comment := '';
+      mapNode.CRC32 := -1;
+      mapNode.CRC_Num := -1;
+      mapNode.Solved := false;
+
+      // 剪切板导入 XSB
+      if (Clipboard.HasFormat(CF_TEXT) or Clipboard.HasFormat(CF_OEMTEXT)) then begin
+          str := Clipboard.asText;
+          Split(str, mapNode.Map);
+
+          if MapNormalize(mapNode) then begin
+             for i := num+1 to len-1 do begin
+                 if mapNode.CRC32 = PMapNode(MapList[i])^.CRC32 then begin
+                    Result := i;
+                    Break;
+                 end;
+             end;
+          end;
+      end;
+    finally
+      MyStringListFree(mapNode.Map);
+    end;
+  finally
+    if Assigned(mapNode) then begin
+       Dispose(mapNode);
+       mapNode := nil;
+    end;
+  end;
+
+end;
 end.
 

@@ -1,19 +1,25 @@
 object MyOpenFile: TMyOpenFile
-  Left = 702
-  Top = 148
-  BorderStyle = bsDialog
-  Caption = #25171#24320#20851#21345#25991#26723
+  Left = 759
+  Top = 158
+  BorderIcons = []
+  BorderStyle = bsSingle
+  Caption = #23548#20837#31572#26696
   ClientHeight = 362
   ClientWidth = 584
   Color = clBtnFace
+  DefaultMonitor = dmMainForm
   Font.Charset = DEFAULT_CHARSET
   Font.Color = clWindowText
   Font.Height = -13
   Font.Name = #23435#20307
   Font.Style = []
   OldCreateOrder = False
-  Position = poScreenCenter
+  Position = poMainFormCenter
+  OnClick = FormClick
+  OnClose = FormClose
   OnCreate = FormCreate
+  OnDestroy = FormDestroy
+  OnDeactivate = FormDeactivate
   OnShow = FormShow
   PixelsPerInch = 96
   TextHeight = 13
@@ -36,7 +42,6 @@ object MyOpenFile: TMyOpenFile
       ItemHeight = 18
       Mask = '*.txt;*.xsb'
       TabOrder = 0
-      OnDblClick = FileListBox1DblClick
     end
     object DirectoryListBox1: TDirectoryListBox
       Left = 0
@@ -100,32 +105,31 @@ object MyOpenFile: TMyOpenFile
     Align = alBottom
     Color = clInactiveCaption
     TabOrder = 2
+    object Label1: TLabel
+      Left = 16
+      Top = 16
+      Width = 297
+      Height = 13
+      AutoSize = False
+    end
     object Button1: TButton
-      Left = 458
+      Left = 440
       Top = 8
-      Width = 91
+      Width = 125
       Height = 25
-      Caption = #25171#24320'(&O)'
+      Caption = #23548#20837#31572#26696'(&I)'
       Default = True
-      ModalResult = 1
       TabOrder = 0
+      OnClick = Button1Click
     end
     object Button2: TButton
-      Left = 344
+      Left = 328
       Top = 8
-      Width = 77
+      Width = 89
       Height = 25
-      Caption = #21462#28040
-      ModalResult = 2
+      Caption = #21462#28040'(&C)'
       TabOrder = 1
-    end
-    object CheckBox1: TCheckBox
-      Left = 24
-      Top = 12
-      Width = 193
-      Height = 17
-      Caption = #33509#20851#21345#26377#31572#26696#65292#21017#21516#26102#23548#20837
-      TabOrder = 2
+      OnClick = Button2Click
     end
   end
 end

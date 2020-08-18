@@ -34,7 +34,6 @@ type
 var
   MySubmit: TMySubmit;
 
-
 implementation
 
 {$R *.dfm}
@@ -119,9 +118,18 @@ begin
     // 网页中的存在中文时，需要进行UTF8解码
 //    ResponseStr := UTF8Decode(ResponseStr);
   finally
-    if IdHttp <> nil then FreeAndNil(IdHttp);
-    if RequestList <> nil then FreeAndNil(RequestList);
-    if ResponseStream <> nil then FreeAndNil(ResponseStream);
+    if Assigned(IdHttp) then begin
+       IdHttp.Free;
+       IdHttp := nil;
+    end;
+    if Assigned(RequestList) then begin
+       RequestList.Free;
+       RequestList := nil;
+    end;
+    if Assigned(ResponseStream) then begin
+       ResponseStream.Free;
+       ResponseStream := nil;
+    end;
   end;
 
   Result := ResponseStr;

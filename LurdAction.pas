@@ -51,6 +51,16 @@ implementation
 uses
   LoadMapUnit;
 
+// 释放 TStrings 的内存
+procedure MyStringsFree(var _Strings_: TStrings);
+begin
+  if Assigned(_Strings_) then begin
+     _Strings_.Clear;
+     _Strings_.Free;
+     _Strings_ := nil;
+  end;
+end;
+
 
 // 判断是否为有效的 Lurd 行
 function isLurd(str: String): boolean;
@@ -189,7 +199,7 @@ function LoadLurdFromClipboard(isBK: Boolean): Boolean;
 var
   i, j, k: Integer;
   str, str2: string;
-  p: TStrings;
+  p, q: TStrings;
 
 begin
    Result := False;
@@ -198,6 +208,24 @@ begin
    if (Clipboard.HasFormat(CF_TEXT) or Clipboard.HasFormat(CF_OEMTEXT)) then begin
       str := Clipboard.asText;
    end else Exit;
+
+   q := TStringList.Create;
+   q.Delimiter := #10;
+   q.CommaText := str;
+
+   k := q.Count;
+   i := 0;
+
+   str := '';
+   while i < k do begin
+     if isLurd_2(q[i]) then begin
+        str := str + #10 + q[i];
+//        Break;
+     end;
+     i := i + 1;
+   end;
+
+   MyStringsFree(q);
 
    if isBK then begin             // 逆推
    
@@ -223,7 +251,7 @@ begin
             end;
          end;
 
-         if p <> nil then FreeAndNil(p);
+         MyStringsFree(p);
       end else begin
          k := Max(i, j);
 

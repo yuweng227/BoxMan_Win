@@ -150,7 +150,10 @@ begin
             end;
          end;
 
-         if p <> nil then FreeAndNil(p);
+         if Assigned(p) then begin
+            p.Free;
+            p := nil;
+         end;
       end else begin
          k := Max(i, j);
 

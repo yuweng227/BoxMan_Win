@@ -6,7 +6,7 @@ interface
 
 uses
   Windows, Messages, SysUtils, Variants, Classes, Graphics, Controls, Forms, LogFile,
-  Dialogs, StdCtrls, ExtCtrls, Registry, Buttons, FileCtrl;
+  Dialogs, StdCtrls, ExtCtrls, Registry, Buttons, FileCtrl, StrUtils;
 
 type
   TMyOpenFile = class(TForm)
@@ -14,21 +14,27 @@ type
     Panel2: TPanel;
     Button1: TButton;
     Button2: TButton;
-    CheckBox1: TCheckBox;
     Panel3: TPanel;
     Panel1: TPanel;
     SpeedButton1: TSpeedButton;
     SpeedButton2: TSpeedButton;
     DriveComboBox1: TDriveComboBox;
     DirectoryListBox1: TDirectoryListBox;
+    Label1: TLabel;
     procedure FormCreate(Sender: TObject);
-    procedure FileListBox1DblClick(Sender: TObject);
     procedure FormShow(Sender: TObject);
     procedure DirectoryListBox1Change(Sender: TObject);
     procedure SpeedButton1Click(Sender: TObject);
     procedure SpeedButton2Click(Sender: TObject);
+    procedure Button1Click(Sender: TObject);
+    procedure Button2Click(Sender: TObject);
+    procedure FormDeactivate(Sender: TObject);
+    procedure FormClick(Sender: TObject);
+    procedure FormClose(Sender: TObject; var Action: TCloseAction);
+    procedure FormDestroy(Sender: TObject);
   private
     { Private declarations }
+
   public
     { Public declarations }
   end;
@@ -38,93 +44,26 @@ var
 
 implementation
 
+uses
+  LoadMapUnit, MainForm;
+
 {$R *.dfm}
-
-// UtF-8文件读取函数
-//function LoadUTFFile(const FileName: string): string;
-//var
-//  MemStream: TMemoryStream;
-//  S, HeaderStr:string;
-//
-//begin
-//  Result:='';
-//
-//  if not FileExists(FileName) then Exit;
-//  MemStream := TMemoryStream.Create;
-//  try
-//    MemStream.LoadFromFile(FileName);
-//
-//    SetLength(HeaderStr, 3);
-//    MemStream.Read(HeaderStr[1], 3);
-//    if HeaderStr = #$EF#$BB#$BF then
-//    begin
-//      SetLength(S, MemStream.Size - 3);
-//      MemStream.Read(S[1], MemStream.Size - 3);
-//    end else
-//    begin
-//      SetLength(S, MemStream.Size);
-//      MemStream.Read(S[1], MemStream.Size);
-//    end;
-//
-//    Result := Utf8ToAnsi(S);
-//  finally
-//    MemStream.Free;
-//  end;
-//end;
-
-// Unicode文件读取函数
-//function LoadUnicodeFile(const FileName: string): string;
-//var
-//  MemStream: TMemoryStream;
-//  FlagStr: String;
-//  WStr: WideString;
-//
-//begin
-//  Result := '';
-//
-//  if not FileExists(FileName) then Exit;
-//  MemStream := TMemoryStream.Create;
-//  try
-//    MemStream.LoadFromFile(FileName);
-//
-//    SetLength(FlagStr, 2);
-//    MemStream.Read(FlagStr[1], 2);
-//
-//    if FlagStr = #$FF#$FE then
-//    begin
-//      SetLength(WStr, (MemStream.Size-2) div 2);
-//      MemStream.Read(WStr[1], MemStream.Size - 2);
-//    end else
-//    begin
-//      SetLength(WStr, MemStream.Size div 2);
-//      MemStream.Read(WStr[1], MemStream.Size);
-//    end;
-//    
-//    Result := AnsiString(WStr);
-//  finally
-//    MemStream.Free;
-//  end;
-//end;
 
 procedure TMyOpenFile.FormCreate(Sender: TObject);
 begin
-  Caption := '打开关卡文档';
-  Button1.Caption := '打开(&O)';
-  Button2.Caption := '取消';
+  Caption := '导入答案';
+  Button1.Caption := '导入答案(&I)';
+  Button2.Caption := '取消(&C)';
   SpeedButton1.Caption := '我的文档';
   SpeedButton2.Caption := '桌面';
-  CheckBox1.Caption := '若关卡有答案，则同时导入';
-end;
-
-procedure TMyOpenFile.FileListBox1DblClick(Sender: TObject);
-begin
-  Button1.Click;
 end;
 
 procedure TMyOpenFile.FormShow(Sender: TObject);
 begin
-  CheckBox1.Checked := False;
+  isStopThread_Ans := True;
   FileListBox1.Update;
+  Label1.Caption := '';
+  Caption := '导入答案';
 end;
 
 // 通过注册表，取得“我的文档”和“桌面”文件夹
@@ -173,6 +112,43 @@ end;
 procedure TMyOpenFile.SpeedButton2Click(Sender: TObject);
 begin
   DirectoryListBox1.Directory := GetDeskeptPath;
+end;
+
+procedure TMyOpenFile.Button1Click(Sender: TObject);
+begin
+  if not isStopThread_Ans then begin
+     MessageBox(Handle, '后台正忙，请稍后再试！', '提示', MB_ICONINFORMATION  + MB_OK);
+  end;
+  
+  if FileListBox1.FileName <> '' then begin
+     Label1.Caption := '';
+     TLoadAnsThread.Create(False);
+  end;
+end;
+
+procedure TMyOpenFile.Button2Click(Sender: TObject);
+begin
+  Close;
+end;
+
+procedure TMyOpenFile.FormDeactivate(Sender: TObject);
+begin
+  Self.WindowState := wsMinimized;
+end;
+
+procedure TMyOpenFile.FormClick(Sender: TObject);
+begin
+  Self.WindowState := wsNormal;
+end;
+
+procedure TMyOpenFile.FormClose(Sender: TObject; var Action: TCloseAction);
+begin
+  isStopThread_Ans := True;
+end;
+
+procedure TMyOpenFile.FormDestroy(Sender: TObject);
+begin
+  isStopThread_Ans := True;
 end;
 
 end.

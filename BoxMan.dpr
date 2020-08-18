@@ -17,8 +17,7 @@ uses
   inf in 'inf.pas' {InfForm},
   Submit in 'Submit.pas' {MySubmit},
   ShowSolutionList in 'ShowSolutionList.pas' {ShowSolutuionList},
-  OpenFile in 'OpenFile.pas' {MyOpenFile},
-  myTest in 'myTest.pas' {TestForm};
+  OpenFile in 'OpenFile.pas' {MyOpenFile};
 
 const
   iAtom = 'yuweng_BoxMan_2019_';        // 让程序只运行一次的全局原子
@@ -42,15 +41,12 @@ begin
 
       Application.Initialize;
       Application.CreateForm(Tmain, main);
-  Application.CreateForm(TTestForm, TestForm);
-  //  Application.CreateForm(TLoadSkinForm, LoadSkinForm);
-      Application.CreateForm(TActionForm, ActionForm);
-      Application.CreateForm(TInfForm, InfForm);
-      Application.CreateForm(TMySubmit, MySubmit);
-      Application.CreateForm(TShowSolutuionList, ShowSolutuionList);
-      Application.CreateForm(TMyOpenFile, MyOpenFile);
-      //  Application.CreateForm(TBrowseForm, BrowseForm);
-      Application.Run;
+  Application.CreateForm(TActionForm, ActionForm);
+  Application.CreateForm(TInfForm, InfForm);
+  Application.CreateForm(TMySubmit, MySubmit);
+  Application.CreateForm(TShowSolutuionList, ShowSolutuionList);
+  Application.CreateForm(TMyOpenFile, MyOpenFile);
+  Application.Run;
       
       GlobalDeleteAtom(GlobalFindAtom(iAtom));  // 删除添加的全局原子
 

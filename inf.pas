@@ -10,6 +10,7 @@ type
   TInfForm = class(TForm)
     Memo1: TMemo;
     procedure FormCreate(Sender: TObject);
+    procedure FormDeactivate(Sender: TObject);
   private
     { Private declarations }
 
@@ -26,7 +27,12 @@ implementation
 
 procedure TInfForm.FormCreate(Sender: TObject);
 begin
-  Caption := 'ÏêÏ¸';
+  Caption := 'ËµÃ÷';
+end;
+
+procedure TInfForm.FormDeactivate(Sender: TObject);
+begin
+  Close;
 end;
 
 end.
