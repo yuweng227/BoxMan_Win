@@ -1,6 +1,6 @@
 object main: Tmain
-  Left = 325
-  Top = 141
+  Left = 324
+  Top = 139
   Width = 732
   Height = 532
   Caption = 'BoxMan'
@@ -689,12 +689,10 @@ object main: Tmain
     Top = 48
     object pmGoal: TMenuItem
       Caption = #22266#23450#30340#30446#26631#20301
-      ShortCut = 16455
       OnClick = pmGoalClick
     end
     object pmJijing: TMenuItem
       Caption = #21363#26223#30446#26631#20301
-      ShortCut = 16458
       OnClick = pmJijingClick
     end
     object N3: TMenuItem
@@ -702,22 +700,18 @@ object main: Tmain
     end
     object XSB1: TMenuItem
       Caption = #21152#36733#21098#20999#26495#20013#30340#20851#21345'XSB'
-      ShortCut = 16470
       OnClick = XSB1Click
     end
     object XSB2: TMenuItem
       Caption = #20851#21345#21644#24050#20570#21160#20316'(XSB + Lurd)'#36865#20837#21098#20999#26495
-      ShortCut = 16451
       OnClick = XSB2Click
     end
     object XSB4: TMenuItem
       Caption = #29616#22330'XSB'#36865#20837#21098#20999#26495
-      ShortCut = 49219
       OnClick = XSB4Click
     end
     object XSB0: TMenuItem
       Caption = #36865#20837#21608#36716#24211'(BoxMan.xsb)'
-      ShortCut = 16459
       OnClick = XSB0Click
     end
     object N24: TMenuItem
@@ -725,17 +719,14 @@ object main: Tmain
     end
     object Lurd1: TMenuItem
       Caption = #21152#36733#21098#20999#26495#20013#30340#21160#20316'Lurd'
-      ShortCut = 16460
       OnClick = Lurd1Click
     end
     object Lurd2: TMenuItem
       Caption = #24050#20570#21160#20316#36865#20837#21098#20999#26495
-      ShortCut = 16461
       OnClick = Lurd2Click
     end
     object Lurd3: TMenuItem
       Caption = #21518#32493#21160#20316#36865#20837#21098#20999#26495
-      ShortCut = 49229
       OnClick = Lurd3Click
     end
     object N4: TMenuItem

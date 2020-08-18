@@ -1,5 +1,7 @@
 unit MainForm;
 
+{$D+}
+
 {$DEFINE LASTACT}
 
 //{$DEFINE DEBUG}
@@ -344,7 +346,7 @@ const
   SpeedInf: array[0..4] of string = ('最快', '较快', '中速', '较慢', '最慢');
   
   AppName = 'BoxMan';
-  AppVer = ' V2.0';
+  AppVer = ' V2.1';
 
 var
   main: Tmain;
@@ -863,6 +865,8 @@ begin
   end;
 
   curMap.ManPosition := ManPos;              // 地图中人的原始位置，将在逆推状态时，以此提示
+  mySettings.isJijing := False;              // 即景目标位
+  pmJijing.Checked := False; 
   mySettings.isBK := False;                  // 默认正推模式
   mySettings.isShowNoVisited := False;
   OldBoxPos := -1;                           // 被点击的箱子的位置 -- 正推
@@ -1779,17 +1783,17 @@ begin
   pmState.Items[5].Caption := '删除';
   pmState.Items[6].Caption := '删除全部';
 
-  pmBoardBK.Items[0].Caption := '固定的目标位';
-  pmBoardBK.Items[1].Caption := '即景目标位';
+  pmBoardBK.Items[0].Caption := '固定的目标位   【Ctrl + G】';
+  pmBoardBK.Items[1].Caption := '即景目标位      【Ctrl + J】';
   pmBoardBK.Items[2].Caption := '-';
-  pmBoardBK.Items[3].Caption := '导入关卡（XSB） ← 剪切板';
-  pmBoardBK.Items[4].Caption := '导出关卡和已做动作（XSB + Lurd） → 剪切板';
-  pmBoardBK.Items[5].Caption := '导出现场（XSB） → 剪切板';
-  pmBoardBK.Items[6].Caption := '存入周转库 →（BoxMan.xsb）';
+  pmBoardBK.Items[3].Caption := '导入关卡（XSB） ← 剪切板                            【Ctrl + V】';
+  pmBoardBK.Items[4].Caption := '导出关卡和已做动作（XSB + Lurd） → 剪切板  【Ctrl + C】';
+  pmBoardBK.Items[5].Caption := '导出现场（XSB） → 剪切板                            【Ctrl + Alt + C】';
+  pmBoardBK.Items[6].Caption := '存入周转库 →（BoxMan.xsb）                       【Ctrl + K】';
   pmBoardBK.Items[7].Caption := '-';
-  pmBoardBK.Items[8].Caption := '导入动作（Lurd） ← 剪切板 - 正逆推';
-  pmBoardBK.Items[9].Caption := '导出已做动作（Lurd） → 剪切板 - 正逆推';
-  pmBoardBK.Items[10].Caption := '导出后续动作（Lurd） → 剪切板';
+  pmBoardBK.Items[8].Caption := '导入动作（Lurd） ← 剪切板 - 正逆推        【Ctrl + L】';
+  pmBoardBK.Items[9].Caption := '导出已做动作（Lurd） → 剪切板 - 正逆推  【Ctrl + M】';
+  pmBoardBK.Items[10].Caption := '导出后续动作（Lurd） → 剪切板              【Ctrl + Alt + M】';
   pmBoardBK.Items[11].Caption := '-';
   pmBoardBK.Items[12].Caption  := '重新开始   【Esc】';
   pmBoardBK.Items[13].Caption  := '-';
@@ -2575,9 +2579,6 @@ begin
       DoAct(5);
     VK_PRIOR:               // Page Up键，  上一关
       begin
-//        if isMoving then IsStop := True
-//        else IsStop := False;
-
         if (ssShift in Shift) or (ssCtrl in Shift) then begin
             N8.Click;
         end else if ssAlt in Shift then begin
@@ -2586,9 +2587,6 @@ begin
       end;
     VK_NEXT:                // Page Domw键，下一关
       begin
-//        if isMoving then IsStop := True
-//        else IsStop := False;
-
         if (ssShift in Shift) or (ssCtrl in Shift) then begin
             N10.Click;
         end else if ssAlt in Shift then begin
@@ -4683,7 +4681,7 @@ begin
   begin
     if not mySettings.isLurd_Saved then
     begin    // 有新的动作尚未保存
-      bt := MessageBox(Handle, '是否保存最新的推动？', '警告', MB_ICONWARNING + MB_YESNOCANCEL);
+      bt := MessageBox(Handle, '刚刚的推动尚未保存，是否保存？', '警告', MB_ICONWARNING + MB_YESNOCANCEL);
       if bt = idyes then begin
          SaveState();          // 保存状态到数据库
       end else if bt = idno then begin
@@ -4734,7 +4732,7 @@ begin
   
   if not mySettings.isLurd_Saved then
   begin    // 有新的动作尚未保存
-    bt := MessageBox(Handle, '是否保存最新的推动？', '警告', MB_ICONWARNING + MB_YESNOCANCEL);
+    bt := MessageBox(Handle, '刚刚的推动尚未保存，是否保存？', '警告', MB_ICONWARNING + MB_YESNOCANCEL);
     if bt = idyes then begin
        SaveState();          // 保存状态到数据库
     end else if bt = idno then begin
@@ -4842,7 +4840,7 @@ begin
 
   if not mySettings.isXSB_Saved then
   begin    // 有新的动作尚未保存
-    bt := MessageBox(Handle, '是否保存导入的关卡？', '警告', MB_ICONWARNING + MB_YESNOCANCEL);
+    bt := MessageBox(Handle, '当前关卡尚未保存，是否保存？', '警告', MB_ICONWARNING + MB_YESNOCANCEL);
     if bt = idyes then
     begin
       SaveXSBToFile();
@@ -4856,7 +4854,7 @@ begin
 
   if not mySettings.isLurd_Saved then
   begin    // 有新的动作尚未保存
-    bt := MessageBox(Handle, '是否保存最新的推动？', '警告', MB_ICONWARNING + MB_YESNOCANCEL);
+    bt := MessageBox(Handle, '刚刚的推动尚未保存，是否保存？', '警告', MB_ICONWARNING + MB_YESNOCANCEL);
     if bt = idyes then begin
        SaveState();          // 保存状态到数据库
     end else if bt = idno then begin
@@ -5545,7 +5543,7 @@ begin
 
   if not mySettings.isXSB_Saved then
   begin    // 有新的XSB尚未保存
-    bt := MessageBox(Handle, '是否保存导入的关卡？', '警告', MB_ICONWARNING + MB_YESNOCANCEL);
+    bt := MessageBox(Handle, '当前关卡尚未保存，是否保存？', '警告', MB_ICONWARNING + MB_YESNOCANCEL);
     if bt = idyes then
     begin
       SaveXSBToFile();
@@ -5560,7 +5558,7 @@ begin
 
   if CanClose and (not mySettings.isLurd_Saved) then
   begin    // 有新的动作尚未保存
-    bt := MessageBox(Handle, '是否保存最新的推动？', '警告', MB_ICONWARNING + MB_YESNOCANCEL);
+    bt := MessageBox(Handle, '刚刚的推动尚未保存，是否保存？', '警告', MB_ICONWARNING + MB_YESNOCANCEL);
     if bt = idyes then
     begin
       mySettings.isLurd_Saved := True;
@@ -5650,7 +5648,7 @@ begin
 
     if not mySettings.isLurd_Saved then
     begin    // 有新的动作尚未保存
-      i := MessageBox(Handle, '是否保存最新的推动？', '警告', MB_ICONWARNING + MB_YESNOCANCEL);
+      i := MessageBox(Handle, '刚刚的推动尚未保存，是否保存？', '警告', MB_ICONWARNING + MB_YESNOCANCEL);
       if i = idyes then begin
          SaveState();          // 保存状态到数据库
          PageControl.ActivePageIndex := 0;
@@ -5698,7 +5696,7 @@ begin
 
     if not mySettings.isLurd_Saved then
     begin    // 有新的动作尚未保存
-      i := MessageBox(Handle, '是否保存最新的推动？', '警告', MB_ICONWARNING + MB_YESNOCANCEL);
+      i := MessageBox(Handle, '刚刚的推动尚未保存，是否保存？', '警告', MB_ICONWARNING + MB_YESNOCANCEL);
       if i = idyes then begin
          actNode := StateList[n];
          id := actNode.id;
@@ -6476,6 +6474,7 @@ begin
   end;
   NewMapSize();
   DrawMap();        // 画地图
+  pl_Ground.SetFocus;
 end;
 
 procedure Delay(msecs: dword);
@@ -6559,7 +6558,7 @@ var
 begin
    if not mySettings.isXSB_Saved then
    begin    // 有新的XSB尚未保存
-      i := MessageBox(Handle, '是否保存导入的关卡？', '警告', MB_ICONWARNING + MB_YESNOCANCEL);
+      i := MessageBox(Handle, '当前关卡尚未保存，是否保存？', '警告', MB_ICONWARNING + MB_YESNOCANCEL);
       if i = idyes then begin
         SaveXSBToFile();
       end else if i = idno then begin
@@ -6569,7 +6568,7 @@ begin
 
    if not mySettings.isLurd_Saved then
    begin    // 有新的动作尚未保存
-      i := MessageBox(Handle, '是否保存最新的推动？', '警告', MB_ICONWARNING + MB_YESNOCANCEL);
+      i := MessageBox(Handle, '刚刚的推动尚未保存，是否保存？', '警告', MB_ICONWARNING + MB_YESNOCANCEL);
       if i = idyes then begin
         mySettings.isLurd_Saved := True;
         SaveState();          // 保存状态到数据库
@@ -6852,7 +6851,7 @@ begin
   StatusBar1.Panels[7].Text := '';
   if not mySettings.isXSB_Saved then
   begin    // 有新的XSB尚未保存
-    i := MessageBox(Handle, '是否保存导入的关卡？', '警告', MB_ICONWARNING + MB_YESNOCANCEL);
+    i := MessageBox(Handle, '当前关卡尚未保存，是否保存？', '警告', MB_ICONWARNING + MB_YESNOCANCEL);
     if i = idyes then begin
       SaveXSBToFile();
     end else if i = idno then begin
@@ -6862,7 +6861,7 @@ begin
 
   if not mySettings.isLurd_Saved then
   begin    // 有新的动作尚未保存
-    i := MessageBox(Handle, '是否保存最新的推动？', '警告', MB_ICONWARNING + MB_YESNOCANCEL);
+    i := MessageBox(Handle, '刚刚的推动尚未保存，是否保存？', '警告', MB_ICONWARNING + MB_YESNOCANCEL);
     if i = idyes then begin
       mySettings.isLurd_Saved := True;
       SaveState();          // 保存状态到数据库
@@ -6908,7 +6907,7 @@ begin
 
   if not mySettings.isLurd_Saved then
   begin    // 有新的动作尚未保存
-    n := MessageBox(Handle, '是否保存最新的推动？', '警告', MB_ICONWARNING + MB_YESNOCANCEL);
+    n := MessageBox(Handle, '刚刚的推动尚未保存，是否保存？', '警告', MB_ICONWARNING + MB_YESNOCANCEL);
     if n = idyes then begin
        SaveState();          // 保存状态到数据库
     end else if n = idno then begin
@@ -6956,7 +6955,7 @@ begin
   begin
     if not mySettings.isLurd_Saved then
     begin    // 有新的动作尚未保存
-      bt := MessageBox(Handle, '是否保存最新的推动？', '警告', MB_ICONWARNING + MB_YESNOCANCEL);
+      bt := MessageBox(Handle, '刚刚的推动尚未保存，是否保存？', '警告', MB_ICONWARNING + MB_YESNOCANCEL);
       if bt = idyes then begin
          SaveState();          // 保存状态到数据库
       end else if bt = idno then begin
@@ -7225,7 +7224,7 @@ begin
    if n > 0 then begin
       if not mySettings.isLurd_Saved then
       begin    // 有新的动作尚未保存
-        bt := MessageBox(Handle, '是否保存最新的推动？', '警告', MB_ICONWARNING + MB_YESNOCANCEL);
+        bt := MessageBox(Handle, '刚刚的推动尚未保存，是否保存？', '警告', MB_ICONWARNING + MB_YESNOCANCEL);
         if bt = idyes then begin
            SaveState();          // 保存状态到数据库
         end else if bt = idno then begin
@@ -7286,7 +7285,7 @@ begin
   if (curMapNode = nil) or (curMapNode.Map.Count = 0) then Exit;
 
   if mySettings.MapFileName = '' then begin
-    if MessageBox(Handle, PChar('将导入的' + inttostr(MapList.Count) + '个关卡，加入到关卡周转库，' + #10 + '确定吗？'), '提醒', MB_ICONINFORMATION + MB_OKCANCEL) <> idOK then Exit;
+    if MessageBox(Handle, PChar('将刚刚导入的' + inttostr(MapList.Count) + '个关卡，加入到关卡周转库，' + #10 + '确定吗？'), '提醒', MB_ICONINFORMATION + MB_OKCANCEL) <> idOK then Exit;
 
     mySettings.MapFileName := 'BoxMan.xsb';
 
