@@ -58,15 +58,16 @@ var
 
   sMoves, sPushs: integer;                            // 验证答案时，记录移动数和推动数
 
+  MapCount: Integer;                       // 已经解析出来的关卡数
   MapList: TList;                          // 关卡列表
   MapArray: array[0..99, 0..99] of Char;   // 标准化用关卡数组
   Mark: array[0..99, 0..99] of Boolean;    // 标准化用标志数组
-  curMapNode: PMapNode;                   // 当前关卡节点
-  SolvedLevel: array[0..30] of Integer;     // 当后台没有加载完关卡时，临时登记加载期间玩家解开的关卡序号
+  curMapNode: PMapNode;                    // 当前关卡节点
+  SolvedLevel: array[0..30] of Integer;    // 当后台没有加载完关卡时，临时登记加载期间玩家解开的关卡序号
 
   isOnlyXSB: boolean;                      // 打开关卡文档时，仅解析XSB -- 忽略答案
 
-  tmp_Board: array[0..9999] of integer;   // 临时地图
+  tmp_Board: array[0..9999] of integer;    // 临时地图
 
   // 标准化用关卡数组
   aMap0: array[0..99, 0..99] of Char;
@@ -1334,7 +1335,7 @@ begin
       Break;
   end;
   main.LoadSolution;
-  main.Caption := AppName + AppVer + ' - ' + ExtractFileName(ChangeFileExt(main.mySettings.MapFileName, EmptyStr)) + ' ~ [' + inttostr(main.curMap.CurrentLevel) + '/' + inttostr(MapList.Count) + ']';
+  main.Caption := AppName + AppVer + ' - ' + ExtractFileName(ChangeFileExt(main.mySettings.MapFileName, EmptyStr)) + ' ~ [' + inttostr(main.curMap.CurrentLevel) + '/' + inttostr(MapCount) + ']';
   main.Caption := main.Caption + '，尺寸: ' + IntToStr(curMapNode.Cols) + '×' + IntToStr(curMapNode.Rows) + '，箱子: ' + IntToStr(curMapNode.Boxs) + '，目标: ' + IntToStr(curMapNode.Goals);
 end;
 
@@ -1369,6 +1370,8 @@ begin
   if FileExists(FileName) then
   begin
 
+    MapCount := 1;
+    
     tmpMapList := TList.Create;             // 关卡列表
 
     try
@@ -1399,6 +1402,10 @@ begin
             if mapNode.Map.Count > 2 then
             begin   // 前面有解析过的关卡 XSB，则把当前关卡加入关卡集列表
                     // 做关卡的标准化，计算CRC等
+
+              Inc(MapCount);      
+              synchronize(UpdateCaption);     // 更新主窗口标题
+
               if MapNormalize(mapNode) then
               begin
                 SetSolved_2(mapNode, mapSolution);
@@ -1581,6 +1588,7 @@ begin
       MapList := tmpMapList;
       tmpMapList := nil;
 
+      MapCount := MapList.Count;
       synchronize(UpdateCaption);     // 更新主窗口标题
     end;
 

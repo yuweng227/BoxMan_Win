@@ -1,6 +1,6 @@
 object main: Tmain
-  Left = 280
-  Top = 165
+  Left = 808
+  Top = 157
   Width = 732
   Height = 532
   Caption = 'BoxMan'
@@ -769,7 +769,7 @@ object main: Tmain
     Left = 64
     Top = 153
     object N2: TMenuItem
-      Caption = #26597#30475#25552#20132#21015#34920
+      Caption = #23548#20837#31572#26696' '#8592' '#26597#30475#25552#20132#21015#34920
       OnClick = N2Click
     end
     object N1: TMenuItem
@@ -816,17 +816,10 @@ object main: Tmain
     end
     object N26: TMenuItem
       Caption = '-'
-      Visible = False
     end
     object N27: TMenuItem
-      Caption = #23548#20986#31572#26696#24211' '#8594' '#25991#26723
-      Visible = False
+      Caption = #23548#20837#31572#26696
       OnClick = N27Click
-    end
-    object N28: TMenuItem
-      Caption = #23548#20837#31572#26696' '#8592' '#25991#26723
-      Visible = False
-      OnClick = N28Click
     end
   end
   object pmState: TPopupMenu

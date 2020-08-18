@@ -20,9 +20,9 @@ modules/
 /资料
 /BoxMan.dat
 /BoxMan.ldb
-/BoxMan.db
 /BoxMan.ini
 /boxman.xsb
-/BoxMan.xsb.bak
+/*.bak
 /*.dcu
 /*.log
+/*.db

@@ -25,32 +25,6 @@ object DataModule1: TDataModule1
     Left = 135
     Top = 9
   end
-  object ADOConnection2: TADOConnection
-    ConnectionString = 
-      'Provider=Microsoft.Jet.OLEDB.4.0;User ID=Admin;Data Source=BoxMa' +
-      'n.dat;Mode=Share Deny None;Persist Security Info=False;Jet OLEDB' +
-      ':System database="";Jet OLEDB:Registry Path="";Jet OLEDB:Databas' +
-      'e Password=boxman2019;Jet OLEDB:Engine Type=5;Jet OLEDB:Database' +
-      ' Locking Mode=0;Jet OLEDB:Global Partial Bulk Ops=2;Jet OLEDB:Gl' +
-      'obal Bulk Transactions=1;Jet OLEDB:New Database Password="";Jet ' +
-      'OLEDB:Create System Database=False;Jet OLEDB:Encrypt Database=Fa' +
-      'lse;Jet OLEDB:Don'#39't Copy Locale on Compact=False;Jet OLEDB:Compa' +
-      'ct Without Replica Repair=False;Jet OLEDB:SFP=False'
-    Provider = 'Microsoft.Jet.OLEDB.4.0'
-    Left = 71
-    Top = 57
-  end
-  object ADOQuery2: TADOQuery
-    Connection = ADOConnection2
-    Parameters = <>
-    Left = 135
-    Top = 57
-  end
-  object DataSource2: TDataSource
-    DataSet = ADOQuery2
-    Left = 23
-    Top = 57
-  end
   object DataSource1: TDataSource
     DataSet = ADOQuery1
     Left = 23

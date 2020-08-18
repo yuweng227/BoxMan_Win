@@ -18,7 +18,9 @@ uses
   Submit in 'Submit.pas' {MySubmit},
   ShowSolutionList in 'ShowSolutionList.pas' {ShowSolutuionList},
   OpenFile in 'OpenFile.pas' {MyOpenFile},
-  myTest in 'myTest.pas' {TestForm};
+  myTest in 'myTest.pas' {TestForm},
+  ImportSolution in 'ImportSolution.pas' {ImportForm},
+  DateModule in 'DateModule.pas' {DataModule1: TDataModule};
 
 const
   iAtom = 'yuweng_BoxMan_2019_';        // 让程序只运行一次的全局原子
@@ -43,6 +45,8 @@ begin
       Application.Initialize;
       Application.CreateForm(Tmain, main);
   Application.CreateForm(TTestForm, TestForm);
+  Application.CreateForm(TImportForm, ImportForm);
+  Application.CreateForm(TDataModule1, DataModule1);
   //  Application.CreateForm(TLoadSkinForm, LoadSkinForm);
       Application.CreateForm(TActionForm, ActionForm);
       Application.CreateForm(TInfForm, InfForm);

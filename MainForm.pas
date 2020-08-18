@@ -159,7 +159,6 @@ type
     SpeedButton1: TSpeedButton;
     N26: TMenuItem;
     N27: TMenuItem;
-    N28: TMenuItem;
 
     procedure FormCreate(Sender: TObject);
     procedure FormResize(Sender: TObject);
@@ -262,7 +261,6 @@ type
       Shift: TShiftState; X, Y: Integer);
     procedure SpeedButton1Click(Sender: TObject);
     procedure N27Click(Sender: TObject);
-    procedure N28Click(Sender: TObject);
 
   private
     // 当前地图参数
@@ -347,7 +345,7 @@ const
   SpeedInf: array[0..4] of string = ('最快', '较快', '中速', '较慢', '最慢');
   
   AppName = 'BoxMan';
-  AppVer = ' V1.7';
+  AppVer = ' V1.8';
 
 var
   main: Tmain;
@@ -389,7 +387,7 @@ implementation
 
 uses
   DateUtils, LogFile, MyInf, Submit, IDHttp, superobject, ShowSolutionList, OpenFile,
-  LoadSkin, PathFinder, LurdAction, BrowseLevels, CRC_32, Actions, myTest;
+  LoadSkin, PathFinder, LurdAction, BrowseLevels, CRC_32, Actions, myTest, ImportSolution;
 
 var
   myPathFinder: TPathFinder;
@@ -1759,8 +1757,8 @@ begin
   pmSolution.Items[10].Caption := '删除';
   pmSolution.Items[11].Caption := '删除全部';
   pmSolution.Items[12].Caption := '-';
-  pmSolution.Items[13].Caption := '导出答案库 → 文档';
-  pmSolution.Items[14].Caption := '导入答案 ← 文档';
+  pmSolution.Items[13].Caption := '导入答案';
+
 
   pmState.Items[0].Caption := '正推 Lurd 到剪切板';
   pmState.Items[1].Caption := '逆推 Lurd 到剪切板';
@@ -1859,8 +1857,9 @@ begin
 
         sldb.execsql(sSQL);
 
-        sldb.execsql('CREATE INDEX sol_Index ON [Tab_Solution]([XSB_CRC_TrunNum]);');
       end;
+      sldb.execsql('DROP INDEX sol_Index');
+      sldb.execsql('CREATE INDEX sol_Index ON Tab_Solution(XSB_CRC32, Goals, Sol_CRC32);');
 
 {$IFDEF DEBUG}
    Writeln(myLogFile, 'Step 2');
@@ -1902,8 +1901,9 @@ begin
 
         sldb.execsql(sSQL);
 
-        sldb.execsql('CREATE INDEX act_Index ON [Tab_State]([XSB_CRC_TrunNum]);');
       end;
+      sldb.execsql('DROP INDEX act_Index');
+      sldb.execsql('CREATE INDEX act_Index ON Tab_State(XSB_CRC32, XSB_CRC_TrunNum, Goals)');
 
 {$IFDEF DEBUG}
    Writeln(myLogFile, 'Step 5');
@@ -3415,6 +3415,9 @@ begin
    Flush(myLogFile);
 {$ENDIF}
 
+  if IsManAccessibleTips or IsManAccessibleTips_BK or IsBoxAccessibleTips or IsBoxAccessibleTips_BK then map_Image.Cursor := crDrag
+  else map_Image.Cursor := crDefault;
+
   DrawMap();
 
 {$IFDEF DEBUG}
@@ -3638,7 +3641,6 @@ end;
 function Tmain.SaveState(): Boolean;
 var
   sldb: TSQLiteDatabase;
-  sltb: TSQLIteTable;
   sSQL: String;
   i, ActCRC, ActCRC_BK, x, y, size: Integer;
   actNode: ^TStateNode;
@@ -3760,22 +3762,16 @@ begin
    Flush(myLogFile);
 {$ENDIF}
 
-           sltb := slDb.GetTable('SELECT ID FROM Tab_State ORDER BY Act_DateTime');
+           actNode.id := sldb.GetLastInsertRowID;
 
-           try
-             if sltb.Count > 0 then begin
-                sltb.MoveLast;
-                actNode.id := sltb.FieldAsInteger(sltb.FieldIndex['ID']);
+           if actNode.id > 0 then begin
 
-                StateList.Insert(0, actNode);
+              StateList.Insert(0, actNode);
 
-                // 当前状态插入到列表的最前面
-                List_State.Items.Insert(0, IntToStr(actNode.Pushs) + '/' + IntToStr(actNode.Moves) + #10 + ' [' + IntToStr(actNode.Man_X) + ',' + IntToStr(actNode.Man_Y) + ']' + IntToStr(actNode.Pushs_BK) + '/' + IntToStr(actNode.Moves_BK) + #10 + FormatDateTime(' yyyy-mm-dd hh:nn', actNode.DateTime));
+              // 当前状态插入到列表的最前面
+              List_State.Items.Insert(0, IntToStr(actNode.Pushs) + '/' + IntToStr(actNode.Moves) + #10 + ' [' + IntToStr(actNode.Man_X) + ',' + IntToStr(actNode.Man_Y) + ']' + IntToStr(actNode.Pushs_BK) + '/' + IntToStr(actNode.Moves_BK) + #10 + FormatDateTime(' yyyy-mm-dd hh:nn', actNode.DateTime));
 
-                StatusBar1.Panels[7].Text := '状态已保存！';
-             end;
-           finally
-             sltb.Free;
+              StatusBar1.Panels[7].Text := '状态已保存！';
            end;
         end;
       finally
@@ -3926,7 +3922,6 @@ end;
 function Tmain.SaveSolution(n: Integer): Boolean;
 var
   sldb: TSQLiteDatabase;
-  sltb: TSQLIteTable;
   sSQL: String;
   sol: string;
   i, size, solCRC, k, m, p: Integer;
@@ -4043,18 +4038,11 @@ begin
 
            sldb.Commit;
 
-           sltb := slDb.GetTable('SELECT ID FROM Tab_Solution ORDER BY Sol_DateTime');
+           solNode.id := sldb.GetLastInsertRowID;
 
-           try
-             if sltb.Count > 0 then begin
-                sltb.MoveLast;
-                solNode.id := sltb.FieldAsInteger(sltb.FieldIndex['ID']);
-
-                SoltionList.Add(solNode);
-                List_Solution.Items.Add(IntToStr(p) + '/' + IntToStr(m) + #10 + FormatDateTime(' yyyy-mm-dd hh:nn', solNode.DateTime));
-             end;
-           finally
-             sltb.Free;
+           if solNode.id > 0 then begin
+              SoltionList.Add(solNode);
+              List_Solution.Items.Add(IntToStr(p) + '/' + IntToStr(m) + #10 + FormatDateTime(' yyyy-mm-dd hh:nn', solNode.DateTime));
            end;
 {$IFDEF DEBUG}
    Writeln(myLogFile, 'Step 4...');
@@ -7779,12 +7767,15 @@ end;
 
 procedure Tmain.N27Click(Sender: TObject);
 begin
-  MessageBox(Handle, PChar('设计中...' + #10 + '把答案库内的所有答案，保存到一个文档中。'), '信息', MB_ICONINFORMATION + MB_OK);
-end;
+  // 后台线程正在运行
+  if LoadMapThread.isRunning then begin
+     MessageBox(Handle, PChar('后台线程忙，请稍后再试！'), '提醒', MB_ICONINFORMATION + MB_OK);
+     Exit;
+  end;
 
-procedure Tmain.N28Click(Sender: TObject);
-begin
-  MessageBox(Handle, PChar('设计中...' + #10 + '把文档中关卡答案导入的答案库内。'), '信息', MB_ICONINFORMATION + MB_OK);
+  if isMoving then IsStop := True;
+
+  ImportForm.ShowModal;
 end;
 
 end.
