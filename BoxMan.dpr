@@ -17,13 +17,9 @@ uses
   inf in 'inf.pas' {InfForm},
   Submit in 'Submit.pas' {MySubmit},
   ShowSolutionList in 'ShowSolutionList.pas' {ShowSolutuionList},
-  OpenFile in 'OpenFile.pas' {MyOpenFile};
-
-const
-  iAtom = 'yuweng_BoxMan_2019_';        // 让程序只运行一次的全局原子
-
-var
-  PreInstanceWindow: HWnd;
+  OpenFile in 'OpenFile.pas' {MyOpenFile},
+  Board in 'Board.pas',
+  MyMessage in 'MyMessage.pas' {Msg};
 
 {$R *.RES}
 
@@ -34,11 +30,7 @@ begin
 end;
 
 begin
-   if GlobalFindAtom(iAtom) = 0 then begin
-      GlobalAddAtom(iAtom);                        // 添加全局原子
-
-      Application.Title := 'yuweng_BoxMan_2019';
-
+   if not AppHasRun(Application.Handle) then begin
       Application.Initialize;
       Application.CreateForm(Tmain, main);
   Application.CreateForm(TActionForm, ActionForm);
@@ -46,34 +38,25 @@ begin
   Application.CreateForm(TMySubmit, MySubmit);
   Application.CreateForm(TShowSolutuionList, ShowSolutuionList);
   Application.CreateForm(TMyOpenFile, MyOpenFile);
-  Application.Run;
-      
-      GlobalDeleteAtom(GlobalFindAtom(iAtom));  // 删除添加的全局原子
+  Application.CreateForm(TMsg, Msg);
+  end;
 
-      // 避免关闭程序出现“runtime error 216 at xxxxxxx"的错误提示
-      asm
-          xor edx, edx
-          push ebp
-          push OFFSET @@safecode
-          push dword ptr fs:[edx]
-          mov fs:[edx],esp
+   Application.Run;
 
-          call Halt0
-          jmp @@exit;
+   // 避免关闭程序出现“runtime error 216 at xxxxxxx"的错误提示
+   asm
+      xor edx, edx
+      push ebp
+      push OFFSET @@safecode
+      push dword ptr fs:[edx]
+      mov fs:[edx],esp
 
-          @@safecode:
-          call Halt0;
+      call Halt0
+      jmp @@exit;
 
-          @@exit:
-      end;
-   end else begin
-      PreInstanceWindow := findWindow(nil, PChar('yuweng_BoxMan_2019'));
-      if PreInstanceWindow <> 0 then
-      begin
-        if IsIconic(PreInstanceWindow) then
-          showWindow(PreInstanceWindow, SW_RESTORE)
-        else
-          SetForegroundWindow(PreInstanceWindow);
-      end else GlobalDeleteAtom(GlobalFindAtom(iAtom));  // 删除添加的全局原子
+      @@safecode:
+      call Halt0;
+
+      @@exit:
    end;
 end.

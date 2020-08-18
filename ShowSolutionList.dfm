@@ -12,6 +12,7 @@ object ShowSolutuionList: TShowSolutuionList
   Font.Style = []
   OldCreateOrder = False
   Position = poScreenCenter
+  OnClose = FormClose
   OnCreate = FormCreate
   OnResize = FormResize
   OnShow = FormShow

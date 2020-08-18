@@ -25,6 +25,7 @@ type
     procedure Edit1KeyUp(Sender: TObject; var Key: Word;
       Shift: TShiftState);
     procedure Edit1DblClick(Sender: TObject);
+    procedure FormClose(Sender: TObject; var Action: TCloseAction);
   private
     { Private declarations }
   public
@@ -86,6 +87,7 @@ procedure TShowSolutuionList.sb_GoClick(Sender: TObject);
 begin
   try
     WebBrowser1.Navigate(Edit1.Text);
+    Edit1.Text := '';
   except
   end;
 end;
@@ -101,6 +103,16 @@ end;
 procedure TShowSolutuionList.Edit1DblClick(Sender: TObject);
 begin
   Edit1.SelectAll;
+end;
+
+procedure TShowSolutuionList.FormClose(Sender: TObject;
+  var Action: TCloseAction);
+begin
+   if Win32Platform = VER_PLATFORM_WIN32_NT then  
+   begin  
+      SetProcessWorkingSetSize(GetCurrentProcess, $FFFFFFFF, $FFFFFFFF);  
+      Application.ProcessMessages;  
+   end;  
 end;
 
 end.

@@ -4,7 +4,7 @@ interface
 
 uses
   Windows, Messages, SysUtils, Variants, Classes, Graphics, Controls, Forms,
-  ComCtrls, ImgList, Math, CommCtrl, Menus, StdCtrls, ExtCtrls, Buttons, LoadMapUnit;
+  ComCtrls, ImgList, Math, CommCtrl, Menus, StdCtrls, ExtCtrls, Buttons, LoadMapUnit, Board;
 
 type
   TBrowseForm = class(TForm)
@@ -160,6 +160,7 @@ var
   ch: Char;
   mapNode: PMapNode;
   str: string;
+  Map: TStringList;
 begin
   Image1.Visible := false;
   isStop := False;
@@ -179,81 +180,90 @@ begin
               if k >= c then Break;
 
               mapNode := MapList[k];             // 当前图标
-              Rows := mapNode.Map.Count;         // 当前图标的垂直小格子数
-              Cols := Length(mapNode.Map[0]);    // 当前图标的水平小格子数
+              Rows := mapNode.Rows;              // 当前图标的垂直小格子数
+              Cols := mapNode.Cols;              // 当前图标的水平小格子数
 
-              x_Size := Size_Icon div Cols;    
-              y_Size := Size_Icon div Rows;
-              cell_Size := Min(x_Size, y_Size);  // 图标中的小格子尺寸
+              Map := TStringList.Create;
 
-              x := (Size_Icon - cell_Size * Cols) div 2;      // 图标左右和上下的空白尺寸
-              y := (Size_Icon - cell_Size * Rows) div 2;
+              try
+                Split(mapNode.Map, Map);
 
-              t := (i - TopRow) * (Size_Icon + 30);           // 各图标的起始位置，垂直间隔 30 像素（此间隔包含序号显示）
-              l := j * (Size_Icon + 10);                      // 水平间隔 10 像素
+                x_Size := Size_Icon div Cols;
+                y_Size := Size_Icon div Rows;
+                cell_Size := Min(x_Size, y_Size);  // 图标中的小格子尺寸
 
-              for row := 0 to Rows-1 do begin
-                  if isStop then Break;
-                  len := Length(mapNode.Map[row]);
-                  for col := 1 to Cols do begin
-                      if isStop then Break;
-                      R := Rect((col-1) * cell_Size + x + l, row * cell_Size + y + t, col * cell_Size + x + l, (row+1) * cell_Size + y + t);
+                x := (Size_Icon - cell_Size * Cols) div 2;      // 图标左右和上下的空白尺寸
+                y := (Size_Icon - cell_Size * Rows) div 2;
 
-                      if col > len then ch := '-'
-                      else ch := mapNode.Map[row][col];
+                t := (i - TopRow) * (Size_Icon + 30);           // 各图标的起始位置，垂直间隔 30 像素（此间隔包含序号显示）
+                l := j * (Size_Icon + 10);                      // 水平间隔 10 像素
 
-                      case ch of
-                        '#': begin //StretchDraw(R, WallPic);
+                for row := 0 to Rows-1 do begin
+                    if isStop then Break;
+                    len := Length(Map[row]);
+                    for col := 1 to Cols do begin
+                        if isStop then Break;
+                        R := Rect((col-1) * cell_Size + x + l, row * cell_Size + y + t, col * cell_Size + x + l, (row+1) * cell_Size + y + t);
 
-                            if isSeamless then begin    // 无缝墙壁
-                              w := GetWall(mapNode.Map, row, col);
-                              case (w and $F) of
-                                1:
-                                  StretchDraw(R, WallPic_l);     // 仅左
-                                2:
-                                  StretchDraw(R, WallPic_u);     // 仅上
-                                3:
-                                  StretchDraw(R, WallPic_lu);    // 左、上
-                                4:
-                                  StretchDraw(R, WallPic_r);     // 仅右
-                                5:
-                                  StretchDraw(R, WallPic_lr);    // 左、右
-                                6:
-                                  StretchDraw(R, WallPic_ru);    // 右、上
-                                7:
-                                  StretchDraw(R, WallPic_lur);   // 左、上、右
-                                8:
-                                  StretchDraw(R, WallPic_d);     // 仅下
-                                9:
-                                  StretchDraw(R, WallPic_ld);    // 左、下
-                                10:
-                                  StretchDraw(R, WallPic_ud);    // 上、下
-                                11:
-                                  StretchDraw(R, WallPic_uld);   // 左、上、下
-                                12:
-                                  StretchDraw(R, WallPic_rd);    // 右、下
-                                13:
-                                  StretchDraw(R, WallPic_ldr);   // 左、右、下
-                                14:
-                                  StretchDraw(R, WallPic_urd);   // 上、右、下
-                                15:
-                                  StretchDraw(R, WallPic_lurd);  // 四方向全有
-                                else
-                                  StretchDraw(R, WallPic);
+                        if col > len then
+                         ch := '-'
+                        else
+                         ch := Map[row][col];
+
+                        case ch of
+                          '#': begin //StretchDraw(R, WallPic);
+
+                              if isSeamless then begin    // 无缝墙壁
+                                w := GetWall(Map, row, col);
+                                case (w and $F) of
+                                  1:
+                                    StretchDraw(R, WallPic_l);     // 仅左
+                                  2:
+                                    StretchDraw(R, WallPic_u);     // 仅上
+                                  3:
+                                    StretchDraw(R, WallPic_lu);    // 左、上
+                                  4:
+                                    StretchDraw(R, WallPic_r);     // 仅右
+                                  5:
+                                    StretchDraw(R, WallPic_lr);    // 左、右
+                                  6:
+                                    StretchDraw(R, WallPic_ru);    // 右、上
+                                  7:
+                                    StretchDraw(R, WallPic_lur);   // 左、上、右
+                                  8:
+                                    StretchDraw(R, WallPic_d);     // 仅下
+                                  9:
+                                    StretchDraw(R, WallPic_ld);    // 左、下
+                                  10:
+                                    StretchDraw(R, WallPic_ud);    // 上、下
+                                  11:
+                                    StretchDraw(R, WallPic_uld);   // 左、上、下
+                                  12:
+                                    StretchDraw(R, WallPic_rd);    // 右、下
+                                  13:
+                                    StretchDraw(R, WallPic_ldr);   // 左、右、下
+                                  14:
+                                    StretchDraw(R, WallPic_urd);   // 上、右、下
+                                  15:
+                                    StretchDraw(R, WallPic_lurd);  // 四方向全有
+                                  else
+                                    StretchDraw(R, WallPic);
+                                end;
+                              end else begin
+                                StretchDraw(R, WallPic);
                               end;
-                            end else begin
-                              StretchDraw(R, WallPic);
-                            end;
+                          end;
+                          '-': StretchDraw(R, FloorPic);
+                          '.': StretchDraw(R, GoalPic);
+                          '$': StretchDraw(R, BoxPic);
+                          '*': StretchDraw(R, BoxGoalPic);
+                          '@': StretchDraw(R, ManPic);
+                          '+': StretchDraw(R, ManGoalPic);
                         end;
-                        '-': StretchDraw(R, FloorPic);
-                        '.': StretchDraw(R, GoalPic);
-                        '$': StretchDraw(R, BoxPic);
-                        '*': StretchDraw(R, BoxGoalPic);
-                        '@': StretchDraw(R, ManPic);
-                        '+': StretchDraw(R, ManGoalPic);
-                      end;
-
-                  end;
+                    end;
+                end;
+              finally
+                if Assigned(Map) then Map.Free;
               end;
 
               // 不合格的关卡
@@ -508,7 +518,7 @@ end;
 procedure TBrowseForm.sb_DeleteClick(Sender: TObject);
 var
   myXSBFile: Textfile;
-  i, j: Integer;
+  i: Integer;
   mapNode: PMapNode;               // 关卡节点
   isOK: Boolean;
 begin
@@ -529,9 +539,9 @@ begin
         mapNode := MapList.Items[i];
 
         Writeln(myXSBFile, '');
-        for j := 0 to mapNode.Map.Count - 1 do begin
-          Writeln(myXSBFile, mapNode.Map[j]);
-        end;
+
+        Writeln(myXSBFile, mapNode.Map);
+
         if Trim(mapNode.Title) <> '' then
           Writeln(myXSBFile, 'Title: ' + mapNode.Title);
         if Trim(mapNode.Author) <> '' then
@@ -550,11 +560,7 @@ begin
       if isOK then begin
         mapNode := MapList.Items[Tag];
         MapList.Delete(Tag);
-        if Assigned(mapNode.Map) then begin
-           mapNode.Map.Clear;
-           mapNode.Map.Free;
-        end;
-        Dispose(mapNode);
+        Dispose(PMapNode(mapNode));
         main.maxNumber := MapList.Count;
         if Tag >= main.maxNumber then begin
            Tag := main.maxNumber-1;

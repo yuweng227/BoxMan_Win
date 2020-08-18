@@ -80,8 +80,6 @@ type
 
     mapRows, mapCols, manPos, MapSize, MoveTimes, PushTimes: Integer;
 
-    myPathFinder: TPathFinder;
-
   end;
 
 const
@@ -601,8 +599,6 @@ begin
   MaskPic := TBitmap.Create;      // 选择单元格掩图
   LoadDefaultSkin;
 
-  myPathFinder := TPathFinder.Create;             // 探路者
-
   KeyPreview := true;
 end;
 
@@ -822,21 +818,21 @@ begin
           t1 := CellSize div 6;
           if t1 < 4 then t1 := 4;
           t2 := t1 - 1;
-          if myPathFinder.isManReachableByThrough_BK(pos) then
+          if PathFinder.isManReachableByThrough_BK(pos) then
           begin
             map_Image.Canvas.Brush.Color := clWhite;
             map_Image.Canvas.FillRect(Rect(x1 + CellSize div 2 - t1, y1 + CellSize div 2 - t1, x1 + CellSize div 2 + t1, y1 + CellSize div 2 + t1));
             map_Image.Canvas.Brush.Color := clBlack;
             map_Image.Canvas.FillRect(Rect(x1 + CellSize div 2 - t2, y1 + CellSize div 2 - t2, x1 + CellSize div 2 + t2, y1 + CellSize div 2 + t2));
           end
-          else if myPathFinder.isManReachable_BK(pos) then
+          else if PathFinder.isManReachable_BK(pos) then
           begin
             map_Image.Canvas.Brush.Color := clBlack;
             map_Image.Canvas.Ellipse(x1 + CellSize div 2 - t1, y1 + CellSize div 2 - t1, x1 + CellSize div 2 + t1, y1 + CellSize div 2 + t1);
             map_Image.Canvas.Brush.Color := clWhite;
             map_Image.Canvas.Ellipse(x1 + CellSize div 2 - t2, y1 + CellSize div 2 - t2, x1 + CellSize div 2 + t2, y1 + CellSize div 2 + t2);
           end
-          else if myPathFinder.isBoxOfThrough_BK(pos) then
+          else if PathFinder.isBoxOfThrough_BK(pos) then
           begin
             map_Image.Canvas.Brush.Color := clWhite;
             map_Image.Canvas.Ellipse(x1 + CellSize div 2 - t1, y1 + CellSize div 2 - t1, x1 + CellSize div 2 + t1, y1 + CellSize div 2 + t1);
@@ -849,7 +845,7 @@ begin
           t1 := CellSize div 6;
           if t1 < 4 then t1 := 4;
           t2 := t1 - 1;
-          if myPathFinder.isBoxReachable_BK(pos) then
+          if PathFinder.isBoxReachable_BK(pos) then
           begin
             map_Image.Canvas.Brush.Color := clBlack;
             map_Image.Canvas.Ellipse(x1 + CellSize div 2 - t1, y1 + CellSize div 2 - t1, x1 + CellSize div 2 + t1, y1 + CellSize div 2 + t1);
@@ -865,21 +861,21 @@ begin
           t1 := CellSize div 6;
           if t1 < 4 then t1 := 4;
           t2 := t1 - 1;
-          if myPathFinder.isManReachableByThrough(pos) then
+          if PathFinder.isManReachableByThrough(pos) then
           begin
             map_Image.Canvas.Brush.Color := clWhite;
             map_Image.Canvas.FillRect(Rect(x1 + CellSize div 2 - t1, y1 + CellSize div 2 - t1, x1 + CellSize div 2 + t1, y1 + CellSize div 2 + t1));
             map_Image.Canvas.Brush.Color := clBlack;
             map_Image.Canvas.FillRect(Rect(x1 + CellSize div 2 - t2, y1 + CellSize div 2 - t2, x1 + CellSize div 2 + t2, y1 + CellSize div 2 + t2));
           end
-          else if myPathFinder.isManReachable(pos) then
+          else if PathFinder.isManReachable(pos) then
           begin
             map_Image.Canvas.Brush.Color := clBlack;
             map_Image.Canvas.Ellipse(x1 + CellSize div 2 - t1, y1 + CellSize div 2 - t1, x1 + CellSize div 2 + t1, y1 + CellSize div 2 + t1);
             map_Image.Canvas.Brush.Color := clWhite;
             map_Image.Canvas.Ellipse(x1 + CellSize div 2 - t2, y1 + CellSize div 2 - t2, x1 + CellSize div 2 + t2, y1 + CellSize div 2 + t2);
           end
-          else if myPathFinder.isBoxOfThrough(pos) then
+          else if PathFinder.isBoxOfThrough(pos) then
           begin
             map_Image.Canvas.Brush.Color := clWhite;
             map_Image.Canvas.Ellipse(x1 + CellSize div 2 - t1, y1 + CellSize div 2 - t1, x1 + CellSize div 2 + t1, y1 + CellSize div 2 + t1);
@@ -892,7 +888,7 @@ begin
           t1 := CellSize div 6;
           if t1 < 4 then t1 := 4;
           t2 := t1 - 1;
-          if myPathFinder.isBoxReachable(pos) then
+          if PathFinder.isBoxReachable(pos) then
           begin
             map_Image.Canvas.Brush.Color := clBlack;
             map_Image.Canvas.Ellipse(x1 + CellSize div 2 - t1, y1 + CellSize div 2 - t1, x1 + CellSize div 2 + t1, y1 + CellSize div 2 + t1);
@@ -911,8 +907,8 @@ procedure TTrialForm.FormShow(Sender: TObject);
 var
   i: Integer;
 begin
-  myPathFinder.isEditor := True;        // 编辑器调用时，不会自动保存动作日志
-  myPathFinder.setThroughable(isGoThrough);
+//  PathFinder.isEditor := True;        // 编辑器调用时，不会自动保存动作日志
+  PathFinder.setThroughable(isGoThrough);
 
   UnDoPos := 0;
   ReDoPos := 0;
@@ -1008,10 +1004,6 @@ end;
 
 procedure TTrialForm.FormDestroy(Sender: TObject);
 begin
-  if Assigned(myPathFinder) then begin
-     myPathFinder.Free;
-     myPathFinder := nil;
-  end;
   LoadSkinForm.MyBMPFree(MaskPic);
 end;
 
@@ -1019,7 +1011,7 @@ end;
 procedure TTrialForm.bt_GoThroughClick(Sender: TObject);
 begin
   isGoThrough := not isGoThrough;
-  myPathFinder.setThroughable(isGoThrough);
+  PathFinder.setThroughable(isGoThrough);
   SetButton;
 end;
 
@@ -1158,12 +1150,12 @@ begin
           begin            // 单击地板
               if IsBoxAccessibleTips then begin                          // 有箱子可达提示时
                 // 视点击位置是否可达而定
-                if(isBK and (not myPathFinder.isBoxReachable_BK(pos))) or ((not isBK) and (not myPathFinder.isBoxReachable(pos))) then
+                if(isBK and (not PathFinder.isBoxReachable_BK(pos))) or ((not isBK) and (not PathFinder.isBoxReachable(pos))) then
                    IsBoxAccessibleTips := False
                 else begin
                   IsBoxAccessibleTips := False;
 
-                  ReDoPos := myPathFinder.boxTo(isBK, OldBoxPos, pos, ManPos);
+                  ReDoPos := PathFinder.boxTo(isBK, OldBoxPos, pos, ManPos);
                   if ReDoPos > 0 then begin
                     for k := 1 to ReDoPos do
                       RedoList[k] := BoxPath[ReDoPos - k + 1];
@@ -1177,7 +1169,7 @@ begin
 
                 IsManAccessibleTips := False;
                 IsBoxAccessibleTips := False;
-                ReDoPos := myPathFinder.manTo(isBK, map_Board, ManPos, pos);               // 计算人可达
+                ReDoPos := PathFinder.manTo(isBK, map_Board, ManPos, pos);               // 计算人可达
                 if ReDoPos > 0 then begin
                   LastSteps := UnDoPos;              // 点推前的步数
                   for k := 1 to ReDoPos do
@@ -1189,10 +1181,10 @@ begin
           end;
         ManCell, ManGoalCell:
           begin           // 单击人
-              if IsBoxAccessibleTips and ((isBK and myPathFinder.isBoxReachable_BK(ManPos)) or ((not isBK) and myPathFinder.isBoxReachable(ManPos))) then begin   // 有箱子可达提示时
+              if IsBoxAccessibleTips and ((isBK and PathFinder.isBoxReachable_BK(ManPos)) or ((not isBK) and PathFinder.isBoxReachable(ManPos))) then begin   // 有箱子可达提示时
                 IsBoxAccessibleTips := False;
 
-                ReDoPos := myPathFinder.boxTo(isBK, OldBoxPos, pos, ManPos);
+                ReDoPos := PathFinder.boxTo(isBK, OldBoxPos, pos, ManPos);
                 if ReDoPos > 0 then begin
                   for k := 1 to ReDoPos do
                     RedoList[k] := BoxPath[ReDoPos - k + 1];
@@ -1203,7 +1195,7 @@ begin
               end else if IsManAccessibleTips then
                 IsManAccessibleTips := False        // 在显示人的可达提示时，又点击了人
               else begin
-                myPathFinder.manReachable(isBK, map_Board, ManPos);                       // 计算人可达
+                PathFinder.manReachable(isBK, map_Board, ManPos);                       // 计算人可达
                 IsManAccessibleTips := True;
                 IsBoxAccessibleTips := False;
               end;
@@ -1218,8 +1210,8 @@ begin
                 
                 IsBoxAccessibleTips := True;
                 IsManAccessibleTips := False;
-                myPathFinder.FindBlock(map_Board, pos);                              // 根据被点击的箱子，计算割点
-                myPathFinder.boxReachable(isBK, pos, ManPos);                        // 计算箱子可达
+                PathFinder.FindBlock(map_Board, pos);                              // 根据被点击的箱子，计算割点
+                PathFinder.boxReachable(isBK, pos, ManPos);                        // 计算箱子可达
                 OldBoxPos := pos;
               end;
           end;

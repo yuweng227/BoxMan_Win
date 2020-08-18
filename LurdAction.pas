@@ -6,16 +6,16 @@ uses
   windows, classes, StrUtils, SysUtils, Contnrs, Clipbrd, Math, CRC_32;
 
 type
-  TSoltionNode = record        // 答案列表节点
+  TSoltionNode = record        // 主窗口左边栏，答案列表节点
       id      : Integer;           // 在 db 中的 id
       Moves   : Integer;           // 移动步数
       Pushs   : Integer;           // 推动步数
       CRC32   : Integer;           // 答案 CRC
       DateTime: TDateTime;            // 时间戳
   end;
+  PTSoltionNode = ^TSoltionNode;
 
-type
-  TStateNode = record         // 状态列表节点
+  TStateNode = record         // 主窗口左边栏，状态列表节点
       id           : Integer;      // 在 db 中的 id
       Moves        : Integer;      // 移动步数
       Pushs        : Integer;      // 推动步数
@@ -27,6 +27,7 @@ type
       Man_Y        : Integer;      // 人的位置 -- 行
       DateTime     : TDateTime;    // 时间戳
   end;
+  PTStateNode = ^TStateNode;
 
 const
   MaxLenPath = 200000;       // 路径最大长度限制
@@ -49,20 +50,23 @@ var
 implementation
 
 uses
-  LoadMapUnit;
+  Board;
 
 // 释放 TStrings 的内存
 procedure MyStringsFree(var _Strings_: TStrings);
+var
+  i, len: Integer;
 begin
   if Assigned(_Strings_) then begin
+     len := _Strings_.Count;
+     for i := 0 to len-1 do _Strings_[i] := '';
      _Strings_.Clear;
      _Strings_.Free;
      _Strings_ := nil;
   end;
 end;
 
-
-// 判断是否为有效的 Lurd 行
+// 判断是否为有效的 Lurd 行 -- 仅正推动作字符
 function isLurd(str: String): boolean;
 var
   n, k: Integer;
@@ -83,7 +87,7 @@ begin
   result := k > n;
 end;
 
-// 判断是否为有效的 Lurd 行
+// 判断是否为有效的 Lurd 行 -- 包含逆推动作字符
 function isLurd_2(str: String): boolean;
 var
   n, k: Integer;
@@ -220,7 +224,6 @@ begin
    while i < k do begin
      if isLurd_2(q[i]) then begin
         str := str + #10 + q[i];
-//        Break;
      end;
      i := i + 1;
    end;

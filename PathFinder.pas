@@ -23,49 +23,39 @@ var
 
 type                        // 单项链表
   PBoxManNode = ^BoxManNode;
-  BoxManNode = record      // 箱子和人的组合节点，优先队列用节点
+  BoxManNode = record       // 箱子和人的组合节点，优先队列用节点
       boxPos: Integer;
       manPos: Integer;
       H, G, T, D: Integer;  // 评估值、累计步数、累计转弯次数、父节点方向
       next: PBoxManNode;
   end;
 
-type
-  TPathFinder = class
-    private
-      manMark: array[0..99, 0..99] of Byte;               // 人的可达标志数组，正推：0x01 可达点；0x02 穿越可达点； 0x04 穿越点；逆推：0x10 可达点；0x20 穿越可达点； 0x40 穿越点
-      boxMark: array[0..99, 0..99] of Byte;               // 箱子的可达标志数组，正推：0x01 可达点；0x04 穿越点；逆推：0x10 可达点；0x40 穿越点
+  function canThrough(isBK: Boolean; r, c, r1, c1, r2, c2, dir: Integer): Boolean;        // 检查 pos1 与 pos 两点是否穿越可达, 点 pos2 是被穿越的箱子，且在穿越时，箱子需要临时移动到 pos
+  function getPathForThrough(nRow, nCol, nRow1, nCol1, nRow2, nCol2: Integer; dir: Byte; num: Integer): Integer;  // 计算并返回 nRow1, nCol1 与 nRow, nCol 两点间的穿越路径到 TurnPath，返回路径长度, 点 nRow2, nCol2 是被穿越的箱子，且在穿越时，箱子需要临时移动到 nRow, nCol
+  function manTo2b(isBK: Boolean; boxR, boxC, firR, firC, secR, secC: Integer): Boolean;  // 割点法，检查两点是否人可达，计算箱子可达时调用
+  function manTo2(isBK: Boolean; boxR, boxC, firR, firC, secR, secC: Integer): Boolean;   // 常规法，检查两点是否人可达，计算箱子可达时调用
 
-      function canThrough(isBK: Boolean; r, c, r1, c1, r2, c2, dir: Integer): Boolean;        // 检查 pos1 与 pos 两点是否穿越可达, 点 pos2 是被穿越的箱子，且在穿越时，箱子需要临时移动到 pos
-      function getPathForThrough(nRow, nCol, nRow1, nCol1, nRow2, nCol2: Integer; dir: Byte; num: Integer): Integer;  // 计算并返回 nRow1, nCol1 与 nRow, nCol 两点间的穿越路径到 TurnPath，返回路径长度, 点 nRow2, nCol2 是被穿越的箱子，且在穿越时，箱子需要临时移动到 nRow, nCol
-      function manTo2b(isBK: Boolean; boxR, boxC, firR, firC, secR, secC: Integer): Boolean;  // 割点法，检查两点是否人可达，计算箱子可达时调用
-      function manTo2(isBK: Boolean; boxR, boxC, firR, firC, secR, secC: Integer): Boolean;   // 常规法，检查两点是否人可达，计算箱子可达时调用
+  procedure Init(w, h: Integer);                                      // 初始化
+  procedure setThroughable(f: Boolean);                               // 设置是否允许穿越
+  function  isManReachable(pos: Integer): Boolean;                    // 查看“位置”人是否可达
+  function  isManReachableByThrough (pos: Integer): Boolean;          // 查看“位置”人是否穿越可达
+  function  isBoxOfThrough(pos: Integer): Boolean;                    // 查看“位置”是否穿越点
+  function  isManReachable_BK(pos: Integer): Boolean;                 // 查看“位置”人是否可达 -- 逆推
+  function  isManReachableByThrough_BK(pos: Integer): Boolean;        // 查看“位置”人是否穿越可达 -- 逆推
+  function  isBoxOfThrough_BK(pos: Integer): Boolean;                 // 查看“位置”是否穿越点 -- 逆推
+  procedure manReachable(isBK: Boolean; level: array of Integer; manPos: Integer);                      // 计算仓管员的可达范围
+  function  manTo(isBK: Boolean; level: array of Integer; manPos, toPos: Integer): Integer;             // 计算人到达 toPos 的路径，保存到 tmpPath，返回路径长度
 
-    public
-      isEditor: Boolean;                                                  // 因为编辑器模块也用调用，而编辑器调用时，历史动作不需要保存到log文档，所以设置此变量以区别
-      
-      procedure PathFinder(w, h: Integer);                                // 初始化
-      procedure setThroughable(f: Boolean);                               // 设置是否允许穿越
-      function  isManReachable(pos: Integer): Boolean;                    // 查看“位置”人是否可达
-      function  isManReachableByThrough (pos: Integer): Boolean;          // 查看“位置”人是否穿越可达
-      function  isBoxOfThrough(pos: Integer): Boolean;                    // 查看“位置”是否穿越点
-      function  isManReachable_BK(pos: Integer): Boolean;                 // 查看“位置”人是否可达 -- 逆推
-      function  isManReachableByThrough_BK(pos: Integer): Boolean;        // 查看“位置”人是否穿越可达 -- 逆推
-      function  isBoxOfThrough_BK(pos: Integer): Boolean;                 // 查看“位置”是否穿越点 -- 逆推
-      procedure manReachable(isBK: Boolean; level: array of Integer; manPos: Integer);                      // 计算仓管员的可达范围
-      function  manTo(isBK: Boolean; level: array of Integer; manPos, toPos: Integer): Integer;             // 计算人到达 toPos 的路径，保存到 tmpPath，返回路径长度
-
-      procedure FindBlock(level: array of Integer; boxPos: Integer);      // 地图分块
-      procedure boxReachable(isBK: Boolean; boxPos, manPos: Integer);     // 计算箱子的可达位置
-      function  isBoxReachable(pos: Integer): Boolean;                    // 查看“位置”箱子是否可达
-      function  isBoxReachable_BK(pos: Integer): Boolean;                 // 查看“位置”箱子是否可达 -- 逆推
-      function  boxTo(isBK: Boolean; boxPos, toPos, manPos: Integer): Integer;  // 计算箱子到达 toPos 的路径，并由 list 带回
-  end;
+  procedure FindBlock(level: array of Integer; boxPos: Integer);      // 地图分块
+  procedure boxReachable(isBK: Boolean; boxPos, manPos: Integer);     // 计算箱子的可达位置
+  function  isBoxReachable(pos: Integer): Boolean;                    // 查看“位置”箱子是否可达
+  function  isBoxReachable_BK(pos: Integer): Boolean;                 // 查看“位置”箱子是否可达 -- 逆推
+  function  boxTo(isBK: Boolean; boxPos, toPos, manPos: Integer): Integer;  // 计算箱子到达 toPos 的路径，并由 list 带回
 
 implementation
 
 uses
-  LogFile, LoadMapUnit;
+  LogFile, Board;
 
 const
   lurdChar : array[0..7] of Char = (  'l', 'r', 'u', 'd', 'L', 'R', 'U', 'D' );
@@ -76,6 +66,10 @@ const
 
 var
   isThroughable: boolean;                             // 是否允许穿越
+
+  isEditor: Boolean;                                                  // 因为编辑器模块也用调用，而编辑器调用时，历史动作不需要保存到log文档，所以设置此变量以区别
+  manMark: array[0..99, 0..99] of Byte;               // 人的可达标志数组，正推：0x01 可达点；0x02 穿越可达点； 0x04 穿越点；逆推：0x10 可达点；0x20 穿越可达点； 0x40 穿越点
+  boxMark: array[0..99, 0..99] of Byte;               // 箱子的可达标志数组，正推：0x01 可达点；0x04 穿越点；逆推：0x10 可达点；0x40 穿越点
 
   tmpMap: array[0..99, 0..99] of Char;                // 计算穿越时，临时使用
   mapWidth, mapHeight: Integer;                       // 地图尺寸
@@ -98,62 +92,62 @@ var
   block: array[0..99, 0..99, 0..4] of Integer;
 
 // 初始化
-procedure TPathFinder.PathFinder(w, h: Integer);
+procedure Init(w, h: Integer);
 begin
    mapWidth  := w;
    mapHeight := h;
 end;
 
 // 设置是否允许穿越
-procedure TPathFinder.setThroughable(f: Boolean);
+procedure setThroughable(f: Boolean);
 begin
    isThroughable := f;
 end;
 
 // 人是否可达
-function TPathFinder.isManReachable(pos: Integer): Boolean;
+function isManReachable(pos: Integer): Boolean;
 begin
    Result := ((manMark[pos div mapWidth, pos mod mapWidth] and $01) > 0);
 end;
 
 // 人是否穿越可达
-function TPathFinder.isManReachableByThrough(pos: Integer): Boolean;
+function isManReachableByThrough(pos: Integer): Boolean;
 begin
    Result := ((manMark[pos div mapWidth, pos mod mapWidth] and $02) > 0);
 end;
 
 // 箱子是否穿越点
-function TPathFinder.isBoxOfThrough(pos: Integer): Boolean;
+function isBoxOfThrough(pos: Integer): Boolean;
 begin
    Result := ((manMark[pos div mapWidth, pos mod mapWidth] and $04) > 0);
 end;
 
 // 人是否可达 -- 逆推
-function TPathFinder.isManReachable_BK(pos: Integer): Boolean;
+function isManReachable_BK(pos: Integer): Boolean;
 begin
    Result := ((manMark[pos div mapWidth, pos mod mapWidth] and $10) > 0);
 end;
 
 // 人是否穿越可达 -- 逆推
-function TPathFinder.isManReachableByThrough_BK (pos: Integer): Boolean;
+function isManReachableByThrough_BK (pos: Integer): Boolean;
 begin
    Result := ((manMark[pos div mapWidth, pos mod mapWidth] and $20) > 0);
 end;
 
 // 箱子是否穿越点 -- 逆推
-function TPathFinder.isBoxOfThrough_BK(pos: Integer): Boolean;
+function isBoxOfThrough_BK(pos: Integer): Boolean;
 begin
    Result := ((manMark[pos div mapWidth, pos mod mapWidth] and $40) > 0);
 end;
 
 // 箱子是否可达
-function TPathFinder.isBoxReachable(pos: Integer): Boolean;
+function isBoxReachable(pos: Integer): Boolean;
 begin
    Result := ((boxMark[pos div mapWidth, pos mod mapWidth] and $01) > 0);
 end;
 
 // 箱子是否可达 -- 逆推
-function TPathFinder.isBoxReachable_BK(pos: Integer): Boolean;
+function isBoxReachable_BK(pos: Integer): Boolean;
 begin
    Result := ((boxMark[pos div mapWidth, pos mod mapWidth] and $10) > 0);
 end;
@@ -161,7 +155,7 @@ end;
 
 // 计算仓管员的可达范围，结果保存在 manMark[] 中
 // 参数：isBK -- 是否逆推, level -- 地图现场, manPos -- 人的位置
-procedure TPathFinder.manReachable(isBK: Boolean; level: array of Integer; manPos: Integer);
+procedure manReachable(isBK: Boolean; level: array of Integer; manPos: Integer);
 var
    curMark: Byte;
    i, j, k, i1, i2, i3, j1, j2, j3, p, tail, r, c: Integer;
@@ -267,7 +261,7 @@ end;
 // 计算人到达 toPos 的路径，保存到 tmpPath，返回路径长度
 // 参数：isBK -- 是否逆推, level -- 地图现场, manPos -- 仓管员原位置，toPos -- 仓管员目的位置
 
-function TPathFinder.manTo(isBK: Boolean; level: array of Integer; manPos, toPos: Integer): Integer;
+function manTo(isBK: Boolean; level: array of Integer; manPos, toPos: Integer): Integer;
 var
   i, j, i1, j1, i2, j2, i3, j3, k, p, tail, r, c, t1, t2, t_er, t_ec, len: Integer;
   isFound: Boolean;
@@ -468,7 +462,7 @@ begin
 end;
 
 // 检查 r1, c1 与 r2,c2 两点是否可达, 被穿越的箱子已被临时移动到 r, c
-function TPathFinder.canThrough(isBK: Boolean; r, c, r1, c1, r2, c2, dir: Integer): Boolean;
+function canThrough(isBK: Boolean; r, c, r1, c1, r2, c2, dir: Integer): Boolean;
 var
   i1, i2, j1, j2, k, p, tail: Integer;
 
@@ -521,7 +515,7 @@ begin
 end;
 
 // 计算并返回 nRow1, nCol1 与 nRow, nCol 两点间的穿越路径到 TurnPath，返回路径长度, , 点 nRow2, nCol2 是被穿越的箱子，且在穿越时，箱子需要临时移动到 nRow, nCol
-function TPathFinder.getPathForThrough(nRow, nCol, nRow1, nCol1, nRow2, nCol2: Integer; dir: Byte; num: Integer): Integer;
+function getPathForThrough(nRow, nCol, nRow1, nCol1, nRow2, nCol2: Integer; dir: Byte; num: Integer): Integer;
 var
   i, j, k, i1, j1, t1, t2, t_er, t_ec, p, tail, r, c: Integer;
   isFound: Boolean;
@@ -617,7 +611,7 @@ end;
 
 
 //参数：level -- 地图现场，boxPos -- 被点击的箱子
-procedure TPathFinder.FindBlock(level: array of Integer; boxPos: Integer);
+procedure FindBlock(level: array of Integer; boxPos: Integer);
 const
    dir: array[0..3] of Byte = ( 1, 0, 3, 2 );      // 换算父节点方向用
 
@@ -743,7 +737,7 @@ begin
 end;
 
 // 计算箱子的可达位置
-procedure TPathFinder.boxReachable(isBK: Boolean; boxPos, manPos: Integer);
+procedure boxReachable(isBK: Boolean; boxPos, manPos: Integer);
 var
     i, j, k, r, c, newR, newC, mToR, mToC, box_R, box_C, man_R, man_C, Q_Pos, Q_Size, F, Box_F, Man_F: Integer;
     curMark: Byte;
@@ -824,7 +818,7 @@ begin
 end;
 
 // 查看两点 firR, firC 和 secR, setC 是否人可达；boxR, boxC 为被点击的箱子的位置，其 boxR < 0 时，则不查看它
-function TPathFinder.manTo2b(isBK: Boolean; boxR, boxC, firR, firC, secR, secC: Integer): Boolean;
+function manTo2b(isBK: Boolean; boxR, boxC, firR, firC, secR, secC: Integer): Boolean;
 var
     i, j: Integer;
 
@@ -859,7 +853,7 @@ begin
 end;
 
 // 查看人是否可以从第一点 firR， firC 到达第二点 secR， setC
-function TPathFinder.manTo2(isBK: Boolean; boxR, boxC, firR, firC, secR, secC: Integer): Boolean;
+function manTo2(isBK: Boolean; boxR, boxC, firR, firC, secR, secC: Integer): Boolean;
 var
   i, j, k, i1, i2, i3, j1, j2, j3, p, tail, r, c: Integer;
   curMark: Byte;
@@ -978,7 +972,7 @@ begin
 end;
 
 // 计算箱子从 boxPos 到达 toPos 的最短路径
-function TPathFinder.boxTo(isBK: Boolean; boxPos, toPos, manPos: Integer): Integer;
+function boxTo(isBK: Boolean; boxPos, toPos, manPos: Integer): Integer;
 var
   i, j, k, boxR, boxC, toR, toC, manR, manC, newR, newC, mFromR, mFromC, mToR, mToC, r, c, box_R, box_C, man_R, man_C, H, G, T, DD, TT, GG, len, size: Integer;
   isFound: Boolean;
@@ -1106,7 +1100,8 @@ end;
         DD := PQ_Head.D;
         TT := PQ_Head.T;
         GG := PQ_Head.G;
-        Dispose(PQ_Head);
+        PQ_Head.next := nil;
+        Dispose(PBoxManNode(PQ_Head));
         PQ_Head := nil;
 
         for k := 0 to 3 do begin         // 检查f的四邻
@@ -1154,7 +1149,8 @@ end;
     while PQ <> nil do begin
         PQ_Head := PQ;
         PQ := PQ.next;
-        Dispose(PQ_Head);
+        PQ_Head.next := nil;
+        Dispose(PBoxManNode(PQ_Head));
         PQ_Head := nil;
     end;
 

@@ -1,7 +1,7 @@
 object main: Tmain
-  Left = 225
-  Top = 184
-  Width = 732
+  Left = 243
+  Top = 185
+  Width = 769
   Height = 533
   Caption = 'BoxMan'
   Color = clBtnFace
@@ -152,6 +152,7 @@ object main: Tmain
   OnCreate = FormCreate
   OnDestroy = FormDestroy
   OnKeyDown = FormKeyDown
+  OnKeyPress = FormKeyPress
   OnKeyUp = FormKeyUp
   OnMouseWheelDown = FormMouseWheelDown
   OnMouseWheelUp = FormMouseWheelUp
@@ -162,7 +163,7 @@ object main: Tmain
   object pl_Main: TPanel
     Left = 0
     Top = 30
-    Width = 716
+    Width = 753
     Height = 446
     Align = alClient
     TabOrder = 0
@@ -280,18 +281,9 @@ object main: Tmain
     object pl_Ground: TPanel
       Left = 173
       Top = 1
-      Width = 542
+      Width = 579
       Height = 444
       Align = alClient
-      Alignment = taLeftJustify
-      BevelOuter = bvNone
-      Color = clInactiveCaptionText
-      Font.Charset = ANSI_CHARSET
-      Font.Color = clWindowText
-      Font.Height = -27
-      Font.Name = #24494#36719#38597#40657
-      Font.Style = []
-      ParentFont = False
       TabOrder = 1
       object map_Image: TImage
         Left = 0
@@ -303,14 +295,31 @@ object main: Tmain
         OnMouseMove = map_ImageMouseMove
         OnMouseUp = map_ImageMouseUp
       end
+      object Edit1: TEdit
+        Left = 0
+        Top = 0
+        Width = 8
+        Height = 20
+        Font.Charset = ANSI_CHARSET
+        Font.Color = clWindowText
+        Font.Height = -12
+        Font.Name = #23435#20307
+        Font.Style = []
+        ImeName = #20013#25991'('#31616#20307') - '#25628#29399#25340#38899#36755#20837#27861
+        MaxLength = 2
+        ParentFont = False
+        TabOrder = 0
+        Text = 'Edit1'
+      end
     end
   end
   object pl_Tools: TPanel
     Left = 0
     Top = 0
-    Width = 716
+    Width = 753
     Height = 30
     Align = alTop
+    Alignment = taRightJustify
     Color = clInactiveCaption
     TabOrder = 1
     object bt_Pre: TSpeedButton
@@ -628,7 +637,7 @@ object main: Tmain
   object StatusBar1: TStatusBar
     Left = 0
     Top = 476
-    Width = 716
+    Width = 753
     Height = 19
     Panels = <
       item
@@ -939,6 +948,12 @@ object main: Tmain
     OnDeactivate = ApplicationEvents1Minimize
     OnMinimize = ApplicationEvents1Minimize
     Left = 253
+    Top = 71
+  end
+  object Timer1: TTimer
+    Interval = 2000
+    OnTimer = Timer1Timer
+    Left = 301
     Top = 71
   end
 end

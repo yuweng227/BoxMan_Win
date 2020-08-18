@@ -11,7 +11,6 @@ var
 
   AppPath, curSkinFileName: string;      // 皮肤文档名
 
-
 implementation
 
 // 初始化 Log 文件

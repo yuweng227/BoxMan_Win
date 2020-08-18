@@ -63,7 +63,6 @@ uses
 var
   R: TRect;
 
-
 {$R *.dfm}
 
 procedure TLoadSkinForm.MyBMPFree(pic: TBitmap);

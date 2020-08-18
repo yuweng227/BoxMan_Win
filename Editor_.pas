@@ -204,7 +204,7 @@ var
 implementation
 
 uses
-  EditorInf_, Recog_, LoadSkin, EditorHelp, TrialUnit;
+  EditorInf_, Recog_, LoadSkin, EditorHelp, TrialUnit, PathFinder;
   
 {$R *.dfm}
 {$R MyCursor.res}
@@ -2326,7 +2326,7 @@ begin
   TrialForm.mapRows     := bottom - top  + 1;
   TrialForm.mapCols     := right  - left + 1;
 
-  TrialForm.myPathFinder.PathFinder(TrialForm.mapCols, TrialForm.mapRows);
+  PathFinder.init(TrialForm.mapCols, TrialForm.mapRows);
 
   // 将试炼地图送入试炼场
   for i := top to bottom do begin

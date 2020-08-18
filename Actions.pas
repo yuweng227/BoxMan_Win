@@ -138,21 +138,23 @@ begin
          str := copy(Act, i+1, j-i-1);
          delete(Act, 1, j);
          p := TStringList.Create;
-         p.CommaText := str;
+         try
+           p.CommaText := str;
 
-         if p.Count = 2 then begin
-            try
-              M_X := strToInt(p[0])-1;
-              M_Y := strToInt(p[1])-1;
-            except
-              M_X := -1;
-              M_Y := -1;
-            end;
-         end;
-
-         if Assigned(p) then begin
-            p.Free;
-            p := nil;
+           if p.Count = 2 then begin
+              try
+                M_X := strToInt(p[0])-1;
+                M_Y := strToInt(p[1])-1;
+              except
+                M_X := -1;
+                M_Y := -1;
+              end;
+           end;
+         finally
+           if Assigned(p) then begin
+              p.Free;
+              p := nil;
+           end;
          end;
       end else begin
          k := Max(i, j);
