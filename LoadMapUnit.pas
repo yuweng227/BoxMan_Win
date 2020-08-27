@@ -951,7 +951,7 @@ begin
   Rows := mapNode.Rows;
   Cols := mapNode.Cols;
 
-  if (Rows >= 100) then begin
+  if (Rows > 100) then begin
     mapNode.Map := StringReplace(mapNode.Map, ' ', '-', [rfReplaceAll]);
     mapNode.Rows := 100;
     if (Cols >= 100) then begin
@@ -960,7 +960,7 @@ begin
     Exit;
   end;
 
-  if (Cols >= 100) then begin
+  if (Cols > 100) then begin
     mapNode.Map := StringReplace(mapNode.Map, ' ', '-', [rfReplaceAll]);
     mapNode.Cols := 100;
     Exit;

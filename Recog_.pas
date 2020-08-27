@@ -364,6 +364,9 @@ begin
   if Y <= Map_Bottom.Value then begin
      Map_Top.Value := Y;
      PicRows := (Map_Bottom.Value-Map_Top.Value) div Map_RowHeight.Value;
+     if ((Map_Bottom.Value-Map_Top.Value) mod Map_RowHeight.Value) < (Map_RowHeight.Value div 2) then begin
+        PicRows := PicRows - 1;
+     end;
   end
   else begin
      Map_Top.Value := Map_Bottom.Value;
@@ -377,6 +380,9 @@ begin
   if Y >= Map_Top.Value then begin
      Map_Bottom.Value := Y;
      PicRows := (Map_Bottom.Value-Map_Top.Value) div Map_RowHeight.Value;
+     if ((Map_Bottom.Value-Map_Top.Value) mod Map_RowHeight.Value) < (Map_RowHeight.Value div 2) then begin
+        PicRows := PicRows - 1;
+     end;
   end
   else begin
      Map_Bottom.Value := Map_Top.Value;
@@ -390,6 +396,9 @@ begin
   if X <= Map_Right.Value then begin
      Map_Left.Value := X;
      PicCols := (Map_Right.Value-Map_Left.Value) div Map_ColWidth.Value;
+     if ((Map_Right.Value-Map_Left.Value) mod Map_ColWidth.Value) < (Map_ColWidth.Value div 2) then begin
+        PicCols := PicCols - 1;
+     end;
   end
   else begin
      Map_Left.Value := Map_Right.Value;
@@ -403,6 +412,9 @@ begin
   if X >= Map_Left.Value then begin
      Map_Right.Value := X;
      PicCols := (Map_Right.Value-Map_Left.Value) div Map_ColWidth.Value;
+     if ((Map_Right.Value-Map_Left.Value) mod Map_ColWidth.Value) < (Map_ColWidth.Value div 2) then begin
+        PicCols := PicCols - 1;
+     end;
   end
   else begin
      Map_Right.Value := Map_Left.Value;
@@ -779,6 +791,12 @@ begin
 
        PicRows := (Map_Bottom.Value-Map_Top.Value) div Map_RowHeight.Value;
        PicCols := (Map_Right.Value-Map_Left.Value) div Map_ColWidth.Value;
+       if ((Map_Bottom.Value-Map_Top.Value) mod Map_RowHeight.Value) < (Map_RowHeight.Value div 2) then begin
+          PicRows := PicRows - 1;
+       end;
+       if ((Map_Right.Value-Map_Left.Value) mod Map_ColWidth.Value) < (Map_ColWidth.Value div 2) then begin
+         PicCols := PicCols - 1;
+       end;
        StatusBar1.Panels[1].Text := IntToStr(PicRows+1);
        StatusBar1.Panels[3].Text := IntToStr(PicCols+1);
 
@@ -886,6 +904,12 @@ begin
      else Map_ColWidth.Value  := 50;
      PicRows := (Map_Bottom.Value-Map_Top.Value) div Map_RowHeight.Value;
      PicCols := (Map_Right.Value-Map_Left.Value) div Map_ColWidth.Value;
+     if ((Map_Bottom.Value-Map_Top.Value) mod Map_RowHeight.Value) < (Map_RowHeight.Value div 2) then begin
+        PicRows := PicRows - 1;
+     end;
+     if ((Map_Right.Value-Map_Left.Value) mod Map_ColWidth.Value) < (Map_ColWidth.Value div 2) then begin
+        PicCols := PicCols - 1;
+     end;
      StatusBar1.Panels[1].Text := IntToStr(PicRows+1);
      StatusBar1.Panels[3].Text := IntToStr(PicCols+1);
 
@@ -1235,6 +1259,9 @@ procedure TRecogForm_.Map_LeftChange(Sender: TObject);
 begin
   SetLeft(Map_Left.Value);
   PicCols := (Map_Right.Value-Map_Left.Value) div Map_ColWidth.Value;
+  if ((Map_Right.Value-Map_Left.Value) mod Map_ColWidth.Value) < (Map_ColWidth.Value div 2) then begin
+     PicCols := PicCols - 1;
+  end;
   StatusBar1.Panels[1].Text := IntToStr(PicRows+1);
   StatusBar1.Panels[3].Text := IntToStr(PicCols+1);
   myDraw;
@@ -1244,6 +1271,9 @@ procedure TRecogForm_.Map_RightChange(Sender: TObject);
 begin
   SetRight(Map_Right.Value);
   PicCols := (Map_Right.Value-Map_Left.Value) div Map_ColWidth.Value;
+  if ((Map_Right.Value-Map_Left.Value) mod Map_ColWidth.Value) < (Map_ColWidth.Value div 2) then begin
+     PicCols := PicCols - 1;
+  end;
   StatusBar1.Panels[1].Text := IntToStr(PicRows+1);
   StatusBar1.Panels[3].Text := IntToStr(PicCols+1);
   myDraw;
@@ -1253,6 +1283,9 @@ procedure TRecogForm_.Map_TopChange(Sender: TObject);
 begin
   SetTop(Map_Top.Value);
   PicRows := (Map_Bottom.Value-Map_Top.Value) div Map_RowHeight.Value;
+  if ((Map_Bottom.Value-Map_Top.Value) mod Map_RowHeight.Value) < (Map_RowHeight.Value div 2) then begin
+     PicRows := PicRows - 1;
+  end;
   StatusBar1.Panels[1].Text := IntToStr(PicRows+1);
   StatusBar1.Panels[3].Text := IntToStr(PicCols+1);
   myDraw;
@@ -1262,6 +1295,9 @@ procedure TRecogForm_.Map_BottomChange(Sender: TObject);
 begin
   SetBottom(Map_Bottom.Value);
   PicRows := (Map_Bottom.Value-Map_Top.Value) div Map_RowHeight.Value;
+  if ((Map_Bottom.Value-Map_Top.Value) mod Map_RowHeight.Value) < (Map_RowHeight.Value div 2) then begin
+     PicRows := PicRows - 1;
+  end;
   StatusBar1.Panels[1].Text := IntToStr(PicRows+1);
   StatusBar1.Panels[3].Text := IntToStr(PicCols+1);
   myDraw;
@@ -1412,6 +1448,9 @@ procedure TRecogForm_.Map_RowHeightChange(Sender: TObject);
 begin
    if Map_RowHeight.Value > 0 then begin
      PicRows := (Map_Bottom.Value-Map_Top.Value) div Map_RowHeight.Value;
+     if ((Map_Bottom.Value-Map_Top.Value) mod Map_RowHeight.Value) < (Map_RowHeight.Value div 2) then begin
+        PicRows := PicRows - 1;
+     end;
      StatusBar1.Panels[1].Text := IntToStr(PicRows+1);
      StatusBar1.Panels[3].Text := IntToStr(PicCols+1);
      myDraw;
@@ -1422,6 +1461,9 @@ procedure TRecogForm_.Map_ColWidthChange(Sender: TObject);
 begin
    if Map_ColWidth.Value > 0 then begin
      PicCols := (Map_Right.Value-Map_Left.Value) div Map_ColWidth.Value;
+     if ((Map_Right.Value-Map_Left.Value) mod Map_ColWidth.Value) < (Map_ColWidth.Value div 2) then begin
+        PicCols := PicCols - 1;
+     end;
      StatusBar1.Panels[1].Text := IntToStr(PicRows+1);
      StatusBar1.Panels[3].Text := IntToStr(PicCols+1);
      myDraw;
@@ -1760,6 +1802,9 @@ begin
       begin
         SetLeft(myMovePoint.X);
         PicCols := (Map_Right.Value-Map_Left.Value) div Map_ColWidth.Value;
+        if ((Map_Right.Value-Map_Left.Value) mod Map_ColWidth.Value) < (Map_ColWidth.Value div 2) then begin
+           PicCols := PicCols - 1;
+        end;
         Map_Left.SetFocus;
         myDraw;
       end;
@@ -1767,6 +1812,9 @@ begin
       begin
         SetTop(myMovePoint.Y);
         PicRows := (Map_Bottom.Value-Map_Top.Value) div Map_RowHeight.Value;
+        if ((Map_Bottom.Value-Map_Top.Value) mod Map_RowHeight.Value) < (Map_RowHeight.Value div 2) then begin
+           PicRows := PicRows - 1;
+        end;
         Map_Top.SetFocus;
         myDraw;
       end;
@@ -1774,6 +1822,9 @@ begin
       begin
         SetRight(myMovePoint.X);
         PicCols := (Map_Right.Value-Map_Left.Value) div Map_ColWidth.Value;
+        if ((Map_Right.Value-Map_Left.Value) mod Map_ColWidth.Value) < (Map_ColWidth.Value div 2) then begin
+           PicCols := PicCols - 1;
+        end;
         Map_Right.SetFocus;
         myDraw;
       end;
@@ -1781,6 +1832,9 @@ begin
       begin
         SetBottom(myMovePoint.Y);
         PicRows := (Map_Bottom.Value-Map_Top.Value) div Map_RowHeight.Value;
+        if ((Map_Bottom.Value-Map_Top.Value) mod Map_RowHeight.Value) < (Map_RowHeight.Value div 2) then begin
+           PicRows := PicRows - 1;
+        end;
         Map_Bottom.SetFocus;
         myDraw;
       end;
@@ -1861,24 +1915,36 @@ begin
       1: begin
         SetLeft(X);
         PicCols := (Map_Right.Value-Map_Left.Value) div Map_ColWidth.Value;
+        if ((Map_Right.Value-Map_Left.Value) mod Map_ColWidth.Value) < (Map_ColWidth.Value div 2) then begin
+           PicCols := PicCols - 1;
+        end;
         myDraw;
         StatusBar1.Panels[8].Text := '拖动调整【左边界】';
       end;
       2: begin
         SetRight(X);
         PicCols := (Map_Right.Value-Map_Left.Value) div Map_ColWidth.Value;
+        if ((Map_Right.Value-Map_Left.Value) mod Map_ColWidth.Value) < (Map_ColWidth.Value div 2) then begin
+           PicCols := PicCols - 1;
+        end;
         myDraw;
         StatusBar1.Panels[8].Text := '拖动调整【右边界】';
       end;
       3: begin
         SetTop(Y);
         PicRows := (Map_Bottom.Value-Map_Top.Value) div Map_RowHeight.Value;
+        if ((Map_Bottom.Value-Map_Top.Value) mod Map_RowHeight.Value) < (Map_RowHeight.Value div 2) then begin
+           PicRows := PicRows - 1;
+        end;
         myDraw;
         StatusBar1.Panels[8].Text := '拖动调整【上边界】';
       end;
       4: begin
         SetBottom(Y);
         PicRows := (Map_Bottom.Value-Map_Top.Value) div Map_RowHeight.Value;
+        if ((Map_Bottom.Value-Map_Top.Value) mod Map_RowHeight.Value) < (Map_RowHeight.Value div 2) then begin
+           PicRows := PicRows - 1;
+        end;
         myDraw;
         StatusBar1.Panels[8].Text := '拖动调整【下边界】';
       end;
@@ -1886,6 +1952,9 @@ begin
         if (X - Map_Left.Value > 9) and (X < Map_Right.Value) then
             Map_ColWidth.Value := Map_ColWidth.Value+dx;
         PicCols := (Map_Right.Value-Map_Left.Value) div Map_ColWidth.Value;
+        if ((Map_Right.Value-Map_Left.Value) mod Map_ColWidth.Value) < (Map_ColWidth.Value div 2) then begin
+           PicCols := PicCols - 1;
+        end;
         myDraw;
         StatusBar1.Panels[8].Text := '拖动调整【列宽】';
       end;
@@ -1893,6 +1962,9 @@ begin
         if (Y - Map_Top.Value > 9) and (Y < Map_Bottom.Value) then
             Map_RowHeight.Value := Map_RowHeight.Value + dy;
         PicRows := (Map_Bottom.Value-Map_Top.Value) div Map_RowHeight.Value;
+        if ((Map_Bottom.Value-Map_Top.Value) mod Map_RowHeight.Value) < (Map_RowHeight.Value div 2) then begin
+           PicRows := PicRows - 1;
+        end;
         myDraw;
         StatusBar1.Panels[8].Text := '拖动调整【行高】';
       end;
@@ -1903,6 +1975,12 @@ begin
         end;
         PicCols := (Map_Right.Value-Map_Left.Value) div Map_ColWidth.Value;
         PicRows := (Map_Bottom.Value-Map_Top.Value) div Map_RowHeight.Value;
+        if ((Map_Right.Value-Map_Left.Value) mod Map_ColWidth.Value) < (Map_ColWidth.Value div 2) then begin
+           PicCols := PicCols - 1;
+        end;
+        if ((Map_Bottom.Value-Map_Top.Value) mod Map_RowHeight.Value) < (Map_RowHeight.Value div 2) then begin
+           PicRows := PicRows - 1;
+        end;
         myDraw;
         StatusBar1.Panels[8].Text := '拖动同时调整【行高列宽】';
       end;
@@ -1912,7 +1990,13 @@ begin
             Map_Left.Value := X;
         end;
         PicCols := (Map_Right.Value-Map_Left.Value) div Map_ColWidth.Value;
+        if ((Map_Right.Value-Map_Left.Value) mod Map_ColWidth.Value) < (Map_ColWidth.Value div 2) then begin
+           PicCols := PicCols - 1;
+        end;
         PicRows := (Map_Bottom.Value-Map_Top.Value) div Map_RowHeight.Value;
+        if ((Map_Bottom.Value-Map_Top.Value) mod Map_RowHeight.Value) < (Map_RowHeight.Value div 2) then begin
+           PicRows := PicRows - 1;
+        end;
         myDraw;
         StatusBar1.Panels[8].Text := '拖动调整【左上角】';
       end;

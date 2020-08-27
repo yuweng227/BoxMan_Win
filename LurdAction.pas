@@ -30,7 +30,7 @@ type
   PTStateNode = ^TStateNode;
 
 const
-  MaxLenPath = 200000;       // 路径最大长度限制
+  MaxLenPath = 500000;       // 路径最大长度限制
 
   // 四邻常量：左、右、上、下
   dr4 : array[0..3] of Integer = (  0, 0, -1, 1 );
