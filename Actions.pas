@@ -87,6 +87,7 @@ end;
 procedure TActionForm.Button1Click(Sender: TObject);
 var
   i, j, k, len: Integer;
+  f: Boolean;
   str: string;
   p: TStrings;
   MyTextFile: TextFile; 
@@ -117,10 +118,19 @@ begin
   len := MemoAct.Lines.Count;
 
   Act := '';
+  f := False;  // 是否开始“Lurd”行
   for i := 0 to len-1 do begin
       str := StringReplace(ActionForm.MemoAct.Lines[i], #9, '', [rfReplaceAll]);
       str := StringReplace(str, ' ', '', [rfReplaceAll]);
-      if (Length(str) > 0) and (not isLurd_2(str)) then begin
+      str := StringReplace(str, #10, '', [rfReplaceAll]);
+      str := StringReplace(str, #13, '', [rfReplaceAll]);
+
+      if Length(str) <= 0 then Continue;         // 跳过空行
+      
+      if (not f) and (not isLurd_2(str)) then Continue
+      else f := True;
+      
+      if not isLurd_2(str) then begin
          Act := '';
          MessageBox(handle, '包含了无效的动作字符，请检查并修正后再执行！', '错误', MB_ICONERROR or MB_OK);
          Exit;

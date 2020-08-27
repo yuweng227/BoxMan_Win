@@ -1,6 +1,6 @@
 object main: Tmain
-  Left = 216
-  Top = 416
+  Left = 233
+  Top = 393
   Width = 769
   Height = 533
   Caption = 'BoxMan'
@@ -604,6 +604,7 @@ object main: Tmain
       ParentShowHint = False
       ShowHint = True
       TabOrder = 0
+      OnMouseMove = pnl_TrunMouseMove
       OnMouseUp = pnl_TrunMouseUp
     end
     object pnl_Speed: TPanel
@@ -711,6 +712,10 @@ object main: Tmain
     object N29: TMenuItem
       Caption = #21452#20987#32534#21495
       OnClick = N29Click
+    end
+    object N30: TMenuItem
+      Caption = #20381#27425#26059#36716
+      OnClick = N30Click
     end
     object N3: TMenuItem
       Caption = '-'
@@ -943,6 +948,7 @@ object main: Tmain
     end
   end
   object OpenDialog1: TOpenDialog
+    Filter = 'all(*.xsb;*.txt;*.sok)|*.xsb;*.txt|xsb|*.xsb|txt|*.txt|sok|*.sok'
     Left = 127
     Top = 127
   end

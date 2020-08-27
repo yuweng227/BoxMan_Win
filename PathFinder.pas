@@ -738,10 +738,13 @@ end;
 
 // 计算箱子的可达位置
 procedure boxReachable(isBK: Boolean; boxPos, manPos: Integer);
+const
+  MAX_Size = 3000;
+
 var
-    i, j, k, r, c, newR, newC, mToR, mToC, box_R, box_C, man_R, man_C, Q_Pos, Q_Size, F, Box_F, Man_F: Integer;
+    i, j, k, r, c, newR, newC, mToR, mToC, box_R, box_C, man_R, man_C, Q_Pos, Q_Pos2, F, Box_F, Man_F: Integer;
     curMark: Byte;
-    Q: array[0..9999] of Integer;
+    Q: array[0..MAX_Size] of Integer;
 
 begin
     if isBK then curMark := $0F     // 逆推时，保留正推标志         
@@ -764,14 +767,16 @@ begin
     // 初始位置检测
     F        := (boxPos shl 16) or manPos;
     Q_Pos    := 0;
-    Q_Size   := 1;
+    Q_Pos2   := 1;
     Q[Q_Pos] := F;
 
     boxMark[boxPos div mapWidth, boxPos mod mapWidth] := boxMark[boxPos div mapWidth, boxPos mod mapWidth] or curMark;  // 被点箱子
 
-    while (Q_Size < 10000) and (Q_Pos < Q_Size) do begin
+    while (Q_Pos <> Q_Pos2) do begin
         F := Q[Q_Pos];    // 出队列
-        inc(Q_Pos);
+        Q_Pos := Q_Pos + 1;
+        if Q_Pos > MAX_Size then Q_Pos := 0;
+
         Box_F := F shr 16;
         Man_F := F and $FFFF;
 
@@ -808,8 +813,20 @@ begin
                 // 新可达点入列待查
                 if isBK then F := ((newR * mapWidth + newC) shl 16) or ((newR + dr4[k]) * mapWidth + newC + dc4[k])
                 else F := ((newR * mapWidth + newC) shl 16) or (box_R * mapWidth + box_C);
-                Q[Q_Size] := F;
-                inc(Q_Size);
+                Q[Q_Pos2] := F;
+                Q_Pos2 := Q_Pos2 + 1;
+                if Q_Pos2 > MAX_Size then begin
+                   Q_Pos2 := 0;
+
+//{$IFDEF LASTACT}
+//if not isEditor then begin
+//   Writeln(myLogFile_, '');
+//   Writeln(myLogFile_, DateTimeToStr(Now) + '*********** ' + inttostr(Q_Pos));      // 调试用，查看队列使用情况
+//   Flush(myLogFile_);
+//end;
+//{$ENDIF}
+
+                end;
                 boxMark[newR, newC] := boxMark[newR, newC] or curMark;                           // 新的可达点
                 mark0[box_R, box_C, k] := true;                                                  // 该节点的此方向（反）已推
             end;

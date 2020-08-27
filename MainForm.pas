@@ -39,6 +39,7 @@ type
     isSameGoal: boolean;       // 逆推时，使用正推目标位
     isJijing: boolean;         // 互动双推
     isNumber: boolean;         // 是否开启“双击编号”功能
+    isRotate: boolean;         // 是否“依次旋转”关卡
     isXSB_Saved: boolean;      // 当从剪切板导入的 XSB 是否保存过了
     isLurd_Saved: boolean;     // 推关卡的动作是否保存过了
     isOddEven: Boolean;        // 是否显示奇偶特效
@@ -167,6 +168,7 @@ type
     Timer1: TTimer;
     Edit1: TEdit;
     pl_Ground: TPanel;
+    N30: TMenuItem;
 
     procedure FormCreate(Sender: TObject);
     procedure FormResize(Sender: TObject);
@@ -276,6 +278,9 @@ type
     procedure FormKeyPress(Sender: TObject; var Key: Char);
     procedure pl_GroundMouseUp(Sender: TObject; Button: TMouseButton;
       Shift: TShiftState; X, Y: Integer);
+    procedure pnl_TrunMouseMove(Sender: TObject; Shift: TShiftState; X,
+      Y: Integer);
+    procedure N30Click(Sender: TObject);
 
   private
     // 当前地图参数
@@ -367,7 +372,7 @@ const
   SpeedInf: array[0..4] of string = ('最快', '较快', '中速', '较慢', '最慢');
   
   AppName = 'BoxMan';
-  AppVer = ' V2.8';
+  AppVer = ' V2.9';
 
 var
   main: Tmain;
@@ -612,6 +617,7 @@ begin
     mySettings.isSameGoal := IniFile.ReadBool('Settings', '正推目标位', false);        // 逆推时，使用正推目标位
     mySettings.isLeftBar := IniFile.ReadBool('Settings', '左侧边栏', true);            // 是否开启左侧边栏
     mySettings.isNumber := IniFile.ReadBool('Settings', '双击编号', true);             // 是否开启“双击编号”功能，默认开启
+    mySettings.isRotate := IniFile.ReadBool('Settings', '依次旋转', false);            // 是否“依次旋转”关卡，默认关闭
     mySettings.SkinFileName := IniFile.ReadString('Settings', '皮肤', '');             // 当前皮肤文档名
     mySettings.MapFileName := IniFile.ReadString('Settings', '关卡文档', '');          // 当前关卡文档名
     curMap.CurrentLevel := IniFile.ReadInteger('Settings', '关卡序号', 1);             // 上次推的关卡序号
@@ -684,6 +690,7 @@ begin
     IniFile.WriteBool('Settings', '正推目标位', mySettings.isSameGoal);         // 逆推时，使用正推目标位
     IniFile.WriteBool('Settings', '左侧边栏', mySettings.isLeftBar);            // 是否开启左侧边栏
     IniFile.WriteBool('Settings', '双击编号', mySettings.isNumber);             // 是否开启“双击编号”功能
+    IniFile.WriteBool('Settings', '依次旋转', mySettings.isRotate);             // 是否“依次旋转”关卡，默认关闭
     IniFile.WriteString('Settings', '皮肤', mySettings.SkinFileName);           // 当前皮肤文档名
     if not isCommandLine then begin
         IniFile.WriteString('Settings', '关卡文档', mySettings.MapFileName);        // 当前关卡文档名 -- 适应关卡文档与程序在同一目录下的情况
@@ -910,8 +917,8 @@ begin
   end;
   if curMap.CellSize > SkinSize then
     curMap.CellSize := SkinSize;
-  if curMap.CellSize < 10 then
-    curMap.CellSize := 10;
+  if curMap.CellSize < 6 then
+    curMap.CellSize := 6;
 
   // 选择单元格掩图
   MaskPic.Width := curMap.CellSize;
@@ -1924,7 +1931,7 @@ begin
   bt_Skin.Hint         := '更换皮肤: 【F2】';
   bt_Act.Hint          := '动作编辑: 【F4】';
   bt_Save.Hint         := '保存现场（关卡未存档时，同时保存关卡）: 【Ctrl + S】';
-  pnl_Trun.Hint        := '旋转关卡: 【*、/、左右鼠标键】';
+  pnl_Trun.Hint        := '旋转关卡: 【*、/：0转和依次变换；左键：左旋；右键：右旋；Ctri + 左键：左右翻转；Ctri + 右键：0转；Shift + 左键：上下翻转；Shift + 右键：0转】';
   pnl_Speed.Hint       := '改变游戏速度: 【+、-、左右鼠标键】';
   sb_Help.Hint         := '帮助：【F1】';
   funMenu.Hint         := '其它功能:【Alt】';
@@ -1964,22 +1971,23 @@ begin
   pmBoardBK.Items[1].Caption := '互动双推   【Ctrl + J】';
   pmBoardBK.Items[2].Caption := '-';
   pmBoardBK.Items[3].Caption := '双击编号   【Ctrl + N】';
-  pmBoardBK.Items[4].Caption := '-';
-  pmBoardBK.Items[5].Caption := '导入关卡（XSB） ← 剪切板                            【Ctrl + V】';
-  pmBoardBK.Items[6].Caption := '导出关卡和已做动作（XSB + Lurd） → 剪切板  【Ctrl + C】';
-  pmBoardBK.Items[7].Caption := '导出现场（XSB） → 剪切板                            【Ctrl + Alt + C】';
-  pmBoardBK.Items[8].Caption := '存入周转库 →（BoxMan.xsb）                       【Ctrl + K】';
-  pmBoardBK.Items[9].Caption := '-';
-  pmBoardBK.Items[10].Caption := '导入动作（Lurd） ← 剪切板 - 正逆推        【Ctrl + L】';
-  pmBoardBK.Items[11].Caption := '导出已做动作（Lurd） → 剪切板 - 正逆推  【Ctrl + M】';
-  pmBoardBK.Items[12].Caption := '导出后续动作（Lurd） → 剪切板              【Ctrl + Alt + M】';
-  pmBoardBK.Items[13].Caption := '-';
-  pmBoardBK.Items[14].Caption  := '重新开始   【Esc】';
-  pmBoardBK.Items[15].Caption  := '-';
-  pmBoardBK.Items[16].Caption  := '录制动作   【F9】';
-  pmBoardBK.Items[17].Caption := '-';
-  pmBoardBK.Items[18].Caption := '反向演示/暂停   【Home】';
-  pmBoardBK.Items[19].Caption := '正向演示/暂停   【End】';
+  pmBoardBK.Items[4].Caption := '依次旋转   【Ctrl + R】';
+  pmBoardBK.Items[5].Caption := '-';
+  pmBoardBK.Items[6].Caption := '导入关卡（XSB） ← 剪切板                            【Ctrl + V】';
+  pmBoardBK.Items[7].Caption := '导出关卡和已做动作（XSB + Lurd） → 剪切板  【Ctrl + C】';
+  pmBoardBK.Items[8].Caption := '导出现场（XSB） → 剪切板                            【Ctrl + Alt + C】';
+  pmBoardBK.Items[9].Caption := '存入周转库 →（BoxMan.xsb）                       【Ctrl + K】';
+  pmBoardBK.Items[10].Caption := '-';
+  pmBoardBK.Items[11].Caption := '导入动作（Lurd） ← 剪切板 - 正逆推        【Ctrl + L】';
+  pmBoardBK.Items[12].Caption := '导出已做动作（Lurd） → 剪切板 - 正逆推  【Ctrl + M】';
+  pmBoardBK.Items[13].Caption := '导出后续动作（Lurd） → 剪切板              【Ctrl + Alt + M】';
+  pmBoardBK.Items[14].Caption := '-';
+  pmBoardBK.Items[15].Caption  := '重新开始   【Esc】';
+  pmBoardBK.Items[16].Caption  := '-';
+  pmBoardBK.Items[17].Caption  := '录制动作   【F9】';
+  pmBoardBK.Items[18].Caption := '-';
+  pmBoardBK.Items[19].Caption := '反向演示/暂停   【Home】';
+  pmBoardBK.Items[20].Caption := '正向演示/暂停   【End】';
 
   pm_Up_Bt.Items[0].Caption := '上一关              【PgUp】';
   pm_Up_Bt.Items[1].Caption := '第一关              【Ctrl + PgUp】';
@@ -2098,6 +2106,8 @@ begin
   ReDoPos_BK := 0;
 
   LoadSttings();                     // 加载设置项
+
+  N30.Checked := mySettings.isRotate;
 
   // 接收启动参数
   isCommandLine := false;
@@ -5547,24 +5557,93 @@ procedure Tmain.pnl_TrunMouseUp(Sender: TObject; Button: TMouseButton; Shift: TS
 begin
     if (not Assigned(curMapNode)) or (not curMapNode.isEligible) then Exit;
 
-    case Button of
-      mbleft:
-        begin     // 单击 -- 指左键
-          if curMapNode.Trun < 7 then
-            inc(curMapNode.Trun)
-          else
-            curMapNode.Trun := 0;    // 第 0 转
+    if mySettings.isRotate then begin
+        case Button of
+          mbleft:
+            begin     // 单击 -- 指左键
+              if curMapNode.Trun < 7 then
+                inc(curMapNode.Trun)
+              else
+                curMapNode.Trun := 0;    // 第 0 转
+            end;
+          mbright:
+            begin    // 右击 -- 指右键
+              if curMapNode.Trun > 0 then
+                dec(curMapNode.Trun)
+              else
+                curMapNode.Trun := 7;    // 第 0 转
+            end;
         end;
-      mbright:
-        begin    // 右击 -- 指右键
-          if curMapNode.Trun > 0 then
-            dec(curMapNode.Trun)
-          else
-            curMapNode.Trun := 7;    // 第 0 转
+    end else begin
+        if ssShift in Shift then begin              // 上下翻转
+           case Button of
+              mbleft: begin
+                  case curMapNode.Trun of
+                     0:   curMapNode.Trun := 6;
+                     1:   curMapNode.Trun := 5;
+                     2:   curMapNode.Trun := 4;
+                     3:   curMapNode.Trun := 7;
+                     4:   curMapNode.Trun := 2;
+                     5:   curMapNode.Trun := 1;
+                     6:   curMapNode.Trun := 0;
+                     else curMapNode.Trun := 3;
+                  end;
+                end;
+              mbright: begin
+                  curMapNode.Trun := 0;
+                end;
+           end;
+        end else if ssCtrl in Shift then begin      // 左右翻转
+           case Button of
+              mbleft: begin
+                  case curMapNode.Trun of
+                     0:   curMapNode.Trun := 4;
+                     1:   curMapNode.Trun := 7;
+                     2:   curMapNode.Trun := 6;
+                     3:   curMapNode.Trun := 5;
+                     4:   curMapNode.Trun := 0;
+                     5:   curMapNode.Trun := 3;
+                     6:   curMapNode.Trun := 2;
+                     else curMapNode.Trun := 1;
+                  end;
+                end;
+              mbright: begin
+                  curMapNode.Trun := 0;
+                end;
+           end;
+        end else begin                              // 左旋、右旋
+            case Button of
+              mbleft:
+                begin     // 单击 -- 指左键
+                  case curMapNode.Trun of
+                     0:   curMapNode.Trun := 3;
+                     1:   curMapNode.Trun := 0;
+                     2:   curMapNode.Trun := 1;
+                     3:   curMapNode.Trun := 2;
+                     4:   curMapNode.Trun := 7;
+                     5:   curMapNode.Trun := 4;
+                     6:   curMapNode.Trun := 5;
+                     else curMapNode.Trun := 6;
+                  end;
+                end;
+              mbright:
+                begin    // 右击 -- 指右键
+                  case curMapNode.Trun of
+                     0:   curMapNode.Trun := 1;
+                     1:   curMapNode.Trun := 2;
+                     2:   curMapNode.Trun := 3;
+                     3:   curMapNode.Trun := 0;
+                     4:   curMapNode.Trun := 5;
+                     5:   curMapNode.Trun := 6;
+                     6:   curMapNode.Trun := 7;
+                     else curMapNode.Trun := 4;
+                  end;
+                end;
+            end;
         end;
     end;
+
     SetMapTrun();
-    curMapNode.Trun := curMapNode.Trun;
 end;
 
 // 根据旋转号绘制地图
@@ -7178,8 +7257,8 @@ begin
 
   // 逆推动作
   if (ManPos_BK >= 0) and (UnDoPos_BK > 0) then begin
-    c := ManPos_BK mod curMapNode.Cols + 1;
-    r := ManPos_BK div curMapNode.Cols + 1;
+    c := ManPos_BK_0 mod curMapNode.Cols + 1;
+    r := ManPos_BK_0 div curMapNode.Cols + 1;
 
     if UnDoPos_BK < MaxLenPath then UndoList_BK[UnDoPos_BK+1] := #0;
     str := str + '[' + IntToStr(c) + ', ' + IntToStr(r) + ']' + PChar(@UndoList_BK) + #10;
@@ -8068,6 +8147,27 @@ procedure Tmain.pl_GroundMouseUp(Sender: TObject; Button: TMouseButton;
   Shift: TShiftState; X, Y: Integer);
 begin
   Edit1.SetFocus;  // 一个辅助控件，控制输入焦点用的
+end;
+
+procedure Tmain.pnl_TrunMouseMove(Sender: TObject; Shift: TShiftState; X,
+  Y: Integer);
+begin
+  StatusBar1.Panels[7].Text := pnl_Trun.Hint;
+end;
+
+// 是否依次旋转关卡
+procedure Tmain.N30Click(Sender: TObject);
+begin
+  isSelectMod := False;
+
+  mySettings.isRotate := not mySettings.isRotate;
+  if mySettings.isRotate then
+    N30.Checked := True
+  else
+    N30.Checked := False;
+
+  DrawMap();                                  // 更新地图显示
+  ShowStatusBar();
 end;
 
 initialization
