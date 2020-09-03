@@ -7857,7 +7857,14 @@ begin
 
     mySettings.isXSB_Saved := True;            // 当从剪切板导入的 XSB 是否保存过了
 
-    StatusBar1.Panels[7].Text := '已入关卡周转库，重新打开“关卡周转库”可查看全部关卡。';
+    // 先强制停止后台线程，再创建新的后台线程，加载地图
+    isStopThread := True;
+    txtList.Clear;
+    txtList.loadfromfile('BoxMan.xsb');
+    TLoadMapThread.Create(False);
+    maxNumber := GetMapNumber(txtList);                            // 取得最大关卡序号
+
+    StatusBar1.Panels[7].Text := '已入关卡周转库。';
     Caption := AppName + AppVer + ' - ' + ExtractFileName(ChangeFileExt(mySettings.MapFileName, EmptyStr)) + ' ~ [' + inttostr(curMap.CurrentLevel) + '/' + inttostr(maxNumber) + ']';
   end;
 end;
