@@ -24,3 +24,12 @@ modules/
 /*.dcu
 /*.log
 /*.db
+/Skins/mySkin_S.bmp
+/Skins/mySkin_B.bmp
+/Skins/mySkin_M.bmp
+/Skins/mySkin_Q.bmp
+/Skins/mySkin_R.bmp
+/Image/EditorHelp.pas
+/Image/EditorHelp.dcu
+/Image/EditorHelp.ddp
+/Image/EditorHelp.dfm
