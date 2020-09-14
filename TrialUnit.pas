@@ -925,6 +925,7 @@ begin
   end;
 
   SetButton;
+  NewMapSize;
   DrawMap;
 end;
 
