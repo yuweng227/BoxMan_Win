@@ -53,7 +53,7 @@ procedure TMyOpenFile.FormCreate(Sender: TObject);
 begin
   Caption := '导入答案';
   Button1.Caption := '导入答案(&I)';
-  Button2.Caption := '取消(&C)';
+  Button2.Caption := '结束(&C)';
   SpeedButton1.Caption := '我的文档';
   SpeedButton2.Caption := '桌面';
 end;

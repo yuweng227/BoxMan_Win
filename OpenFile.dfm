@@ -127,7 +127,7 @@ object MyOpenFile: TMyOpenFile
       Top = 8
       Width = 89
       Height = 25
-      Caption = #21462#28040'(&C)'
+      Caption = #32467#26463'(&C)'
       TabOrder = 1
       OnClick = Button2Click
     end

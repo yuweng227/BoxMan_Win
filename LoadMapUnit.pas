@@ -1542,6 +1542,18 @@ begin
     try
 
       New(mapNode);                         // 关卡节点
+      mapNode.Map := '';
+      mapNode.Map_Thin := '';
+      mapNode.Rows := 0;
+      mapNode.Cols := 0;
+      mapNode.Trun := 0;
+      mapNode.Title := '';
+      mapNode.Author := '';
+      mapNode.Comment := '';
+      mapNode.CRC32 := -1;
+      mapNode.CRC_Num := -1;
+      mapNode.Solved := false;
+      mapNode.isEligible := True;
 
       try
         try
@@ -1573,6 +1585,17 @@ begin
                 end;
 
                 mapNode.Map := '';
+                mapNode.Map_Thin := '';
+                mapNode.Rows := 0;
+                mapNode.Cols := 0;
+                mapNode.Trun := 0;
+                mapNode.Title := '';
+                mapNode.Author := '';
+                mapNode.Comment := '';
+                mapNode.CRC32 := -1;
+                mapNode.CRC_Num := -1;
+                mapNode.Solved := false;
+                mapNode.isEligible := True;
 
                 is_XSB := True;    // 开始关卡 XSB 块
                 is_Comment := False;
@@ -1634,6 +1657,7 @@ begin
         finally
           if (mapNode.Rows > 2) and (not isStopThread_Ans) then begin
             if MapNormalize(mapNode) then begin
+               MyOpenFile.Caption := '导入答案 ~ 关卡：' + IntToStr(num+1);
                SetSolved_2(mapNode, mapSolution);
             end;
           end;
