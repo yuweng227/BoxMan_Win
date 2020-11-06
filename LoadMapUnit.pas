@@ -356,10 +356,10 @@ begin
 
     okNum := 0;
     for j := 0 to size - 1 do begin
-      if (tmp_Board[j] = BoxGoalCell) then
+      if (tmp_Board[j] = BoxGoalCell) and (sPushs > 0) then
         okNum := okNum+1;
 
-      if okNum = mapNode.Boxs then begin                     // 能够解关，为有效答案
+      if (okNum = mapNode.Boxs) then begin                     // 能够解关，为有效答案
         Result := True;
         Exit;
       end;

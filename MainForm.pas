@@ -2632,118 +2632,120 @@ begin
         pmBoardBK.Popup(Left + funMenu.Left + frame_w + 12, Top + Height - ClientHeight - frame_w + 12);
      end;
   end;
-  case Key of
-    VK_LEFT:
-      begin
-        if isMoving then IsStop := True
-        else IsStop := False;
+  if not (ssCtrl in Shift) then begin
+    case Key of
+      VK_LEFT:
+        begin
+          if isMoving then IsStop := True
+          else IsStop := False;
 
 
-        if mySettings.isBK and (ManPos_BK < 0) then Exit;
+          if mySettings.isBK and (ManPos_BK < 0) then Exit;
         
-        if mySettings.isBK then
-        begin
-          ReDoPos_BK := 1;
-          if ssCtrl in Shift then
-            RedoList_BK[ReDoPos_BK] := getTrun_Act(curMapNode.Trun, 'L')
+          if mySettings.isBK then
+          begin
+            ReDoPos_BK := 1;
+            if ssCtrl in Shift then
+              RedoList_BK[ReDoPos_BK] := getTrun_Act(curMapNode.Trun, 'L')
+            else
+              RedoList_BK[ReDoPos_BK] := getTrun_Act(curMapNode.Trun, 'l');
+            ReDo_BK(ReDoPos_BK)
+          end
           else
-            RedoList_BK[ReDoPos_BK] := getTrun_Act(curMapNode.Trun, 'l');
-          ReDo_BK(ReDoPos_BK)
-        end
-        else
-        begin
-          ReDoPos := 1;
-          RedoList[ReDoPos] := getTrun_Act(curMapNode.Trun, 'l');
-          ReDo(ReDoPos);
+          begin
+            ReDoPos := 1;
+            RedoList[ReDoPos] := getTrun_Act(curMapNode.Trun, 'l');
+            ReDo(ReDoPos);
+          end;
+          curMap.isFinish := False;
         end;
-        curMap.isFinish := False;
-      end;
-    VK_RIGHT:
-      begin
-        if isMoving then IsStop := True
-        else IsStop := False;
+      VK_RIGHT:
+        begin
+          if isMoving then IsStop := True
+          else IsStop := False;
 
-        if mySettings.isBK and (ManPos_BK < 0) then
-          Exit;
-        if mySettings.isBK then
-        begin
-          ReDoPos_BK := 1;
-          if ssCtrl in Shift then
-            RedoList_BK[ReDoPos_BK] := getTrun_Act(curMapNode.Trun, 'R')
+          if mySettings.isBK and (ManPos_BK < 0) then
+            Exit;
+          if mySettings.isBK then
+          begin
+            ReDoPos_BK := 1;
+            if ssCtrl in Shift then
+              RedoList_BK[ReDoPos_BK] := getTrun_Act(curMapNode.Trun, 'R')
+            else
+              RedoList_BK[ReDoPos_BK] := getTrun_Act(curMapNode.Trun, 'r');
+            ReDo_BK(ReDoPos_BK)
+          end
           else
-            RedoList_BK[ReDoPos_BK] := getTrun_Act(curMapNode.Trun, 'r');
-          ReDo_BK(ReDoPos_BK)
-        end
-        else
-        begin
-          ReDoPos := 1;
-          RedoList[ReDoPos] := getTrun_Act(curMapNode.Trun, 'r');
-          ReDo(ReDoPos);
+          begin
+            ReDoPos := 1;
+            RedoList[ReDoPos] := getTrun_Act(curMapNode.Trun, 'r');
+            ReDo(ReDoPos);
+          end;
+          curMap.isFinish := False;
         end;
-        curMap.isFinish := False;
-      end;
-    VK_UP:
-      begin
-        if isMoving then IsStop := True
-        else IsStop := False;
+      VK_UP:
+        begin
+          if isMoving then IsStop := True
+          else IsStop := False;
 
-        if mySettings.isBK and (ManPos_BK < 0) then
-          Exit;
-        if mySettings.isBK then
-        begin
-          ReDoPos_BK := 1;
-          if ssCtrl in Shift then
-            RedoList_BK[ReDoPos_BK] := getTrun_Act(curMapNode.Trun, 'U')
+          if mySettings.isBK and (ManPos_BK < 0) then
+            Exit;
+          if mySettings.isBK then
+          begin
+            ReDoPos_BK := 1;
+            if ssCtrl in Shift then
+              RedoList_BK[ReDoPos_BK] := getTrun_Act(curMapNode.Trun, 'U')
+            else
+              RedoList_BK[ReDoPos_BK] := getTrun_Act(curMapNode.Trun, 'u');
+            ReDo_BK(ReDoPos_BK)
+          end
           else
-            RedoList_BK[ReDoPos_BK] := getTrun_Act(curMapNode.Trun, 'u');
-          ReDo_BK(ReDoPos_BK)
-        end
-        else
-        begin
-          ReDoPos := 1;
-          RedoList[ReDoPos] := getTrun_Act(curMapNode.Trun, 'u');
-          ReDo(ReDoPos);
+          begin
+            ReDoPos := 1;
+            RedoList[ReDoPos] := getTrun_Act(curMapNode.Trun, 'u');
+            ReDo(ReDoPos);
+          end;
+          curMap.isFinish := False;
         end;
-        curMap.isFinish := False;
-      end;
-    VK_DOWN:
-      begin
-        if isMoving then IsStop := True
-        else IsStop := False;
+      VK_DOWN:
+        begin
+          if isMoving then IsStop := True
+          else IsStop := False;
 
-        if mySettings.isBK and (ManPos_BK < 0) then
-          Exit;
-        if mySettings.isBK then
-        begin
-          ReDoPos_BK := 1;
-          if ssCtrl in Shift then
-            RedoList_BK[ReDoPos_BK] := getTrun_Act(curMapNode.Trun, 'D')
+          if mySettings.isBK and (ManPos_BK < 0) then
+            Exit;
+          if mySettings.isBK then
+          begin
+            ReDoPos_BK := 1;
+            if ssCtrl in Shift then
+              RedoList_BK[ReDoPos_BK] := getTrun_Act(curMapNode.Trun, 'D')
+            else
+              RedoList_BK[ReDoPos_BK] := getTrun_Act(curMapNode.Trun, 'd');
+            ReDo_BK(ReDoPos_BK)
+          end
           else
-            RedoList_BK[ReDoPos_BK] := getTrun_Act(curMapNode.Trun, 'd');
-          ReDo_BK(ReDoPos_BK)
-        end
-        else
-        begin
-          ReDoPos := 1;
-          RedoList[ReDoPos] := getTrun_Act(curMapNode.Trun, 'd');
-          ReDo(ReDoPos);
+          begin
+            ReDoPos := 1;
+            RedoList[ReDoPos] := getTrun_Act(curMapNode.Trun, 'd');
+            ReDo(ReDoPos);
+          end;
+          curMap.isFinish := False;
         end;
-        curMap.isFinish := False;
-      end;
-    VK_F1:                         // F1，帮助
-      begin
-        ShellExecute(Application.handle, nil, PChar(AppPath + 'BoxManHelp.txt'), nil, nil, SW_SHOWNORMAL);
-        ContentClick(Self);
-      end;
-    VK_F2:                         // F2，更换皮肤
-      bt_Skin.Click;
-    VK_F3:                         // F3，浏览关卡
-      bt_View.Click;
-    VK_F4:                         // F4，动作编辑
-      bt_Act.Click;
-    69:                            // E， 奇偶格效果
-      if not mySettings.isOddEven then
-         bt_OddEvenMouseDown(Self, mbLeft, [], -1, -1);
+      VK_F1:                         // F1，帮助
+        begin
+          ShellExecute(Application.handle, nil, PChar(AppPath + 'BoxManHelp.txt'), nil, nil, SW_SHOWNORMAL);
+          ContentClick(Self);
+        end;
+      VK_F2:                         // F2，更换皮肤
+        bt_Skin.Click;
+      VK_F3:                         // F3，浏览关卡
+        bt_View.Click;
+      VK_F4:                         // F4，动作编辑
+        bt_Act.Click;
+      69:                            // E， 奇偶格效果
+        if not mySettings.isOddEven then
+           bt_OddEvenMouseDown(Self, mbLeft, [], -1, -1);
+    end;
   end;
   Edit1.SetFocus;  // 一个辅助控件，控制输入焦点用的
   Key := 0;
@@ -2828,7 +2830,7 @@ begin
            bt_UnDo.Click;
         end;
       end;
-    32, 13:                         // 空格键/回车键，Redo
+    32:                         // 空格键，Redo     /回车键, 13
       begin
         if isMoving then IsStop := True
         else if (ssCtrl in Shift) or (ssAlt in Shift) or (ssShift in Shift) then begin
