@@ -375,7 +375,7 @@ const
   SpeedInf: array[0..4] of string = ('最快', '较快', '中速', '较慢', '最慢');
   
   AppName = 'BoxMan';
-  AppVer = ' V2.11';
+  AppVer = ' V3.00';
 
 var
   main: Tmain;
