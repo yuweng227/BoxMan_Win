@@ -298,6 +298,8 @@ type
     map_Selected: array[0..9999] of Boolean;          // 选中的单元格
     map_Selected_BK: array[0..9999] of Boolean;       // 选中的单元格 - 逆推
     map_Board_Visited: array[0..9999] of Boolean;     // 访问过的格子
+    net_Inf: array[0..9999] of Byte;                  // 正推网锁信息
+    net_Infable: Boolean;                             // 是否显示正推网锁信息
     BoxNumber: integer;                               // 箱子数
     GoalNumber: integer;                              // 目标点数
     ManPos: integer;                                  // 人的位置 -- 正推
@@ -347,6 +349,7 @@ type
     procedure MenuItemClick(Sender: TObject);
     function GetCountBox(): string;                   // 数箱子
     procedure getANS(ans_num, level_num: Integer; var str: String);      //根据答案的旋转数计算出关卡某旋转的答案
+    procedure m_Net_Inf(Pos: Integer);                //计算网点、网口
 
   public
     mySettings: ^TSetting;                            // 程序配置项变量
@@ -1680,8 +1683,26 @@ begin
           end;
         end;
       end;
+      
+      // 显示正推网锁信息
+      if net_Infable then begin
+        if (net_Inf[pos] > 0) then begin
+//            map_Image.Canvas.Font.Color := clBlack;
+            map_Image.Canvas.Brush.Style := bsClear;
+            map_Image.Canvas.Font.Size := Round(curMap.CellSize / 2.5);
+            map_Image.Canvas.Font.Style := [fsBold];
+            if (net_Inf[pos] = 1) then begin
+               map_Image.Canvas.Font.Color := clBlack;
+               map_Image.Canvas.TextOut(R.Left + curMap.CellSize div 3, R.Top + curMap.CellSize div 5, '#');
+            end else begin
+               map_Image.Canvas.Font.Color := clWhite;
+               map_Image.Canvas.TextOut(R.Left + curMap.CellSize div 3, R.Top + curMap.CellSize div 5, 'o');
+            end;
+        end;
+      end;
     end;
   end;
+  net_Infable := False;           // 是否显示正推网锁信息
 
   // 是否不合格的关卡 XSB
   if curMapNode.isEligible then begin
@@ -1881,7 +1902,7 @@ begin
         map_Image.Canvas.Brush.Color := clWhite;
         map_Image.Canvas.FrameRect(R2);
      end;
-     
+
      StatusBar1.Panels[7].Text := GetCountBox();
   end;
 
@@ -2019,6 +2040,8 @@ begin
   mySettings.bwHeight := 600;
   mySettings.mySpeed := 2;        // 默认移动速度
   mySettings.isGoThrough := true; // 穿越开关
+
+  net_Infable := False;           // 是否显示正推网锁信息
 
   isSelectMod := false;           // 是否触动了选择模式 -- Ctrl + 左键单击单元格
   isSelecting := false;           // 是否正处于选择模式 -- Ctrl + 左键拖动
@@ -2453,7 +2476,7 @@ begin
         if mySettings.isBK then begin      // 逆推
            if curMap.Recording_BK then begin   // 将录制的动作保存的“寄存器”
               curMap.Recording_BK := False;
-              DrawMap();
+                DrawMap();
               Act := GetRecording(mySettings.isBK, curMap.StartPos_BK);
               if Length(Act) > 0 then begin
                  ActionForm.MemoAct.Lines.Clear;
@@ -3166,6 +3189,52 @@ begin
   end;
 end;
 
+//计算网点、网口
+procedure Tmain.m_Net_Inf(Pos: Integer);
+var
+  m_Pos, m_Pos1, m_Pos2, i, k, p: Integer;
+  d_pos: array[0..3] of Integer;
+  Q: array[0..500] of Integer;
+
+begin
+    m_Pos := Pos;
+    d_pos[0] := -1;
+    d_pos[1] := 1;
+    d_pos[2] := -curMapNode.Cols;
+    d_pos[3] := curMapNode.Cols;
+
+
+    //访问标志复位
+    for i := 0 to curMap.MapSize-1 do begin
+        net_Inf[i] := 0;
+    end;
+
+    p := 1;
+    Q[p] := m_Pos;
+    net_Inf[m_Pos] := 1;   //初始位置入队列，待查其四邻
+
+    while (p > 0) do begin
+        m_Pos := Q[p];     //出队列
+        p := P-1;
+
+        for k := 0 to 3 do begin
+            m_Pos1 := m_Pos + d_pos[k];
+            m_Pos2 := m_Pos + d_pos[k]*2;
+
+            if (m_Pos1 < 0) or (m_Pos1 >= curMap.MapSize) or (m_Pos2 < 0) or (m_Pos2 >= curMap.MapSize) or (net_Inf[m_Pos2] > 0) or
+               (map_Board[m_Pos1] in [EmptyCell, WallCell]) or (map_Board[m_Pos2] in [EmptyCell, WallCell]) then begin  //箱子的一侧临墙
+                continue;
+            end else if (map_Board[m_Pos2] = FloorCell) or (map_Board[m_Pos2] = ManCell) or (map_Board[m_Pos2] = BoxCell) then begin  //网口
+                net_Inf[m_Pos2] := 2;
+            end else begin  //没有访问过的格子（应该是'.'或'*'，不会是'+'）
+                net_Inf[m_Pos2] := 1;  //网点
+                p := p+1;
+                Q[p] := m_Pos2;
+            end;
+        end;
+    end;
+end;
+
 // 解析最后一次“直推”
 function Tmain.GetStepLine(is_BK: Boolean): Integer;
 var
@@ -3538,12 +3607,19 @@ begin
         end;
       end;
     mbright:
-      begin    // 右击 -- 指右键，撤销一个直推
-         if isMoving then IsStop := True
-         else IsStop := False;
+      begin
+         if ssCtrl in Shift then begin     // 按了 Ctrl + 右击
+            if (not mySettings.isBK) and (map_Board[pos] in [GoalCell, BoxGoalCell]) then begin
+              m_Net_Inf(pos);                // 计算网点、网口等信息
+              net_Infable := True;           // 是否显示正推网锁信息
+            end;
+         end else begin                    // 右击 -- 指右键，撤销一个直推
+           if isMoving then IsStop := True
+           else IsStop := False;
 
-         if mySettings.isBK then UnDo_BK(GetStepLine(True))
-         else UnDo(GetStepLine(False));
+           if mySettings.isBK then UnDo_BK(GetStepLine(True))
+           else UnDo(GetStepLine(False));
+         end;
       end;
   end;
 
@@ -3681,7 +3757,6 @@ begin
               end;
           end;
       end;
-
       DrawMap();
   end;
 end;
